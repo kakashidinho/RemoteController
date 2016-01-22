@@ -12,6 +12,8 @@
 #define UNRELIABLE_PING_RETRIES 10
 #define UNRELIABLE_PING_INTERVAL 10
 
+#define NUM_PENDING_MSGS_TO_START_DISCARD 60
+
 #ifndef min
 #	define min(a,b) ((a) < (b) ? (a) : (b))
 #endif
@@ -130,7 +132,7 @@ namespace HQRemote {
 
 	/*----------------SocketConnectionHandler ----------------*/
 	SocketConnectionHandler::SocketConnectionHandler()
-		:m_connLessSocket(INVALID_SOCKET), m_connSocket(INVALID_SOCKET)
+		:m_connLessSocket(INVALID_SOCKET), m_connSocket(INVALID_SOCKET), m_enableReconnect(true)
 	{
 		platformConstruct();
 	}
@@ -206,9 +208,17 @@ namespace HQRemote {
 		return data;
 	}
 
-	void SocketConnectionHandler::pushDataToQueue(DataRef data) {
+	void SocketConnectionHandler::pushDataToQueue(DataRef data, bool discardIfFull) {
 		std::lock_guard<std::mutex> lg(m_dataLock);
 
+		if (discardIfFull && m_dataQueue.size() > NUM_PENDING_MSGS_TO_START_DISCARD)
+		{
+#if defined DEBUG || defined _DEBUG
+			fprintf(stderr, "discarded a message due to too many in queue\n");
+#endif
+			return;//ignore
+		}
+		
 		m_dataQueue.push_back(data);
 	}
 
@@ -375,7 +385,7 @@ namespace HQRemote {
 			//read data immediately
 			re = recvDataAtomicNoLock(socket, data->data(), data->size());
 			if (re != SOCKET_ERROR)
-				pushDataToQueue(data);
+				pushDataToQueue(data, false);
 		}
 			break;
 		}//switch (header.type)
@@ -401,6 +411,10 @@ namespace HQRemote {
 			{
 				auto first = m_connLessBuffers.begin();
 				m_connLessBuffers.erase(first);
+				
+#if defined DEBUG || defined _DEBUG
+				fprintf(stderr, "discarded a message\n");
+#endif
 			}
 
 			MsgBuf newBuf;
@@ -424,12 +438,17 @@ namespace HQRemote {
 
 				//message is complete, push to data queue for comsuming
 				if (buffer.filledSize >= buffer.data->size()) {
-					pushDataToQueue(buffer.data);
+					pushDataToQueue(buffer.data, true);
 					
 					//remove from pending list
 					m_connLessBuffers.erase(pendingBufIte);
 				}
 			}
+#if defined DEBUG || defined _DEBUG
+			else {
+				fprintf(stderr, "discarded a fragment\n");
+			}
+#endif
 		}
 			break;
 		case PING_MSG_CHUNK:
@@ -529,6 +548,7 @@ namespace HQRemote {
 		SetCurrentThreadName("remoteDataReceiverThread");
 
 		_ssize_t re;
+		bool connectedBefore = false;
 		while (m_running) {
 			m_socketLock.lock();
 			auto l_connected = connected();
@@ -537,6 +557,8 @@ namespace HQRemote {
 			m_socketLock.unlock();
 			//we have an existing connection
 			if (l_connected) {
+				connectedBefore = true;
+				
 				//wat for at most 1ms
 				timeval timeout;
 				timeout.tv_sec = 0;
@@ -581,7 +603,10 @@ namespace HQRemote {
 				} //if (l_connSocket != INVALID_SOCKET)
 
 			}//if (l_connected)
-
+			else if (connectedBefore && !m_enableReconnect) {
+				//stop
+				m_running = false;
+			}
 			else {
 				//initialize connection
 				m_connLessSocketDestAddr = nullptr;
@@ -751,6 +776,7 @@ namespace HQRemote {
 	UnreliableSocketClientHandler::UnreliableSocketClientHandler(int connLessListeningPort, const ConnectionEndpoint& connLessRemoteEndpoint)
 	: BaseUnreliableSocketHandler(connLessListeningPort), m_connLessRemoteEndpoint(connLessRemoteEndpoint), m_connLessRemoteReachable(false)
 	{
+		m_enableReconnect = false;
 	}
 	
 	UnreliableSocketClientHandler::~UnreliableSocketClientHandler() {
@@ -832,18 +858,28 @@ namespace HQRemote {
 		
 		//connect to server
 		if (m_connSocket == INVALID_SOCKET && m_remoteEndpoint.port != 0) {
-			std::lock_guard<std::mutex> lg(m_socketLock);
+			
+			std::unique_lock<std::mutex> lk(m_socketLock);
 			
 			m_connSocket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 			if (m_connSocket != INVALID_SOCKET) {
 				sa.sin_addr.s_addr = inet_addr(m_remoteEndpoint.address.c_str());
 				sa.sin_port = htons(m_remoteEndpoint.port);
 				
-				re = ::connect(m_connSocket, (sockaddr*)&sa, sizeof(sa));
+				socket_t l_connSocket = m_connSocket;
+				lk.unlock();
+				
+				re = ::connect(l_connSocket, (sockaddr*)&sa, sizeof(sa));
 				if (re == SOCKET_ERROR) {
 					//failed
-					closesocket(m_connSocket);
-					m_connSocket = INVALID_SOCKET;
+					
+					lk.lock();
+					if (m_connSocket != INVALID_SOCKET)
+					{
+						closesocket(m_connSocket);
+						m_connSocket = INVALID_SOCKET;
+					}
+					lk.unlock();
 				}
 				
 			}//if (m_connSocket != INVALID_SOCKET && m_remoteEndpoint.port != 0)

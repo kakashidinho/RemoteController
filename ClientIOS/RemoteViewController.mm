@@ -8,12 +8,16 @@
 
 #import "RemoteViewController.h"
 
+#define MAX_FRAMES_TO_PROCESS 30
+
 @interface RemoteViewController ()
 
 @property (strong, atomic) dispatch_queue_t backGroundDispatchQueue;
 @property (strong, atomic) NSMutableDictionary* touchesDictionary;
 @property (atomic) int touchIdCounter;
 @property (strong, atomic) NSMutableArray* reusableTouchIds;
+
+@property (atomic) uint64_t frameInProcessing;
 
 @property (atomic) uint64_t lastRenderedFrame;
 
@@ -49,6 +53,7 @@
 	
 	//
 	self.lastRenderedFrame = 0;
+	self.frameInProcessing = 0;
 }
 
 - (void)didReceiveMemoryWarning {
@@ -192,6 +197,15 @@
 					{
 						uint64_t frameId = eventRef->event.renderedFrameData.frameId;
 						
+						if (self.frameInProcessing > MAX_FRAMES_TO_PROCESS)
+						{
+#ifdef DEBUG
+							fprintf(stderr, "discarded a frame due to too many in decompressing queue\n");
+#endif
+							break;//skip
+						}
+						self.frameInProcessing ++;
+						
 						dispatch_async(self.backGroundDispatchQueue, ^{
 							auto &event = eventRef->event;
 							//decode the image data in background
@@ -216,8 +230,15 @@
 								
 								//update the view on ui thread
 								dispatch_async(dispatch_get_main_queue(), ^{
+									self.frameInProcessing--;
+									
 									if (self.lastRenderedFrame >= frameId)//skip
+									{
+#ifdef DEBUG
+										fprintf(stderr, "discarded a frame\n");
+#endif
 										return;
+									}
 									self.remoteFrameView.image = image;
 									
 									self.lastRenderedFrame = frameId;

@@ -79,7 +79,6 @@ namespace HQRemote {
 	//socket based handler
 	class HQREMOTE_API SocketConnectionHandler : public IConnectionHandler {
 	public:
-		SocketConnectionHandler();
 		~SocketConnectionHandler();
 
 		virtual bool connected() const override;
@@ -106,6 +105,8 @@ namespace HQRemote {
 		void recvProc();
 		
 	protected:
+		SocketConnectionHandler();
+		
 		struct MsgBuf {
 			DataRef data;
 			size_t filledSize;
@@ -133,7 +134,7 @@ namespace HQRemote {
 		//check if we're able to connect to the remote endpoint on an unreliable channel
 		bool testUnreliableRemoteEndpointNoLock();
 		
-		void pushDataToQueue(DataRef data);
+		void pushDataToQueue(DataRef data, bool discardIfFull);
 
 		std::mutex m_socketLock;
 		//receiving thread
@@ -148,6 +149,8 @@ namespace HQRemote {
 		
 		UnreliablePingInfo m_lastConnLessPing;
 
+		bool m_enableReconnect;
+		
 		//platform dependent
 		struct Impl;
 		Impl * m_impl;
@@ -182,7 +185,7 @@ namespace HQRemote {
 		virtual void addtionalSocketCleanupImpl() override;
 
 		int m_port;
-		socket_t m_serverSocket;
+		std::atomic<socket_t> m_serverSocket;
 	};
 	
 	//socket based ureliable client handler
