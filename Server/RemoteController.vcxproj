@@ -1,0 +1,276 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{F7D673FF-6E5B-4BE9-B250-DC320D623696}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>RemoteController</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v120_xp</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v120_xp</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140_xp</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140_xp</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_WINDOWS;_USRDLL;REMOTECONTROLLER_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>..\third-party\glew\include;..\third-party\jpeg-9a;..\third-party\jpeg-9a\win32</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>..\third-party\glew\bin</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Ws2_32.lib;glew32.lib;opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy /B /Y ..\third-party\glew\bin\glew32.dll $(OutDir)</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_DEBUG;_WINDOWS;_USRDLL;REMOTECONTROLLER_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>..\third-party\glew\include;..\third-party\jpeg-9a;..\third-party\jpeg-9a\win32</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>..\third-party\glew\bin</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Ws2_32.lib;glew32.lib;opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy /B /Y ..\third-party\glew\bin\glew32.dll $(OutDir)</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_WINDOWS;_USRDLL;REMOTECONTROLLER_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>..\third-party\glew\include;..\third-party\jpeg-9a;..\third-party\jpeg-9a\win32</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>..\third-party\glew\bin</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Ws2_32.lib;glew32.lib;opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy /B /Y ..\third-party\glew\bin\glew32.dll $(OutDir)</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_WINDOWS;_USRDLL;REMOTECONTROLLER_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>..\third-party\glew\include;..\third-party\jpeg-9a;..\third-party\jpeg-9a\win32</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>..\third-party\glew\bin</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Ws2_32.lib;glew32.lib;opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy /B /Y ..\third-party\glew\bin\glew32.dll $(OutDir)</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\apple\TimerApple.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\Common.cpp" />
+    <ClCompile Include="..\ConnectionHandler.cpp" />
+    <ClCompile Include="..\Event.cpp" />
+    <ClCompile Include="..\third-party\jpeg-9a\jcapimin.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jcapistd.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jcarith.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jcinit.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jcmarker.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jcmaster.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jcparam.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jctrans.c" />
+    <ClCompile Include="..\win32\ConnectionHandlerWin32.cpp" />
+    <ClCompile Include="..\win32\TimerWin32.cpp" />
+    <ClCompile Include="apple\ImgCompressorApple.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Engine.cpp" />
+    <ClCompile Include="FrameCapturer.cpp" />
+    <ClCompile Include="FrameCapturerGL.cpp" />
+    <ClCompile Include="ImgCompressor.cpp" />
+    <ClCompile Include="win32\EngineWin32.cpp" />
+    <ClCompile Include="..\third-party\jpeg-9a\jaricom.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jcomapi.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jdapimin.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jdapistd.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jdarith.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jdatadst.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jdatasrc.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jdcoefct.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jdcolor.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jddctmgr.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jdhuff.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jdinput.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jdmainct.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jdmarker.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jdmaster.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jdmerge.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jdpostct.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jdsample.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jdtrans.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jerror.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jidctflt.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jidctfst.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jidctint.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jmemansi.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jmemmgr.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jquant1.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jquant2.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jutils.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jcmainct.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jcprepct.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jccoefct.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jccolor.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jcsample.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jcdctmgr.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jfdctint.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jfdctfst.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jfdctflt.c" />
+    <ClCompile Include="..\third-party\jpeg-9a\jchuff.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\Common.h" />
+    <ClInclude Include="..\ConnectionHandler.h" />
+    <ClInclude Include="..\Data.h" />
+    <ClInclude Include="..\Event.h" />
+    <ClInclude Include="..\third-party\glew\include\GL\glew.h" />
+    <ClInclude Include="..\third-party\glew\include\GL\glxew.h" />
+    <ClInclude Include="..\third-party\glew\include\GL\wglew.h" />
+    <ClInclude Include="..\third-party\jpeg-9a\win32\jconfig.h" />
+    <ClInclude Include="..\third-party\jpeg-9a\jdct.h" />
+    <ClInclude Include="..\third-party\jpeg-9a\jerror.h" />
+    <ClInclude Include="..\third-party\jpeg-9a\jinclude.h" />
+    <ClInclude Include="..\third-party\jpeg-9a\jmemsys.h" />
+    <ClInclude Include="..\third-party\jpeg-9a\jmorecfg.h" />
+    <ClInclude Include="..\third-party\jpeg-9a\jpegint.h" />
+    <ClInclude Include="..\third-party\jpeg-9a\jpeglib.h" />
+    <ClInclude Include="..\third-party\jpeg-9a\jversion.h" />
+    <ClInclude Include="..\Timer.h" />
+    <ClInclude Include="Engine.h" />
+    <ClInclude Include="FrameCapturer.h" />
+    <ClInclude Include="FrameCapturerGL.h" />
+    <ClInclude Include="ImgCompressor.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="apple\EngineApple.mm">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

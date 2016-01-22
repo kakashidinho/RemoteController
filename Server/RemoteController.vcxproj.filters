@@ -1,0 +1,287 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Source Files\jpeglib">
+      <UniqueIdentifier>{56d4773c-43ae-45d0-bdcc-de8c9f787054}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\glew">
+      <UniqueIdentifier>{c7b2bb71-e096-4694-a181-5719b92dc7c3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Server">
+      <UniqueIdentifier>{bab4f78a-5be1-49a0-99ea-acd38960163b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Server\win32">
+      <UniqueIdentifier>{9add8844-e39d-4328-bbd7-b7ff9594069d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Server\mac">
+      <UniqueIdentifier>{a782f1e1-d941-4a94-8f31-1b3ad161c81a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Common">
+      <UniqueIdentifier>{5f613c22-5f06-4548-b3c3-d511f8e8d170}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Common\win32">
+      <UniqueIdentifier>{e47c776e-8885-435c-96ac-badebbc5b7d6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Common\mac">
+      <UniqueIdentifier>{ea3677c7-8a0e-4ba9-8a91-4201c0fc2e35}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\third-party\jpeg-9a\jaricom.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jcomapi.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jdapimin.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jdapistd.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jdarith.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jdatadst.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jdatasrc.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jdcoefct.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jdcolor.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jddctmgr.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jdhuff.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jdinput.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jdmainct.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jdmarker.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jdmaster.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jdmerge.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jdpostct.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jdsample.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jdtrans.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jerror.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jidctflt.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jidctfst.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jidctint.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jmemansi.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jmemmgr.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jquant1.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jquant2.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jutils.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jcmarker.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jccoefct.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jccolor.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jcdctmgr.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jchuff.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jcmainct.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jcprepct.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jcsample.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jfdctflt.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jfdctfst.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jfdctint.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jcapimin.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jcapistd.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jcparam.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jctrans.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jcinit.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jcmaster.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\third-party\jpeg-9a\jcarith.c">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\win32\ConnectionHandlerWin32.cpp">
+      <Filter>Source Files\Common\win32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\apple\TimerApple.cpp">
+      <Filter>Source Files\Common\mac</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine.cpp">
+      <Filter>Source Files\Server</Filter>
+    </ClCompile>
+    <ClCompile Include="FrameCapturer.cpp">
+      <Filter>Source Files\Server</Filter>
+    </ClCompile>
+    <ClCompile Include="FrameCapturerGL.cpp">
+      <Filter>Source Files\Server</Filter>
+    </ClCompile>
+    <ClCompile Include="ImgCompressor.cpp">
+      <Filter>Source Files\Server</Filter>
+    </ClCompile>
+    <ClCompile Include="apple\ImgCompressorApple.cpp">
+      <Filter>Source Files\Server\mac</Filter>
+    </ClCompile>
+    <ClCompile Include="win32\EngineWin32.cpp">
+      <Filter>Source Files\Server\win32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\win32\TimerWin32.cpp">
+      <Filter>Source Files\Server\win32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common.cpp">
+      <Filter>Source Files\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ConnectionHandler.cpp">
+      <Filter>Source Files\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Event.cpp">
+      <Filter>Source Files\Common</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\third-party\jpeg-9a\win32\jconfig.h">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\third-party\jpeg-9a\jdct.h">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\third-party\jpeg-9a\jerror.h">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\third-party\jpeg-9a\jinclude.h">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\third-party\jpeg-9a\jmemsys.h">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\third-party\jpeg-9a\jmorecfg.h">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\third-party\jpeg-9a\jpegint.h">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\third-party\jpeg-9a\jpeglib.h">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\third-party\jpeg-9a\jversion.h">
+      <Filter>Source Files\jpeglib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\third-party\glew\include\GL\glew.h">
+      <Filter>Source Files\glew</Filter>
+    </ClInclude>
+    <ClInclude Include="..\third-party\glew\include\GL\glxew.h">
+      <Filter>Source Files\glew</Filter>
+    </ClInclude>
+    <ClInclude Include="..\third-party\glew\include\GL\wglew.h">
+      <Filter>Source Files\glew</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine.h">
+      <Filter>Source Files\Server</Filter>
+    </ClInclude>
+    <ClInclude Include="FrameCapturer.h">
+      <Filter>Source Files\Server</Filter>
+    </ClInclude>
+    <ClInclude Include="FrameCapturerGL.h">
+      <Filter>Source Files\Server</Filter>
+    </ClInclude>
+    <ClInclude Include="ImgCompressor.h">
+      <Filter>Source Files\Server</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common.h">
+      <Filter>Source Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ConnectionHandler.h">
+      <Filter>Source Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Data.h">
+      <Filter>Source Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Event.h">
+      <Filter>Source Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Timer.h">
+      <Filter>Source Files\Common</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="apple\EngineApple.mm">
+      <Filter>Source Files\Server\mac</Filter>
+    </None>
+  </ItemGroup>
+</Project>

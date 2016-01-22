@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="9531" systemVersion="14F27" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" initialViewController="BYZ-38-t0r">
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="9529"/>
+        <capability name="Constraints to layout margins" minToolsVersion="6.0"/>
+    </dependencies>
+    <scenes>
+        <!--View Controller-->
+        <scene sceneID="tne-QT-ifu">
+            <objects>
+                <viewController storyboardIdentifier="mainScreen" id="BYZ-38-t0r" customClass="ViewController" sceneMemberID="viewController">
+                    <layoutGuides>
+                        <viewControllerLayoutGuide type="top" id="y3c-jy-aDJ"/>
+                        <viewControllerLayoutGuide type="bottom" id="wfy-db-euE"/>
+                    </layoutGuides>
+                    <view key="view" contentMode="scaleToFill" id="8bC-Xf-vdC">
+                        <rect key="frame" x="0.0" y="0.0" width="600" height="600"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <textField opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" misplaced="YES" contentHorizontalAlignment="left" contentVerticalAlignment="center" text="Enter IP" borderStyle="roundedRect" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="MuW-fN-xRL">
+                                <rect key="frame" x="20" y="70" width="560" height="30"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                                <textInputTraits key="textInputTraits"/>
+                            </textField>
+                            <textField opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" misplaced="YES" contentHorizontalAlignment="left" contentVerticalAlignment="center" text="Enter port" borderStyle="roundedRect" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="vV2-Co-dGc">
+                                <rect key="frame" x="20" y="108" width="560" height="30"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                                <textInputTraits key="textInputTraits"/>
+                            </textField>
+                            <button opaque="NO" contentMode="scaleToFill" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="1Dv-vx-fBv">
+                                <rect key="frame" x="266" y="146" width="128" height="30"/>
+                                <state key="normal" title="Connect"/>
+                                <connections>
+                                    <action selector="connect:" destination="BYZ-38-t0r" eventType="touchUpInside" id="gWn-pD-FFp"/>
+                                </connections>
+                            </button>
+                            <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" misplaced="YES" style="gray" translatesAutoresizingMaskIntoConstraints="NO" id="tLv-t9-SZg">
+                                <rect key="frame" x="290" y="190" width="20" height="20"/>
+                            </activityIndicatorView>
+                        </subviews>
+                        <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
+                        <constraints>
+                            <constraint firstItem="tLv-t9-SZg" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="0GO-Nd-Hjv"/>
+                            <constraint firstItem="1Dv-vx-fBv" firstAttribute="top" secondItem="vV2-Co-dGc" secondAttribute="bottom" constant="50" id="4bq-62-CU0"/>
+                            <constraint firstItem="MuW-fN-xRL" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leadingMargin" constant="10" id="8BO-TL-HOD"/>
+                            <constraint firstItem="1Dv-vx-fBv" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="A2g-wK-d0L"/>
+                            <constraint firstItem="vV2-Co-dGc" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leadingMargin" constant="10" id="NWf-E4-B3r"/>
+                            <constraint firstItem="MuW-fN-xRL" firstAttribute="top" secondItem="y3c-jy-aDJ" secondAttribute="bottom" constant="50" id="ba1-DK-898"/>
+                            <constraint firstItem="vV2-Co-dGc" firstAttribute="trailing" secondItem="8bC-Xf-vdC" secondAttribute="trailingMargin" id="f9T-49-1fw"/>
+                            <constraint firstItem="tLv-t9-SZg" firstAttribute="top" secondItem="1Dv-vx-fBv" secondAttribute="bottom" constant="14" id="rzQ-rS-bxm"/>
+                            <constraint firstItem="vV2-Co-dGc" firstAttribute="top" secondItem="MuW-fN-xRL" secondAttribute="bottom" constant="8" id="tVe-HF-ZA4"/>
+                            <constraint firstItem="MuW-fN-xRL" firstAttribute="trailing" secondItem="8bC-Xf-vdC" secondAttribute="trailingMargin" id="u6u-EN-fUX"/>
+                        </constraints>
+                    </view>
+                    <connections>
+                        <outlet property="connectBtn" destination="1Dv-vx-fBv" id="HMf-Do-9zb"/>
+                        <outlet property="ipText" destination="MuW-fN-xRL" id="gZc-ec-hDK"/>
+                        <outlet property="portText" destination="vV2-Co-dGc" id="YjM-Zk-CEJ"/>
+                        <outlet property="progressBar" destination="tLv-t9-SZg" id="8sK-AU-0z6"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="325" y="276"/>
+        </scene>
+        <!--Remote View Controller-->
+        <scene sceneID="78T-aZ-3aC">
+            <objects>
+                <viewController storyboardIdentifier="remoteScreen" id="U1X-u4-SS4" customClass="RemoteViewController" sceneMemberID="viewController">
+                    <layoutGuides>
+                        <viewControllerLayoutGuide type="top" id="mTs-46-8yp"/>
+                        <viewControllerLayoutGuide type="bottom" id="kJM-t4-7g0"/>
+                    </layoutGuides>
+                    <view key="view" contentMode="scaleToFill" id="TOf-9x-SwL">
+                        <rect key="frame" x="0.0" y="0.0" width="600" height="600"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Bdj-O6-X5i">
+                                <rect key="frame" x="180" y="20" width="240" height="403"/>
+                            </imageView>
+                            <button opaque="NO" contentMode="scaleToFill" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="HFc-w9-qv0">
+                                <rect key="frame" x="121" y="562" width="98" height="30"/>
+                                <state key="normal" title="Flip Y"/>
+                                <connections>
+                                    <action selector="flipYBtnClicked:" destination="U1X-u4-SS4" eventType="touchUpInside" id="GdS-A1-VzP"/>
+                                </connections>
+                            </button>
+                            <button opaque="NO" contentMode="scaleToFill" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="TPB-Lx-nCx">
+                                <rect key="frame" x="227" y="562" width="109" height="30"/>
+                                <state key="normal" title="Screenshot"/>
+                                <connections>
+                                    <action selector="captureScreenshot:" destination="U1X-u4-SS4" eventType="touchUpInside" id="Yxh-Sf-VcK"/>
+                                </connections>
+                            </button>
+                            <button opaque="NO" contentMode="scaleToFill" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Lm5-Hg-1TR">
+                                <rect key="frame" x="401" y="562" width="89" height="30"/>
+                                <state key="normal" title="Record"/>
+                                <connections>
+                                    <action selector="recordBtnClicked:" destination="U1X-u4-SS4" eventType="touchUpInside" id="bSg-dZ-S4S"/>
+                                </connections>
+                            </button>
+                            <button opaque="NO" contentMode="scaleToFill" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="fS3-wQ-73D">
+                                <rect key="frame" x="20" y="562" width="65" height="30"/>
+                                <state key="normal" title="Exit"/>
+                                <connections>
+                                    <action selector="exitAction:" destination="U1X-u4-SS4" eventType="touchUpInside" id="OAO-iz-zel"/>
+                                </connections>
+                            </button>
+                        </subviews>
+                        <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                        <constraints>
+                            <constraint firstItem="fS3-wQ-73D" firstAttribute="leading" secondItem="TOf-9x-SwL" secondAttribute="leadingMargin" constant="10" id="1zu-BX-MuN"/>
+                            <constraint firstItem="kJM-t4-7g0" firstAttribute="top" secondItem="TPB-Lx-nCx" secondAttribute="bottom" constant="8" id="2yX-pZ-JOn"/>
+                            <constraint firstItem="Lm5-Hg-1TR" firstAttribute="leading" secondItem="TPB-Lx-nCx" secondAttribute="trailing" constant="30" id="Mfm-kf-GKk"/>
+                            <constraint firstItem="kJM-t4-7g0" firstAttribute="top" secondItem="fS3-wQ-73D" secondAttribute="bottom" constant="8" id="NDd-kG-UiP"/>
+                            <constraint firstItem="Bdj-O6-X5i" firstAttribute="top" secondItem="mTs-46-8yp" secondAttribute="bottom" id="OYU-j2-XS1"/>
+                            <constraint firstItem="HFc-w9-qv0" firstAttribute="leading" secondItem="TOf-9x-SwL" secondAttribute="leadingMargin" constant="101" id="QdC-bz-5dZ"/>
+                            <constraint firstItem="kJM-t4-7g0" firstAttribute="top" secondItem="HFc-w9-qv0" secondAttribute="bottom" constant="8" id="ZPd-Yj-RIa"/>
+                            <constraint firstAttribute="trailingMargin" secondItem="Lm5-Hg-1TR" secondAttribute="trailing" constant="10" id="hto-Dz-3gc"/>
+                            <constraint firstItem="kJM-t4-7g0" firstAttribute="top" secondItem="Lm5-Hg-1TR" secondAttribute="bottom" constant="8" id="zCB-8c-Ree"/>
+                        </constraints>
+                    </view>
+                    <connections>
+                        <outlet property="exitBtn" destination="fS3-wQ-73D" id="wou-6t-3ty"/>
+                        <outlet property="flipYBtn" destination="HFc-w9-qv0" id="uqx-e7-80F"/>
+                        <outlet property="recordBtn" destination="Lm5-Hg-1TR" id="OvY-M3-P5Z"/>
+                        <outlet property="remoteFrameView" destination="Bdj-O6-X5i" id="MCq-rz-dvA"/>
+                        <outlet property="screenshotBtn" destination="TPB-Lx-nCx" id="tI9-h8-9t3"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="GkL-e7-7hr" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="1002" y="276"/>
+        </scene>
+    </scenes>
+</document>
