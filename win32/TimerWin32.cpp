@@ -22,6 +22,20 @@ namespace HQRemote {
 
 		return (double)(point2.QuadPart - point1.QuadPart) / (double)frequency.QuadPart;
 	}
+	
+	uint64_t getTimeCheckPoint64() {
+		time_checkpoint_t time;
+		getTimeCheckPoint(time);
+		return convertToTimeCheckPoint64(time);
+	}
+	
+	uint64_t convertToTimeCheckPoint64(const time_checkpoint_t& checkPoint){
+		return checkPoint.QuadPart;
+	}
+	
+	void convertToTimeCheckPoint(time_checkpoint_t& checkPoint, uint64_t time64) {
+		checkPoint.QuadPart = time64;
+	}
 
 	std::string getCurrentTimeStr() {
 		std::lock_guard<std::mutex> lg(g_lock);

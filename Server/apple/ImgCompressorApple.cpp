@@ -7,12 +7,24 @@
 //
 
 #include <stdio.h>
+
+#include <TargetConditionals.h>
+
 #include <CoreFoundation/CoreFoundation.h>
 #include <CoreGraphics/CoreGraphics.h>
 #include <ImageIO/ImageIO.h>
-#include <CoreServices/CoreServices.h>
+
+#if TARGET_OS_IPHONE
+#	include <MobileCoreServices/MobileCoreServices.h>
+#else
+#	include <CoreServices/CoreServices.h>
+#endif
 
 #include "ImgCompressor.h"
+
+#ifndef MIN
+#	define MIN(a,b) ((a) < (b) ? (a) : (b))
+#endif
 
 namespace HQRemote {
 	struct CFDataWrapper : public IData {

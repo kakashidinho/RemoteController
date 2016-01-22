@@ -8,30 +8,6 @@
 
 #import "RemoteViewController.h"
 
-typedef enum RemoteEventType {
-	REMOTE_TOUCH_BEGAN,
-	REMOTE_TOUCH_MOVED,
-	REMOTE_TOUCH_ENDED,
-	REMOTE_TOUCH_CANCELLED,
-	
-	REMOTE_RECORD_START,
-	REMOTE_RECORD_END,
-	
-	REMOTE_SCREENSHOT_CAPTURE
-} RemoteEventType;
-
-typedef struct RemoteEvent {
-	RemoteEventType type;
-	
-	union {
-		struct {
-			int id;
-			float x;
-			float y;
-		} touchData;
-	};
-} RemoteEvent;
-
 @interface RemoteViewController ()
 
 @property (strong, atomic) dispatch_queue_t backGroundDispatchQueue;
@@ -39,13 +15,15 @@ typedef struct RemoteEvent {
 @property (atomic) int touchIdCounter;
 @property (strong, atomic) NSMutableArray* reusableTouchIds;
 
-@property (atomic) uint64_t frameCounter;
 @property (atomic) uint64_t lastRenderedFrame;
+
+@property (atomic, strong) NSTimer* connLoopTimer;
 
 @end
 
 @implementation RemoteViewController
 
+@synthesize connHandler = _connHandler;
 @synthesize remoteFrameSize = _remoteFrameSize;
 
 - (void)viewDidLoad {
@@ -70,7 +48,7 @@ typedef struct RemoteEvent {
 	
 	
 	//
-	self.frameCounter = self.lastRenderedFrame = 0;
+	self.lastRenderedFrame = 0;
 }
 
 - (void)didReceiveMemoryWarning {
@@ -88,13 +66,12 @@ typedef struct RemoteEvent {
 }
 */
 - (IBAction)exitAction:(id)sender {
-	if (self.networkHandler)
-	{
-		[self.networkHandler close];
-		self.networkHandler = nil;
-	}
-	else
-		[self dismissViewControllerAnimated:YES completion:nil];
+	[self exit];
+}
+
+- (void) exit {
+	self.connHandler = nullptr;
+	[self dismissViewControllerAnimated:YES completion:nil];
 }
 
 - (IBAction)flipYBtnClicked:(id)sender {
@@ -103,10 +80,9 @@ typedef struct RemoteEvent {
 
 - (IBAction)captureScreenshot:(id)sender {
 	//send event to remote side
-	RemoteEvent event;
-	event.type = REMOTE_SCREENSHOT_CAPTURE;
+	auto eventRef = std::make_shared<HQRemote::PlainEvent>(HQRemote::SCREENSHOT_CAPTURE);
 	
-	[self sendRemoteEvent:&event];
+	[self sendRemoteEvent:eventRef];
 	
 	//perform screen flashing animation
 	[UIView animateWithDuration:0.15
@@ -120,15 +96,15 @@ typedef struct RemoteEvent {
 - (IBAction)recordBtnClicked:(id)sender {
 	self.recordBtn.selected = !self.recordBtn.selected;
 	
-	RemoteEvent event;
+	auto eventRef = std::make_shared<HQRemote::PlainEvent>();
 	if (self.recordBtn.selected)
 	{
-		event.type = REMOTE_RECORD_START;
+		eventRef->event.type = HQRemote::RECORD_START;
 	}
 	else
-		event.type = REMOTE_RECORD_END;
+		eventRef->event.type = HQRemote::RECORD_END;
 	
-	[self sendRemoteEvent:&event];
+	[self sendRemoteEvent:eventRef];
 }
 
 - (CGSize) remoteFrameSize {
@@ -165,47 +141,140 @@ typedef struct RemoteEvent {
 {
 }
 
-- (void) sendRemoteEvent: (RemoteEvent*) event {
-	if (self.networkHandler) {
-		NSData* data = [NSData dataWithBytes:event length:sizeof(RemoteEvent)];
-		[self.networkHandler sendData:data];
+- (std::shared_ptr<HQRemote::IConnectionHandler>) connHandler {
+	return _connHandler;
+}
+
+- (void) setConnHandler: (std::shared_ptr<HQRemote::IConnectionHandler>) handler {
+	
+	if (_connLoopTimer != nil)
+	{
+		[_connLoopTimer invalidate];
+		
+		_connLoopTimer = nil;
+	}
+	
+	if (_connHandler)
+	{
+		auto stopFrameEvent = HQRemote::PlainEvent(HQRemote::STOP_SEND_FRAME);
+		_connHandler->sendData(stopFrameEvent);
+		_connHandler->stop();
+	}
+	_connHandler = handler;
+	
+	if (_connHandler != nullptr)
+	{
+		_connLoopTimer = [NSTimer scheduledTimerWithTimeInterval:0
+														  target:self
+														selector:@selector(connLoop)
+														userInfo:nil
+														 repeats:YES];
+		
+		auto sendFrameEvent = HQRemote::PlainEvent(HQRemote::START_SEND_FRAME);
+		_connHandler->sendData(sendFrameEvent);
+	}
+	
+}
+
+- (void) connLoop {
+	if (_connHandler->connected() == false)//disconnected
+	{
+		//TODO: display error
+		[self exit];
+	}
+	else {
+		auto dataRef = _connHandler->receiveData();
+		if (dataRef) {
+			auto eventRef = HQRemote::deserializeEvent(std::move(dataRef));
+			if (eventRef) {
+				switch (eventRef->event.type) {
+					case HQRemote::RENDERED_FRAME:
+					{
+						uint64_t frameId = eventRef->event.renderedFrameData.frameId;
+						
+						dispatch_async(self.backGroundDispatchQueue, ^{
+							auto &event = eventRef->event;
+							//decode the image data in background
+							NSData* nsFrameData = [NSData dataWithBytesNoCopy:event.renderedFrameData.frameData
+																	   length:event.renderedFrameData.frameSize
+																 freeWhenDone:NO];
+							UIImage *image = [[UIImage alloc] initWithData:nsFrameData];
+							
+							// Decompress image
+							if (image) {
+								CGSize size = self.remoteFrameView.frame.size;
+								
+								UIGraphicsBeginImageContext(size);
+								
+								//[image drawInRect:CGRectMake(0, 0, size.width, size.height)];
+								//this will draw  the image flipped
+								CGContextDrawImage(UIGraphicsGetCurrentContext(), CGRectMake(0, 0, size.width, size.height), image.CGImage);
+								
+								image = UIGraphicsGetImageFromCurrentImageContext();
+								
+								UIGraphicsEndImageContext();
+								
+								//update the view on ui thread
+								dispatch_async(dispatch_get_main_queue(), ^{
+									if (self.lastRenderedFrame >= frameId)//skip
+										return;
+									self.remoteFrameView.image = image;
+									
+									self.lastRenderedFrame = frameId;
+								});
+							}
+						});
+					}
+						break;//case HQRemote::RENDERED_FRAME
+						
+					default:
+						break;
+				}
+			}//if (eventRef)
+		}//if (dataRef)
+	}
+}
+
+- (void) sendRemoteEvent: (HQRemote::EventRef) eventRef {
+	if (_connHandler) {
+		_connHandler->sendData(*eventRef);
 	}
 }
 
 //touch events
 - (void) touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
 	for (UITouch* touch in touches) {
-		[self sendTouchEventToRemoteIfNeeded: touch type:REMOTE_TOUCH_BEGAN];
+		[self sendTouchEventToRemoteIfNeeded: touch type:HQRemote::TOUCH_BEGAN];
 	}//for (UITouch* touch in touches)
 }
 
 - (void) touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
 	for (UITouch* touch in touches) {
-		[self sendTouchEventToRemoteIfNeeded: touch type:REMOTE_TOUCH_MOVED];
+		[self sendTouchEventToRemoteIfNeeded: touch type:HQRemote::TOUCH_MOVED];
 	}//for (UITouch* touch in touches)
 }
 
 - (void) touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
 	for (UITouch* touch in touches) {
-		[self sendTouchEventToRemoteIfNeeded: touch type:REMOTE_TOUCH_ENDED];
+		[self sendTouchEventToRemoteIfNeeded: touch type:HQRemote::TOUCH_ENDED];
 	}//for (UITouch* touch in touches)
 }
 
 - (void) touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
 	for (UITouch* touch in touches) {
-		[self sendTouchEventToRemoteIfNeeded: touch type:REMOTE_TOUCH_CANCELLED];
+		[self sendTouchEventToRemoteIfNeeded: touch type:HQRemote::TOUCH_CANCELLED];
 	}//for (UITouch* touch in touches)
 }
 
 - (void) sendTouchEventToRemoteIfNeeded: (UITouch*) touch
-								   type: (RemoteEventType) type {
+								   type: (HQRemote::EventType) type {
 	
 	CGPoint pointInFrame = [touch locationInView:self.remoteFrameView];
 	
 	if (![self.remoteFrameView pointInside:pointInFrame withEvent:nil])
 	{
 		if ([self hasTouchIdFor: touch])
-			type = REMOTE_TOUCH_CANCELLED;
+			type = HQRemote::TOUCH_CANCELLED;
 		else
 			return;//ignore
 	}
@@ -213,8 +282,9 @@ typedef struct RemoteEvent {
 	CGRect remoteFrameViewRect = self.remoteFrameView.frame;
 	
 	//TODO: assume both sides use the same byte order for now
-	RemoteEvent event;
-	event.type = type;
+	auto eventRef = std::make_shared<HQRemote::PlainEvent>(type);
+	auto &event = eventRef->event;
+	
 	event.touchData.id = [self getOrCreateTouchId:touch];
 	
 	event.touchData.x = pointInFrame.x / remoteFrameViewRect.size.width * self.remoteFrameSize.width;
@@ -223,9 +293,9 @@ typedef struct RemoteEvent {
 	if (self.flipYBtn.selected)
 		event.touchData.y = self.remoteFrameSize.height - event.touchData.y;
 	
-	[self sendRemoteEvent:&event];
+	[self sendRemoteEvent:eventRef];
 	
-	if (type == REMOTE_TOUCH_CANCELLED || type == REMOTE_TOUCH_ENDED) {
+	if (type == HQRemote::TOUCH_CANCELLED || type == HQRemote::TOUCH_ENDED) {
 		NSValue* touchKey = [NSValue valueWithPointer:(__bridge const void * _Nullable)(touch)];
 		
 		//remove from id table
@@ -269,50 +339,6 @@ typedef struct RemoteEvent {
 		
 		return newId;
 	}
-}
-
-//stream delegate
-- (id<NetworkHandlerDelegate>) onNetworkClosedWithError: (NSString*) errorMsg {
-	[super onNetworkClosedWithError:errorMsg];
-	
-	[self dismissViewControllerAnimated:YES completion:nil];
-	
-	return nil;
-}
-
-- (id<NetworkHandlerDelegate>) onReceivedData: (NSData*) data {
-	uint64_t frameId = self.frameCounter ++;
-	
-	dispatch_async(self.backGroundDispatchQueue, ^{
-		//decode the image data in background
-		UIImage *image = [[UIImage alloc] initWithData:data];
-		
-		// Decompress image
-		if (image) {
-			CGSize size = self.remoteFrameView.frame.size;
-			
-			UIGraphicsBeginImageContext(size);
-			
-			//[image drawInRect:CGRectMake(0, 0, size.width, size.height)];
-			//this will draw  the image flipped
-			CGContextDrawImage(UIGraphicsGetCurrentContext(), CGRectMake(0, 0, size.width, size.height), image.CGImage);
-			
-			image = UIGraphicsGetImageFromCurrentImageContext();
-			
-			UIGraphicsEndImageContext();
-			
-			//update the view on ui thread
-			dispatch_async(dispatch_get_main_queue(), ^{
-				if (self.lastRenderedFrame >= frameId)//skip
-					return;
-				self.remoteFrameView.image = image;
-				
-				self.lastRenderedFrame = frameId;
-			});
-		}
-	});
-	
-	return self;
 }
 
 //destructor

@@ -8,12 +8,21 @@
 
 #define MAX_FRAGMEMT_SIZE (16 * 1024)
 #define MAX_PENDING_UNRELIABLE_BUF 20
+#define UNRELIABLE_PING_TIMEOUT 3
+#define UNRELIABLE_PING_RETRIES 10
+#define UNRELIABLE_PING_INTERVAL 10
+
+#ifndef min
+#	define min(a,b) ((a) < (b) ? (a) : (b))
+#endif
 
 #ifdef WIN32
 #	include <windows.h>
 
 #	define _INADDR_ANY INADDR_ANY
 #	define MSGSIZE_ERROR WSAEMSGSIZE 
+
+typedef int socklen_t;
 
 #else//#ifdef WIN32
 
@@ -30,6 +39,8 @@ namespace HQRemote {
 	enum MsgChunkType :uint32_t {
 		MSG_HEADER,
 		FRAGMENT_HEADER,
+		PING_MSG_CHUNK,
+		PING_REPLY_MSG_CHUNK
 	};
 
 	union MsgChunkHeader 
@@ -47,6 +58,10 @@ namespace HQRemote {
 				struct {
 					uint32_t offset;
 				} fragmentInfo;
+				
+				struct {
+					uint64_t sendTime;
+				} pingInfo;
 			};
 		};
 
@@ -68,6 +83,43 @@ namespace HQRemote {
 	};
 
 	/*--------------- IConnectionHandler -----------*/
+	IConnectionHandler::IConnectionHandler()
+	: m_running(false)
+	{
+	}
+	
+	IConnectionHandler::~IConnectionHandler() {
+	}
+	
+	void IConnectionHandler::start() {
+		stop();
+		
+		startImpl();
+		
+		m_running = true;
+		
+		getTimeCheckPoint(m_startTime);
+	}
+	
+	void IConnectionHandler::stop() {
+		stopImpl();
+		m_running = false;
+	}
+	
+	bool IConnectionHandler::running() const {
+		return m_running;
+	}
+	
+	double IConnectionHandler::timeSinceStart() const {
+		if (!m_running)
+			return 0;
+		
+		time_checkpoint_t curTime;
+		getTimeCheckPoint(curTime);
+		
+		return getElapsedTime(m_startTime, curTime);
+	}
+	
 	void IConnectionHandler::sendData(ConstDataRef data) {
 		sendData(data->data(), data->size());
 	}
@@ -78,7 +130,7 @@ namespace HQRemote {
 
 	/*----------------SocketConnectionHandler ----------------*/
 	SocketConnectionHandler::SocketConnectionHandler()
-		:m_running(false), m_connLessSocket(INVALID_SOCKET), m_connSocket(INVALID_SOCKET)
+		:m_connLessSocket(INVALID_SOCKET), m_connSocket(INVALID_SOCKET)
 	{
 		platformConstruct();
 	}
@@ -86,16 +138,16 @@ namespace HQRemote {
 	SocketConnectionHandler::~SocketConnectionHandler()
 	{
 		platformDestruct();
-
-		stop();
 	}
 
 
-	void SocketConnectionHandler::start()
+	void SocketConnectionHandler::startImpl()
 	{
-		stop();
-
 		m_running = true;
+		
+		//invalidate last connectionless ping info
+		m_lastConnLessPing.sendTime = 0;
+		m_lastConnLessPing.rtt = -1;
 
 		//start background thread to receive remote event
 		m_recvThread = std::unique_ptr<std::thread>(new std::thread([this] {
@@ -103,7 +155,7 @@ namespace HQRemote {
 		}));
 	}
 
-	void SocketConnectionHandler::stop()
+	void SocketConnectionHandler::stopImpl()
 	{
 		m_running = false;
 
@@ -142,9 +194,12 @@ namespace HQRemote {
 		DataRef data = nullptr;
 
 		if (m_dataLock.try_lock()){
-			data = m_dataQueue.front();
-			m_dataQueue.pop_front();
-
+			if (m_dataQueue.size() > 0)
+			{
+				data = m_dataQueue.front();
+				m_dataQueue.pop_front();
+			}
+			
 			m_dataLock.unlock();
 		}
 
@@ -176,15 +231,18 @@ namespace HQRemote {
 	{
 		std::lock_guard<std::mutex> lg(m_socketLock);
 
-		if (m_connLessSocket == INVALID_SOCKET)//fallback to reliable socket
-			sendDataNoLock(data, size);
+		if (m_connLessSocket == INVALID_SOCKET || m_connLessSocketDestAddr == nullptr)//fallback to reliable socket
+		{
+			if (m_connSocket != INVALID_SOCKET)
+				sendDataNoLock(data, size);
+		}
 		else
 			sendDataUnreliableNoLock(data, size);
 	}
 
 	void SocketConnectionHandler::sendDataUnreliableNoLock(const void* data, size_t size)
 	{
-		sendDataNoLock(m_connLessSocket, m_connLessSocketAddr.get(), data, size);
+		sendDataNoLock(m_connLessSocket, m_connLessSocketDestAddr.get(), data, size);
 	}
 
 	_ssize_t SocketConnectionHandler::sendDataNoLock(socket_t socket, const sockaddr_in* pDstAddr, const void* data, size_t size) {
@@ -198,7 +256,7 @@ namespace HQRemote {
 		header.size = sizeof(header);//chunk size
 		header.wholeMsgInfo.msg_size = (uint32_t)size;//whole message size
 
-		if (socket == m_connSocket)//TCP
+		if (pDstAddr == NULL)//TCP
 		{
 			//send header
 			re = sendDataAtomicNoLock(socket, &header, sizeof(header));
@@ -245,7 +303,7 @@ namespace HQRemote {
 					}
 				}
 				else {
-					chunk.header.fragmentInfo.offset += re;//next fragment
+					chunk.header.fragmentInfo.offset += chunkPayloadSize;//next fragment
 				}
 			} while (re != SOCKET_ERROR && chunk.header.fragmentInfo.offset < size);
 		}//else if (socket == m_connLessSocket)
@@ -259,17 +317,17 @@ namespace HQRemote {
 	}
 
 	_ssize_t SocketConnectionHandler::recvChunkUnreliableNoLock(socket_t socket, MsgChunk& chunk) {
-		if (m_connLessSocketAddr != nullptr)
+		if (m_connLessSocketDestAddr != nullptr)
 		{
 			return recvfrom(socket, (char*)&chunk, sizeof(chunk), 0, NULL, NULL);
 		}
 		else {
 			//obtain remote size's address
-			int len = sizeof(sockaddr_in);
+			socklen_t len = sizeof(sockaddr_in);
 
-			m_connLessSocketAddr = std::make_unique<sockaddr_in>();
+			m_connLessSocketDestAddr = std::unique_ptr<sockaddr_in>(new sockaddr_in());
 
-			auto re = recvfrom(socket, (char*)&chunk, sizeof(chunk), 0, (sockaddr*)m_connLessSocketAddr.get(), &len);
+			auto re = recvfrom(socket, (char*)&chunk, sizeof(chunk), 0, (sockaddr*)m_connLessSocketDestAddr.get(), &len);
 
 			return re;
 		}
@@ -282,9 +340,9 @@ namespace HQRemote {
 		do {
 			re = send(socket, (const char*)data + offset, size - offset, 0);
 			offset += re;
-		} while (re != SOCKET_ERROR && offset < size);
+		} while (re != SOCKET_ERROR && re != 0 && offset < size);
 
-		return re == SOCKET_ERROR ? re : size;
+		return (re == SOCKET_ERROR || re == 0 ) ? SOCKET_ERROR : size;
 	}
 
 	_ssize_t SocketConnectionHandler::recvDataAtomicNoLock(socket_t socket, void* data, size_t expectedSize) {
@@ -294,10 +352,10 @@ namespace HQRemote {
 		do {
 			re = recv(socket, ptr + offset, expectedSize - offset, 0);
 			offset += re;
-		} while (re != SOCKET_ERROR && offset < expectedSize);
+		} while (re != SOCKET_ERROR && re != 0 && offset < expectedSize);
 
-		if (re == SOCKET_ERROR)
-			return re;
+		if (re == SOCKET_ERROR || re == 0)
+			return SOCKET_ERROR;
 
 		return expectedSize;
 	}
@@ -374,8 +432,94 @@ namespace HQRemote {
 			}
 		}
 			break;
+		case PING_MSG_CHUNK:
+		{
+			//reply
+			chunk.header.type = PING_REPLY_MSG_CHUNK;
+			sendChunkUnreliableNoLock(m_connLessSocket, m_connLessSocketDestAddr.get(), chunk);
+		}
+			break;
+		case PING_REPLY_MSG_CHUNK:
+		{
+			//the time that ping message sent
+			auto pingSendTime64 = chunk.header.pingInfo.sendTime;
+			if (m_lastConnLessPing.sendTime <= pingSendTime64)
+			{
+				time_checkpoint_t curTime;
+				time_checkpoint_t pingSendTime;
+				
+				convertToTimeCheckPoint(pingSendTime, pingSendTime64);
+				getTimeCheckPoint(curTime);
+				
+				//update latest ping info
+				m_lastConnLessPing.sendTime = pingSendTime64;
+				m_lastConnLessPing.rtt = getElapsedTime(pingSendTime, curTime);
+			}
+		}
+			break;
 		}//switch (chunk.header.type)
 
+		return re;
+	}
+	
+	_ssize_t SocketConnectionHandler::pingUnreliableNoLock(time_checkpoint_t sendTime) {
+		//ping remote host
+		MsgChunk pingChunk;
+		pingChunk.header.type = PING_MSG_CHUNK;
+		pingChunk.header.size = sizeof(pingChunk.header);
+		pingChunk.header.id = generateIDFromTime(sendTime);
+		
+		pingChunk.header.pingInfo.sendTime = convertToTimeCheckPoint64(sendTime);
+		
+		return sendChunkUnreliableNoLock(m_connLessSocket, m_connLessSocketDestAddr.get(), pingChunk);
+	}
+	
+	bool SocketConnectionHandler::testUnreliableRemoteEndpointNoLock() {
+		bool re = false;
+		if (m_connLessSocket != INVALID_SOCKET && m_connLessSocketDestAddr != nullptr)
+		{
+			const double ping_timeout = UNRELIABLE_PING_TIMEOUT;
+			const size_t retries = UNRELIABLE_PING_RETRIES;
+			//ping remote host
+			time_checkpoint_t time1, time2;
+			
+			for (size_t i = 0; m_running && !re && i < retries; ++i)
+			{
+				//invalidate last ping info
+				m_lastConnLessPing.sendTime = 0;
+				
+				getTimeCheckPoint(time1);
+				if (pingUnreliableNoLock(time1) == SOCKET_ERROR) {
+					continue;
+				}
+			
+				do {
+					//check if the reply has arrived
+					timeval poll_timeout;
+					poll_timeout.tv_sec = 0;
+					poll_timeout.tv_usec = 1000;
+					
+					fd_set sset;
+					
+					//read data sent via unreliable socket
+					FD_ZERO(&sset);
+					FD_SET(m_connLessSocket, &sset);
+						
+					if (select(m_connLessSocket + 1, &sset, NULL, NULL, &poll_timeout) == 1
+						&& FD_ISSET(m_connLessSocket, &sset))
+						recvDataUnreliableNoLock(m_connLessSocket);
+					
+					if (m_lastConnLessPing.sendTime == time1)
+					{
+						re = true;
+					}
+					
+					getTimeCheckPoint(time2);
+				} while (m_running && !re && getElapsedTime(time1, time2) < ping_timeout);
+			}//for (size_t i = 0; i < retries; ++i)
+			
+		}//if (m_connLessSocketDestAddr != nullptr)
+		
 		return re;
 	}
 
@@ -387,11 +531,12 @@ namespace HQRemote {
 		_ssize_t re;
 		while (m_running) {
 			m_socketLock.lock();
+			auto l_connected = connected();
 			socket_t l_connSocket = m_connSocket;
 			socket_t l_connLessSocket = m_connLessSocket;
 			m_socketLock.unlock();
 			//we have an existing connection
-			if (l_connSocket != INVALID_SOCKET || l_connLessSocket != INVALID_SOCKET) {
+			if (l_connected) {
 				//wat for at most 1ms
 				timeval timeout;
 				timeout.tv_sec = 0;
@@ -404,7 +549,7 @@ namespace HQRemote {
 					FD_ZERO(&sset);
 					FD_SET(l_connLessSocket, &sset);
 
-					if (select(1, &sset, NULL, NULL, &timeout) == 1 && FD_ISSET(l_connLessSocket, &sset))
+					if (select(l_connLessSocket + 1, &sset, NULL, NULL, &timeout) == 1 && FD_ISSET(l_connLessSocket, &sset))
 					{
 						re = recvDataUnreliableNoLock(l_connLessSocket);
 
@@ -414,7 +559,7 @@ namespace HQRemote {
 							closesocket(m_connLessSocket);
 							m_connLessSocket = INVALID_SOCKET;
 						}
-					}//if (select(1, &sset, NULL, NULL, &timeout) == 1 && FD_ISSET(l_connSocket, &sset))
+					}//if (select(l_connLessSocket + 1, &sset, NULL, NULL, &timeout) == 1 && FD_ISSET(l_connSocket, &sset))
 				}//if (l_connLessSocket != INVALID_SOCKET)
 
 				//read data sent via reliable socket
@@ -422,7 +567,7 @@ namespace HQRemote {
 					FD_ZERO(&sset);
 					FD_SET(l_connSocket, &sset);
 
-					if (select(1, &sset, NULL, NULL, &timeout) == 1 && FD_ISSET(l_connSocket, &sset))
+					if (select(l_connSocket + 1, &sset, NULL, NULL, &timeout) == 1 && FD_ISSET(l_connSocket, &sset))
 					{
 						re = recvDataNoLock(l_connSocket);
 
@@ -432,13 +577,15 @@ namespace HQRemote {
 							closesocket(m_connSocket);
 							m_connSocket = INVALID_SOCKET;
 						}
-					}//if (select(1, &sset, NULL, NULL, &timeout) == 1 && FD_ISSET(l_connSocket, &sset))
+					}//if (select(l_connSocket + 1, &sset, NULL, NULL, &timeout) == 1 && FD_ISSET(l_connSocket, &sset))
 				} //if (l_connSocket != INVALID_SOCKET)
 
-			}//if (l_connSocket != INVALID_SOCKET || l_connLessSocket != INVALID_SOCKET)
+			}//if (l_connected)
 
 			else {
 				//initialize connection
+				m_connLessSocketDestAddr = nullptr;
+				
 				initConnectionImpl();
 			}//else of if (l_connSocket != INVALID_SOCKET)
 		}//while (m_running)
@@ -481,9 +628,10 @@ namespace HQRemote {
 		sa.sin_family = AF_INET;
 		sa.sin_addr.s_addr = _INADDR_ANY;
 
+		std::lock_guard<std::mutex> lg(m_socketLock);
 		 //create connection less socket
 		if (m_connLessSocket == INVALID_SOCKET && m_connLessPort != 0) {
-			m_connLessSocketAddr = nullptr;
+			m_connLessSocketDestAddr = nullptr;
 
 			m_connLessSocket = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
 			if (m_connLessSocket != INVALID_SOCKET) {
@@ -507,7 +655,7 @@ namespace HQRemote {
 
 	/*-------------  SocketServerHandler  ---------------------------*/
 	SocketServerHandler::SocketServerHandler(int listeningPort, int connLessListeningPort)
-	: BaseUnreliableSocketHandler(connLessListeningPort),  m_port(listeningPort)
+	: BaseUnreliableSocketHandler(connLessListeningPort),  m_serverSocket(INVALID_SOCKET), m_port(listeningPort)
 	{
 	}
 
@@ -515,6 +663,11 @@ namespace HQRemote {
 
 	}
 
+	bool SocketServerHandler::connected() const {
+		return (m_connLessPort == 0 || m_connLessSocket != INVALID_SOCKET)
+				&& m_connSocket != INVALID_SOCKET;
+	}
+	
 	void SocketServerHandler::initConnectionImpl() {
 		_ssize_t re;
 
@@ -557,14 +710,16 @@ namespace HQRemote {
 
 			if (connSocket != INVALID_SOCKET)
 			{
-				//successully connected to remote side
-				std::lock_guard<std::mutex> lg(m_socketLock);
-				m_connSocket = connSocket;
+				{
+					//successully connected to remote side
+					std::lock_guard<std::mutex> lg(m_socketLock);
+					m_connSocket = connSocket;
+				}
+				
+				//create connectionless socket
+				BaseUnreliableSocketHandler::initConnectionImpl();
 			}//if (connSocket != INVALID_SOCKET)
 		}//if (m_serverSocket != INVALID_SOCKET && m_port != 0)
-
-		//create connection less socket
-		BaseUnreliableSocketHandler::initConnectionImpl();
 	}
 
 	void SocketServerHandler::addtionalRcvThreadCleanupImpl() {
@@ -590,5 +745,123 @@ namespace HQRemote {
 
 		//super
 		BaseUnreliableSocketHandler::addtionalSocketCleanupImpl();
+	}
+	
+	/*---------------- UnreliableSocketClientHandler -------------------*/
+	UnreliableSocketClientHandler::UnreliableSocketClientHandler(int connLessListeningPort, const ConnectionEndpoint& connLessRemoteEndpoint)
+	: BaseUnreliableSocketHandler(connLessListeningPort), m_connLessRemoteEndpoint(connLessRemoteEndpoint), m_connLessRemoteReachable(false)
+	{
+	}
+	
+	UnreliableSocketClientHandler::~UnreliableSocketClientHandler() {
+		
+	}
+	
+	bool UnreliableSocketClientHandler::connected() const {
+		return m_connLessRemoteReachable;
+	}
+	
+	void UnreliableSocketClientHandler::initConnectionImpl() {
+		if (m_connLessRemoteEndpoint.port != 0)
+		{
+			BaseUnreliableSocketHandler::initConnectionImpl();//create unreliable socket
+			
+			std::lock_guard<std::mutex> lg(m_socketLock);
+			
+			//create destination address
+			m_connLessSocketDestAddr = std::unique_ptr<sockaddr_in>(new sockaddr_in());
+			
+			sockaddr_in &sa = *m_connLessSocketDestAddr;
+			memset(&sa, 0, sizeof sa);
+			
+			sa.sin_family = AF_INET;
+			sa.sin_addr.s_addr = inet_addr(m_connLessRemoteEndpoint.address.c_str());
+			sa.sin_port = htons(m_connLessRemoteEndpoint.port);
+			
+			//try to ping the destination
+			m_connLessRemoteReachable = testUnreliableRemoteEndpointNoLock();
+			
+			//close socket if destination unreachable
+			if (!m_connLessRemoteReachable) {
+				if (m_connLessSocket != INVALID_SOCKET)
+				{
+					closesocket(m_connLessSocket);
+					m_connLessSocket = INVALID_SOCKET;
+				}
+			}
+		}//if (m_connLessRemoteEndpoint.port != 0)
+	}
+	
+	void UnreliableSocketClientHandler::addtionalRcvThreadCleanupImpl() {
+		m_connLessRemoteReachable = false;
+		
+		//super
+		BaseUnreliableSocketHandler::addtionalRcvThreadCleanupImpl();
+	}
+	
+	void UnreliableSocketClientHandler::addtionalSocketCleanupImpl() {
+		m_connLessRemoteReachable = false;
+		
+		//super
+		BaseUnreliableSocketHandler::addtionalSocketCleanupImpl();
+	}
+	
+	/*---------------- SocketClientHandler -------------------*/
+	SocketClientHandler::SocketClientHandler(int listeningPort, int connLessListeningPort, const ConnectionEndpoint& remoteEndpoint, const ConnectionEndpoint& connLessRemoteEndpoint)
+	: UnreliableSocketClientHandler(connLessListeningPort, connLessRemoteEndpoint),
+		m_remoteEndpoint(remoteEndpoint)
+	{
+	}
+	
+	SocketClientHandler::~SocketClientHandler() {
+		
+	}
+	
+	bool SocketClientHandler::connected() const {
+		return (m_connLessRemoteEndpoint.port == 0 || UnreliableSocketClientHandler::connected())
+				&& m_connSocket != INVALID_SOCKET;
+	}
+	
+	void SocketClientHandler::initConnectionImpl() {
+		_ssize_t re;
+		
+		sockaddr_in sa;
+		memset(&sa, 0, sizeof sa);
+		
+		sa.sin_family = AF_INET;
+		
+		//connect to server
+		if (m_connSocket == INVALID_SOCKET && m_remoteEndpoint.port != 0) {
+			std::lock_guard<std::mutex> lg(m_socketLock);
+			
+			m_connSocket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+			if (m_connSocket != INVALID_SOCKET) {
+				sa.sin_addr.s_addr = inet_addr(m_remoteEndpoint.address.c_str());
+				sa.sin_port = htons(m_remoteEndpoint.port);
+				
+				re = ::connect(m_connSocket, (sockaddr*)&sa, sizeof(sa));
+				if (re == SOCKET_ERROR) {
+					//failed
+					closesocket(m_connSocket);
+					m_connSocket = INVALID_SOCKET;
+				}
+				
+			}//if (m_connSocket != INVALID_SOCKET && m_remoteEndpoint.port != 0)
+			
+		}//if (m_connSocket == INVALID_SOCKET)
+		
+		//create connectionless socket
+		UnreliableSocketClientHandler::initConnectionImpl();
+	}
+	
+	void SocketClientHandler::addtionalRcvThreadCleanupImpl() {
+		//super
+		UnreliableSocketClientHandler::addtionalRcvThreadCleanupImpl();
+	}
+	
+	void SocketClientHandler::addtionalSocketCleanupImpl() {
+		
+		//super
+		UnreliableSocketClientHandler::addtionalSocketCleanupImpl();
 	}
 }

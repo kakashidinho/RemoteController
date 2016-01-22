@@ -8,9 +8,9 @@
 
 #import <UIKit/UIKit.h>
 
-#import "BaseViewControllerWithNetwork.h"
+#include "../ConnectionHandler.h"
 
-@interface RemoteViewController : BaseViewControllerWithNetwork
+@interface RemoteViewController : UIViewController
 
 @property (strong, nonatomic) IBOutlet UIButton *exitBtn;
 @property (strong, nonatomic) IBOutlet UIButton *flipYBtn;
@@ -19,5 +19,6 @@
 @property (strong, nonatomic) IBOutlet UIImageView *remoteFrameView;
 
 @property (nonatomic) CGSize remoteFrameSize;
+@property (nonatomic, assign) std::shared_ptr<HQRemote::IConnectionHandler> connHandler;
 
 @end

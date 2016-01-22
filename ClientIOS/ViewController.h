@@ -8,9 +8,7 @@
 
 #import <UIKit/UIKit.h>
 
-#import "BaseViewControllerWithNetwork.h"
-
-@interface ViewController : BaseViewControllerWithNetwork
+@interface ViewController : UIViewController
 
 @property (strong, nonatomic) IBOutlet UITextField *ipText;
 @property (strong, nonatomic) IBOutlet UITextField *portText;

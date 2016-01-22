@@ -4,6 +4,7 @@
 #include "Common.h"
 #include "Data.h"
 #include "Event.h"
+#include "Timer.h"
 
 #ifdef WIN32
 #	include <Winsock2.h>
@@ -14,6 +15,7 @@
 #	include <arpa/inet.h>
 #endif
 
+#include <string>
 #include <map>
 #include <list>
 #include <functional>
@@ -37,14 +39,25 @@ namespace HQRemote {
 #	pragma warning(disable:4251)
 #endif
 
+	struct HQREMOTE_API ConnectionEndpoint {
+		ConnectionEndpoint(std::string addr, int _port)
+		: address(addr), port(_port)
+		{}
+		
+		std::string address;
+		int port;
+	};
+	
 	//interface
 	class HQREMOTE_API IConnectionHandler {
 	public:
-		virtual ~IConnectionHandler() {}
+		virtual ~IConnectionHandler();
 
-		virtual void start() = 0;
-		virtual void stop() = 0;
+		void start();
+		void stop();
+		bool running() const;
 
+		double timeSinceStart() const;
 		virtual bool connected() const = 0;
 
 		virtual DataRef receiveData() = 0;
@@ -52,6 +65,15 @@ namespace HQRemote {
 		virtual void sendDataUnreliable(ConstDataRef data);
 		virtual void sendData(const void* data, size_t size) = 0;
 		virtual void sendDataUnreliable(const void* data, size_t size) = 0;
+		
+	protected:
+		IConnectionHandler();
+		
+		virtual void startImpl() = 0;
+		virtual void stopImpl() = 0;
+		
+		std::atomic<bool> m_running;
+		time_checkpoint_t m_startTime;
 	};
 
 	//socket based handler
@@ -59,9 +81,6 @@ namespace HQRemote {
 	public:
 		SocketConnectionHandler();
 		~SocketConnectionHandler();
-
-		virtual void start() override;
-		virtual void stop() override;
 
 		virtual bool connected() const override;
 
@@ -75,31 +94,45 @@ namespace HQRemote {
 		void platformDestruct();
 
 		int platformGetLastSocketErr() const;
+		
+		virtual void startImpl() override;
+		virtual void stopImpl() override;
 
 		void sendDataNoLock(const void* data, size_t size);
 		void sendDataUnreliableNoLock(const void* data, size_t size);
+		
+		_ssize_t pingUnreliableNoLock(time_checkpoint_t sendTime);
+		
+		void recvProc();
+		
+	protected:
+		struct MsgBuf {
+			DataRef data;
+			size_t filledSize;
+		};
+		
+		struct UnreliablePingInfo {
+			uint64_t sendTime;
+			double rtt;
+		};
 
+		virtual void initConnectionImpl() = 0;
+		virtual void addtionalRcvThreadCleanupImpl() = 0;
+		virtual void addtionalSocketCleanupImpl() = 0;
+		
+		
 		_ssize_t sendDataNoLock(socket_t socket, const sockaddr_in* pDstAddr, const void* data, size_t size);
-
+		
 		_ssize_t sendChunkUnreliableNoLock(socket_t socket, const sockaddr_in* pDstAddr, const MsgChunk& chunk);//connectionless only socket
 		_ssize_t recvChunkUnreliableNoLock(socket_t socket, MsgChunk& chunk);//connectionless only socket
 		_ssize_t recvDataUnreliableNoLock(socket_t socket);
 		_ssize_t sendDataAtomicNoLock(socket_t socket, const void* data, size_t expectedSize);//connection oriented only socket
 		_ssize_t recvDataAtomicNoLock(socket_t socket, void* data, size_t expectedSize);
 		_ssize_t recvDataNoLock(socket_t socket);
-
-		void recvProc();
-
-	protected:
-		struct MsgBuf {
-			DataRef data;
-			size_t filledSize;
-		};
-
-		virtual void initConnectionImpl() = 0;
-		virtual void addtionalRcvThreadCleanupImpl() = 0;
-		virtual void addtionalSocketCleanupImpl() = 0;
-
+		
+		//check if we're able to connect to the remote endpoint on an unreliable channel
+		bool testUnreliableRemoteEndpointNoLock();
+		
 		void pushDataToQueue(DataRef data);
 
 		std::mutex m_socketLock;
@@ -109,11 +142,11 @@ namespace HQRemote {
 		std::mutex m_dataLock;
 		std::unique_ptr<std::thread> m_recvThread;
 
-		std::atomic<bool> m_running;
-
 		std::atomic<socket_t> m_connSocket;
 		std::atomic<socket_t> m_connLessSocket;//connection less socket
-		std::unique_ptr<sockaddr_in> m_connLessSocketAddr;
+		std::unique_ptr<sockaddr_in> m_connLessSocketDestAddr;//destination endpoint of connectionless socket
+		
+		UnreliablePingInfo m_lastConnLessPing;
 
 		//platform dependent
 		struct Impl;
@@ -138,9 +171,11 @@ namespace HQRemote {
 	//socket based server handler
 	class HQREMOTE_API SocketServerHandler : public BaseUnreliableSocketHandler {
 	public:
+		//pass <connLessListeningPort> = 0 if you don't want to use unreliable socket
 		SocketServerHandler(int listeningPort, int connLessListeningPort);
 		~SocketServerHandler();
 
+		virtual bool connected() const override;
 	private:
 		virtual void initConnectionImpl() override;
 		virtual void addtionalRcvThreadCleanupImpl() override;
@@ -148,6 +183,39 @@ namespace HQRemote {
 
 		int m_port;
 		socket_t m_serverSocket;
+	};
+	
+	//socket based ureliable client handler
+	class HQREMOTE_API UnreliableSocketClientHandler : public BaseUnreliableSocketHandler {
+	public:
+		UnreliableSocketClientHandler(int connLessListeningPort, const ConnectionEndpoint& connLessRemoteEndpoint);
+		~UnreliableSocketClientHandler();
+		
+		virtual bool connected() const override;
+	protected:
+		virtual void initConnectionImpl() override;
+		virtual void addtionalRcvThreadCleanupImpl() override;
+		virtual void addtionalSocketCleanupImpl() override;
+		
+		ConnectionEndpoint m_connLessRemoteEndpoint;
+		
+		std::atomic<bool> m_connLessRemoteReachable;
+	};
+	
+	//socket based client handler
+	class HQREMOTE_API SocketClientHandler : public UnreliableSocketClientHandler {
+	public:
+		//pass <remoteConnLessEndpoint.port> = 0 if you don't want to use unreliable socket
+		SocketClientHandler(int listeningPort, int connLessListeningPort, const ConnectionEndpoint& remoteEndpoint, const ConnectionEndpoint& remoteConnLessEndpoint);
+		~SocketClientHandler();
+		
+		virtual bool connected() const override;
+	private:
+		virtual void initConnectionImpl() override;
+		virtual void addtionalRcvThreadCleanupImpl() override;
+		virtual void addtionalSocketCleanupImpl() override;
+		
+		ConnectionEndpoint m_remoteEndpoint;//reliable endpoint
 	};
 
 #if defined WIN32 || defined _MSC_VER

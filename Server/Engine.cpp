@@ -12,18 +12,26 @@ namespace HQRemote {
 
 	/*------------Engine -----------*/
 	Engine::Engine(int port, std::shared_ptr<IFrameCapturer> frameCapturer)
-		: m_frameCapturer(frameCapturer), m_processedCapturedFrames(0), m_lastSentFrameId(0),
-	m_videoRecording(false), m_saveNextFrame(false)
+	: Engine(std::make_shared<BaseUnreliableSocketHandler>(port), frameCapturer)
+	{
+		
+	}
+	Engine::Engine(std::shared_ptr<IConnectionHandler> connHandler, std::shared_ptr<IFrameCapturer> frameCapturer)
+		: m_connHandler(connHandler), m_frameCapturer(frameCapturer),
+			m_processedCapturedFrames(0), m_lastSentFrameId(0), m_sendFrame(false),
+			m_videoRecording(false), m_saveNextFrame(false)
 	{
 		if (m_frameCapturer == nullptr) {
 			throw std::runtime_error("Null frame capturer is not allowed");
+		}
+		if (m_connHandler == nullptr)
+		{
+			throw std::runtime_error("Null connection handler is not allowed");
 		}
 
 		platformConstruct();
 
 		m_running = true;
-
-		m_connHandler = std::make_shared<BaseUnreliableSocketHandler>(port);
 		
 		m_connHandler->start();
 
@@ -97,11 +105,6 @@ namespace HQRemote {
 
 	//capture current frame and send to remote controller
 	void Engine::captureAndSendFrame() {
-#if DEBUG_CAPTURED_FRAMES == 0
-		if (!m_connHandler->connected())
-			return;//no connection
-#endif
-
 		auto frameRef = m_frameCapturer->beginCaptureFrame();
 		if (frameRef != nullptr) {
 			time_checkpoint_t time;
@@ -160,6 +163,12 @@ namespace HQRemote {
 	EventRef Engine::handleEventInternal(const EventRef& event) {
 		//process internal event
 		switch (event->event.type) {
+		case START_SEND_FRAME:
+			m_sendFrame = true;
+			break;
+		case STOP_SEND_FRAME:
+			m_sendFrame = false;
+			break;
 		case RECORD_START:
 		{
 			std::lock_guard<std::mutex> lg(m_videoLock);
@@ -257,7 +266,8 @@ namespace HQRemote {
 
 				if (frameId > m_lastSentFrameId)//ignore lower id frame (it may be because the compression thead was too slow to produce the frame)
 				{
-					m_connHandler->sendDataUnreliable(frame);
+					if (m_sendFrame)
+						m_connHandler->sendDataUnreliable(frame);
 				
 					m_lastSentFrameId = frameId;
 

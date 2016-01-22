@@ -12,6 +12,9 @@ namespace HQRemote {
 		TOUCH_MOVED,
 		TOUCH_ENDED,
 		TOUCH_CANCELLED,
+	
+		START_SEND_FRAME,
+		STOP_SEND_FRAME,
 		
 		RECORD_START,
 		RECORD_END,
@@ -21,7 +24,9 @@ namespace HQRemote {
 		HOST_INFO,
 		RENDERED_FRAME,
 
-		CUSTOM,
+		PING_MSG,
+		
+		CUSTOM_MSG,
 
 		NO_EVENT,
 	};

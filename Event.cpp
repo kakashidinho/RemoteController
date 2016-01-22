@@ -100,24 +100,29 @@ namespace HQRemote {
 
 	//factory function
 	EventRef deserializeEvent(DataRef&& data) {
-		//inspect event type first
-		auto& dataRefCopy = data;
+		try {
+			//inspect event type first
+			auto& dataRefCopy = data;
 
-		PlainEvent plainEvent;
-		plainEvent.deserialize(dataRefCopy);
+			PlainEvent plainEvent;
+			plainEvent.deserialize(dataRefCopy);
 
-		switch (plainEvent.event.type) {
-		case RENDERED_FRAME:
+			switch (plainEvent.event.type) {
+			case RENDERED_FRAME:
+			{
+				//this is non-plain event
+				auto frameEvent = std::make_shared<FrameEvent>();
+				frameEvent->deserialize(std::forward<DataRef>(data));
+
+				return frameEvent;
+			}
+				break;
+			default:
+				return std::make_shared<PlainEvent>(plainEvent);
+			}//switch (plain.event.type)
+		} catch (...)
 		{
-			//this is non-plain event
-			auto frameEvent = std::make_shared<FrameEvent>();
-			frameEvent->deserialize(std::forward<DataRef>(data));
-
-			return frameEvent;
+			return nullptr;
 		}
-			break;
-		default:
-			return std::make_shared<PlainEvent>(plainEvent);
-		}//switch (plain.event.type)
 	}
 }

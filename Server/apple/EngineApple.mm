@@ -57,7 +57,7 @@ namespace HQRemote {
 	static CVPixelBufferRef pixelBufferFromFrameData(ConstDataRef frame,
 													 uint32_t width, uint32_t height,
 													 unsigned int numChannels,
-													 uint32 destWidth, uint32_t destHeight,
+													 uint32_t destWidth, uint32_t destHeight,
 													 bool flip)
 	{
 		CGImageRef image = createCGImage(frame, width, height, numChannels);

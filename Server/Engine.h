@@ -29,6 +29,7 @@ namespace HQRemote {
 	public:
 
 		Engine(int port, std::shared_ptr<IFrameCapturer> frameCapturer);
+		Engine(std::shared_ptr<IConnectionHandler> connHandler, std::shared_ptr<IFrameCapturer> frameCapturer);
 		~Engine();
 
 		//capture current frame and send to remote controller
@@ -67,6 +68,7 @@ namespace HQRemote {
 		
 		uint64_t m_processedCapturedFrames;
 		uint64_t m_lastSentFrameId;
+		std::atomic<bool> m_sendFrame;
 		
 		//video recording thread
 		std::map<time_checkpoint_t, ConstDataRef, TimeCompare> m_capturedFramesForVideo;
