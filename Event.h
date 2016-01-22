@@ -34,9 +34,6 @@ namespace HQRemote {
 	struct Event {
 		Event(EventType _type) : type(_type)
 		{}
-
-		EventType type;
-
 		union {
 			struct {
 				int32_t id;
@@ -51,10 +48,15 @@ namespace HQRemote {
 
 			struct {
 				uint64_t frameId;
+				union {
+					void* frameData;
+					uint64_t frameDataAddr64;
+				};
 				uint32_t frameSize;
-				void* frameData;
 			} renderedFrameData;
 		};
+
+		EventType type;
 	};
 
 	struct PlainEvent {
