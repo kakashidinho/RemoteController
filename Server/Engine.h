@@ -68,6 +68,8 @@ namespace HQRemote {
 		
 		uint64_t m_processedCapturedFrames;
 		uint64_t m_lastSentFrameId;
+		time_checkpoint_t m_lastSentFrameTime;
+		double m_frameSendingInterval;
 		std::atomic<bool> m_sendFrame;
 		
 		//video recording thread

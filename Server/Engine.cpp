@@ -8,6 +8,8 @@
 #define DEBUG_CAPTURED_FRAMES 0
 #define MAX_PENDING_FRAMES 60
 
+#define DEFAULT_FRAME_SEND_INTERVAL (1 / 30.0)
+
 namespace HQRemote {
 
 	/*------------Engine -----------*/
@@ -15,10 +17,10 @@ namespace HQRemote {
 	: Engine(std::make_shared<BaseUnreliableSocketHandler>(port), frameCapturer)
 	{
 		
-	}
+	} 
 	Engine::Engine(std::shared_ptr<IConnectionHandler> connHandler, std::shared_ptr<IFrameCapturer> frameCapturer)
 		: m_connHandler(connHandler), m_frameCapturer(frameCapturer),
-			m_processedCapturedFrames(0), m_lastSentFrameId(0), m_sendFrame(false),
+			m_processedCapturedFrames(0), m_lastSentFrameId(0), m_sendFrame(false), m_frameSendingInterval(DEFAULT_FRAME_SEND_INTERVAL),
 			m_videoRecording(false), m_saveNextFrame(false)
 	{
 		if (m_frameCapturer == nullptr) {
@@ -34,6 +36,8 @@ namespace HQRemote {
 		m_running = true;
 		
 		m_connHandler->start();
+
+		getTimeCheckPoint(m_lastSentFrameTime);
 
 		//start background thread to send compressed frame to remote side
 		m_frameSendingThread = std::unique_ptr<std::thread>(new std::thread([this] {
@@ -266,10 +270,20 @@ namespace HQRemote {
 
 				if (frameId > m_lastSentFrameId)//ignore lower id frame (it may be because the compression thead was too slow to produce the frame)
 				{
+					time_checkpoint_t curTime;
+					getTimeCheckPoint(curTime);
 					if (m_sendFrame)
-						m_connHandler->sendDataUnreliable(frame);
-				
-					m_lastSentFrameId = frameId;
+					{
+						auto frameElapsedTime = getElapsedTime(m_lastSentFrameTime, curTime);
+
+						if (frameElapsedTime >= m_frameSendingInterval)
+						{
+							m_connHandler->sendDataUnreliable(frame);
+
+							m_lastSentFrameId = frameId;
+							m_lastSentFrameTime = curTime;
+						}//if (frameElapsedTime <= m_frameSendingInterval)
+					}//if (m_sendFrame)
 
 #if DEBUG_CAPTURED_FRAMES > 0
 					//write to file
