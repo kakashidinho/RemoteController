@@ -509,7 +509,7 @@ namespace HQRemote {
 						&& FD_ISSET(m_connLessSocket, &sset))
 						recvDataUnreliableNoLock(m_connLessSocket);
 					
-					if (m_lastConnLessPing.sendTime == time1)
+					if (m_lastConnLessPing.sendTime == convertToTimeCheckPoint64(time1))
 					{
 						re = true;
 					}

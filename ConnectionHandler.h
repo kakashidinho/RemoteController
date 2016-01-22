@@ -1,11 +1,6 @@
 #ifndef HQREMOTE_CONNECTION_HANDLER_H
 #define HQREMOTE_CONNECTION_HANDLER_H
 
-#include "Common.h"
-#include "Data.h"
-#include "Event.h"
-#include "Timer.h"
-
 #ifdef WIN32
 #	include <Winsock2.h>
 #else
@@ -14,6 +9,11 @@
 #	include <netinet/in.h>
 #	include <arpa/inet.h>
 #endif
+
+#include "Common.h"
+#include "Data.h"
+#include "Event.h"
+#include "Timer.h"
 
 #include <string>
 #include <map>
