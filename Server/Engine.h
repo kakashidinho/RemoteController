@@ -6,6 +6,7 @@
 #include "../Event.h"
 #include "../Timer.h"
 #include "FrameCapturer.h"
+#include "ImgCompressor.h"
 
 #include <stdint.h>
 #include <functional>
@@ -28,8 +29,8 @@ namespace HQRemote {
 	class HQREMOTE_API Engine {
 	public:
 
-		Engine(int port, std::shared_ptr<IFrameCapturer> frameCapturer);
-		Engine(std::shared_ptr<IConnectionHandler> connHandler, std::shared_ptr<IFrameCapturer> frameCapturer);
+		Engine(int port, std::shared_ptr<IFrameCapturer> frameCapturer, std::shared_ptr<IImgCompressor> imgCompressor = nullptr);
+		Engine(std::shared_ptr<IConnectionHandler> connHandler, std::shared_ptr<IFrameCapturer> frameCapturer, std::shared_ptr<IImgCompressor> imgCompressor = nullptr);
 		~Engine();
 
 		//capture current frame and send to remote controller
@@ -54,6 +55,7 @@ namespace HQRemote {
 		void frameSavingProc();
 
 		std::shared_ptr<IFrameCapturer> m_frameCapturer;
+		std::shared_ptr<IImgCompressor> m_imgCompressor;
 		std::shared_ptr<IConnectionHandler> m_connHandler;
 
 		//frame compression & sending thread

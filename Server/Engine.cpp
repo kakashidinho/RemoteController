@@ -13,13 +13,13 @@
 namespace HQRemote {
 
 	/*------------Engine -----------*/
-	Engine::Engine(int port, std::shared_ptr<IFrameCapturer> frameCapturer)
-	: Engine(std::make_shared<BaseUnreliableSocketHandler>(port), frameCapturer)
+	Engine::Engine(int port, std::shared_ptr<IFrameCapturer> frameCapturer, std::shared_ptr<IImgCompressor> imgCompressor)
+	: Engine(std::make_shared<BaseUnreliableSocketHandler>(port), frameCapturer, imgCompressor)
 	{
 		
 	} 
-	Engine::Engine(std::shared_ptr<IConnectionHandler> connHandler, std::shared_ptr<IFrameCapturer> frameCapturer)
-		: m_connHandler(connHandler), m_frameCapturer(frameCapturer),
+	Engine::Engine(std::shared_ptr<IConnectionHandler> connHandler, std::shared_ptr<IFrameCapturer> frameCapturer, std::shared_ptr<IImgCompressor> imgCompressor)
+		: m_connHandler(connHandler), m_frameCapturer(frameCapturer), m_imgCompressor(imgCompressor),
 			m_processedCapturedFrames(0), m_lastSentFrameId(0), m_sendFrame(false), m_frameSendingInterval(DEFAULT_FRAME_SEND_INTERVAL),
 			m_videoRecording(false), m_saveNextFrame(false)
 	{
@@ -29,6 +29,11 @@ namespace HQRemote {
 		if (m_connHandler == nullptr)
 		{
 			throw std::runtime_error("Null connection handler is not allowed");
+		}
+
+		if (m_imgCompressor == nullptr)
+		{
+			m_imgCompressor = std::make_shared<JpegImgCompressor>(true, false);
 		}
 
 		platformConstruct();
@@ -225,12 +230,11 @@ namespace HQRemote {
 				auto frameId = ++m_processedCapturedFrames;
 				lk.unlock();
 
-				auto compressedFrame = convertToJpeg(frame,
+				auto compressedFrame = m_imgCompressor->compress(
+													 frame,
 													 m_frameCapturer->getFrameWidth(),
 													 m_frameCapturer->getFrameHeight(),
-													 m_frameCapturer->getNumColorChannels(),
-													 true,
-													 false);
+													 m_frameCapturer->getNumColorChannels());
 
 				if (compressedFrame != nullptr) {
 					//convert to frame event

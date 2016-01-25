@@ -203,6 +203,8 @@ call ../touch.bat "$(OutDir)$(TargetName).lib"</Command>
     <ClCompile Include="FrameCapturer.cpp" />
     <ClCompile Include="FrameCapturerGL.cpp" />
     <ClCompile Include="ImgCompressor.cpp" />
+    <ClCompile Include="JpegCompressor.cpp" />
+    <ClCompile Include="PngCompressor.cpp" />
     <ClCompile Include="win32\EngineWin32.cpp" />
     <ClCompile Include="..\third-party\jpeg-9a\jaricom.c" />
     <ClCompile Include="..\third-party\jpeg-9a\jcomapi.c" />

@@ -12,6 +12,24 @@
 #include "../Data.h"
 
 namespace HQRemote {
+	class IImgCompressor {
+	public:
+		virtual ~IImgCompressor() {}
+
+		virtual DataRef compress(ConstDataRef src, uint32_t width, uint32_t height, unsigned int numChannels) = 0;
+	};
+
+	class JpegImgCompressor : public IImgCompressor {
+	public:
+		JpegImgCompressor(bool outputLowRes, bool outputFlipped);
+
+		virtual DataRef compress(ConstDataRef src, uint32_t width, uint32_t height, unsigned int numChannels) override;
+
+	private:
+		bool m_outputLowRes;
+		bool m_flip;
+	};
+
 	DataRef convertToJpeg(ConstDataRef src, uint32_t width, uint32_t height, unsigned int numChannels, bool outputlowRes, bool flip);
 	DataRef convertToPng(ConstDataRef src, uint32_t width, uint32_t height, unsigned int numChannels, bool outputlowRes, bool flip);
 }
