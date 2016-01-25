@@ -54,6 +54,8 @@ namespace HQRemote {
 				};
 				uint32_t frameSize;
 			} renderedFrameData;
+
+			unsigned char customData[8 + 8 + 4];
 		};
 
 		EventType type;
