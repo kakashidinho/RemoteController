@@ -7,7 +7,9 @@
 #include <memory>
 
 namespace HQRemote {
-	enum EventType: uint32_t {
+	typedef uint32_t EventType;
+
+	enum PredefinedEventType: uint32_t {
 		TOUCH_BEGAN,
 		TOUCH_MOVED,
 		TOUCH_ENDED,
@@ -23,10 +25,6 @@ namespace HQRemote {
 
 		HOST_INFO,
 		RENDERED_FRAME,
-
-		PING_MSG,
-		
-		CUSTOM_MSG,
 
 		NO_EVENT,
 	};
