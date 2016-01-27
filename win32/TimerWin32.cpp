@@ -15,12 +15,16 @@ namespace HQRemote {
 
 	///get elapsed time in seconds between two check points
 	double getElapsedTime(const time_checkpoint_t& point1, const time_checkpoint_t& point2) {
+		return getElapsedTime64(point1.QuadPart, point2.QuadPart);
+	}
+
+	double getElapsedTime64(uint64_t point1, uint64_t point2) {
 		std::lock_guard<std::mutex> lg(g_lock);
 
 		LARGE_INTEGER frequency;
 		QueryPerformanceFrequency(&frequency);
 
-		return (double)(point2.QuadPart - point1.QuadPart) / (double)frequency.QuadPart;
+		return (double)(point2 - point1) / (double)frequency.QuadPart;
 	}
 	
 	uint64_t getTimeCheckPoint64() {

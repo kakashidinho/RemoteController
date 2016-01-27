@@ -42,6 +42,10 @@ namespace HQRemote {
 		return time;
 	}
 	
+	double getElapsedTime64(uint64_t point1, uint64_t point2) {
+		return getElapsedTime(point1, point2);
+	}
+
 	uint64_t getTimeCheckPoint64() {
 		time_checkpoint_t time;
 		getTimeCheckPoint(time);

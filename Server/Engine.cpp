@@ -37,7 +37,7 @@ namespace HQRemote {
 				   size_t frameBundleSize)
 		: m_connHandler(connHandler), m_frameCapturer(frameCapturer), m_imgCompressor(imgCompressor),
 			m_processedCapturedFrames(0), m_lastSentFrameId(0), m_sendFrame(false),
-			m_frameBundleSize(frameBundleSize), m_lastCapturedFrameTime(0),
+			m_frameBundleSize(frameBundleSize), m_lastCapturedFrameTime64(0),
 			m_frameCaptureInterval(0), m_intendedFrameInterval(DEFAULT_FRAME_SEND_INTERVAL),
 			m_videoRecording(false), m_saveNextFrame(false)
 	{
@@ -154,18 +154,17 @@ namespace HQRemote {
 	void Engine::captureAndSendFrame() {
 		auto frameRef = m_frameCapturer->beginCaptureFrame();
 		if (frameRef != nullptr) {
-			time_checkpoint_t time;
-			getTimeCheckPoint(time);
+			uint64_t time64 = getTimeCheckPoint64();
 			
-			if (m_lastCapturedFrameTime != 0)
+			if (m_lastCapturedFrameTime64 != 0)
 			{
-				auto curFrameInterval = getElapsedTime(m_lastCapturedFrameTime, time);
+				auto curFrameInterval = getElapsedTime64(m_lastCapturedFrameTime64, time64);
 				if (curFrameInterval < m_intendedFrameInterval)//skip
 					return;
 			
 				m_frameCaptureInterval = 0.8 * m_frameCaptureInterval + 0.2 * curFrameInterval;
 			}
-			m_lastCapturedFrameTime = time;
+			m_lastCapturedFrameTime64 = time64;
 			
 			//send to frame compression threads
 			{
@@ -195,7 +194,9 @@ namespace HQRemote {
 			{
 				std::lock_guard<std::mutex> lg(m_videoLock);
 				if (m_videoRecording) {
-					
+					time_checkpoint_t time;
+					convertToTimeCheckPoint(time, time64);
+
 					m_capturedFramesForVideo.insert(std::pair<time_checkpoint_t, ConstDataRef> (time, frameRef));
 					
 					m_videoCv.notify_all();

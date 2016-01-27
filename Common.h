@@ -2,8 +2,9 @@
 #define REMOTE_COMMON_H
 
 #ifdef WIN32
+#include <windows.h>
 #else
-#include "unistd.h"
+#include <unistd.h>
 #endif//WIN32
 
 #ifndef HQREMOTE_API

@@ -201,9 +201,6 @@
     <ClCompile Include="win32\EngineWin32.cpp">
       <Filter>Source Files\Server\win32</Filter>
     </ClCompile>
-    <ClCompile Include="..\win32\TimerWin32.cpp">
-      <Filter>Source Files\Server\win32</Filter>
-    </ClCompile>
     <ClCompile Include="..\Common.cpp">
       <Filter>Source Files\Common</Filter>
     </ClCompile>
@@ -218,6 +215,9 @@
     </ClCompile>
     <ClCompile Include="PngCompressor.cpp">
       <Filter>Source Files\Server</Filter>
+    </ClCompile>
+    <ClCompile Include="..\win32\TimerWin32.cpp">
+      <Filter>Source Files\Common\win32</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

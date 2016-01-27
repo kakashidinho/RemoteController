@@ -64,6 +64,8 @@ namespace HQRemote {
 	uint64_t convertToTimeCheckPoint64(const time_checkpoint_t& checkPoint);
 	void convertToTimeCheckPoint(time_checkpoint_t& checkPoint, uint64_t time64);
 
+	double getElapsedTime64(uint64_t point1, uint64_t point2);
+
 	//generate increasing id based on time
 	uint64_t generateIDFromTime(const time_checkpoint_t& time);
 	inline uint64_t generateIDFromTime() {

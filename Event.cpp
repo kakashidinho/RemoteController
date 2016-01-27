@@ -1,12 +1,16 @@
-#include "Event.h"
-#include "Common.h"
-
 #include <assert.h>
 #include <stdexcept>
 #include <limits>
 #include <stdarg.h>
 
 #include <zlib.h>
+
+#include "Event.h"
+#include "Common.h"
+
+#ifdef max
+#	undef max
+#endif
 
 #define COMPRESS_CHUNK_SIZE (256 * 1024)
 
