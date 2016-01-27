@@ -171,7 +171,7 @@ namespace HQRemote {
 		auto offsetTableOff = sizeof(this->event);
 		
 		uint64_t *offsetTable = (uint64_t*)(this->storage->data() + offsetTableOff);
-		DataSegment compressedData(this->storage, offsetTableOff + m_events.size() * sizeof(offsetTable[0]));
+		DataSegment compressedData(this->storage, offsetTableOff + this->event.compressedEvents.numEvents * sizeof(offsetTable[0]));
 		auto decompressedData = zlibDecompress(compressedData);
 		auto uncompressedSize = decompressedData->size();
 		

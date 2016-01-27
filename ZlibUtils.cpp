@@ -4,6 +4,7 @@
 #include <zlib.h>
 
 #include <assert.h>
+#include <string>
 
 #ifdef max
 #	undef max
@@ -60,14 +61,15 @@ namespace HQRemote {
 
 	DataRef zlibDecompress(const IData& src) {
 		const uint64_t& uncompressedSize = *(const uint64_t*)(src.data());
-		const unsigned char* compressedData = (const unsigned char*)(&uncompressedSize + sizeof(uncompressedSize));
+		const unsigned char* compressedData = (const unsigned char*)(&uncompressedSize + 1);
 		_ssize_t compressedSize = (_ssize_t)src.size() - (_ssize_t)(src.data() - compressedData);
 		if (compressedSize < 0)
 			throw  std::runtime_error("Size is too small for decompression");
 
 		auto decompressedData = std::make_shared<CData>(uncompressedSize);
 		uLongf decompressedSize = decompressedData->size();
-		if (uncompress(decompressedData->data(), &decompressedSize, compressedData, compressedSize) != Z_OK
+		int re;
+		if ((re = uncompress(decompressedData->data(), &decompressedSize, compressedData, compressedSize)) != Z_OK
 			|| decompressedSize != uncompressedSize) {
 			throw  std::runtime_error("Decompression failed");
 		}
