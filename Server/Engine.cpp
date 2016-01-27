@@ -8,19 +8,37 @@
 #define DEBUG_CAPTURED_FRAMES 0
 #define MAX_PENDING_FRAMES 60
 
+#define DEFAULT_NUM_COMPRESS_THREADS 4
+
 #define DEFAULT_FRAME_SEND_INTERVAL (1 / 30.0)
+
+#ifndef max
+#	define max(a,b) ((a) > (b) ? (a) : (b))
+#endif
+
+#ifndef min
+#	define min(a,b) ((a) < (b) ? (a) : (b))
+#endif
 
 namespace HQRemote {
 
 	/*------------Engine -----------*/
-	Engine::Engine(int port, std::shared_ptr<IFrameCapturer> frameCapturer, std::shared_ptr<IImgCompressor> imgCompressor)
-	: Engine(std::make_shared<BaseUnreliableSocketHandler>(port), frameCapturer, imgCompressor)
+	Engine::Engine(int port,
+				   std::shared_ptr<IFrameCapturer> frameCapturer,
+				   std::shared_ptr<IImgCompressor> imgCompressor,
+				   size_t frameBundleSize)
+	: Engine(std::make_shared<BaseUnreliableSocketHandler>(port), frameCapturer, imgCompressor, frameBundleSize)
 	{
 		
 	} 
-	Engine::Engine(std::shared_ptr<IConnectionHandler> connHandler, std::shared_ptr<IFrameCapturer> frameCapturer, std::shared_ptr<IImgCompressor> imgCompressor)
+	Engine::Engine(std::shared_ptr<IConnectionHandler> connHandler,
+				   std::shared_ptr<IFrameCapturer> frameCapturer,
+				   std::shared_ptr<IImgCompressor> imgCompressor,
+				   size_t frameBundleSize)
 		: m_connHandler(connHandler), m_frameCapturer(frameCapturer), m_imgCompressor(imgCompressor),
-			m_processedCapturedFrames(0), m_lastSentFrameId(0), m_sendFrame(false), m_frameSendingInterval(DEFAULT_FRAME_SEND_INTERVAL),
+			m_processedCapturedFrames(0), m_lastSentFrameId(0), m_sendFrame(false),
+			m_frameBundleSize(frameBundleSize), m_lastCapturedFrameTime(0),
+			m_frameCaptureInterval(0), m_intendedFrameInterval(DEFAULT_FRAME_SEND_INTERVAL),
 			m_videoRecording(false), m_saveNextFrame(false)
 	{
 		if (m_frameCapturer == nullptr) {
@@ -42,23 +60,34 @@ namespace HQRemote {
 		
 		m_connHandler->start();
 
-		getTimeCheckPoint(m_lastSentFrameTime);
-
 		//start background thread to send compressed frame to remote side
 		m_frameSendingThread = std::unique_ptr<std::thread>(new std::thread([this] {
 			frameSendingProc();
 		}));
 
 		//start background threads compress captured frames
-		auto numThreads = std::thread::hardware_concurrency();
-		m_frameCompressionThreads.reserve(numThreads);
-		for (unsigned int i = 0; i < numThreads; ++i) {
+		auto numCompressThreads =  max(std::thread::hardware_concurrency(), DEFAULT_NUM_COMPRESS_THREADS);
+		m_frameCompressionThreads.reserve(numCompressThreads);
+		for (unsigned int i = 0; i < numCompressThreads; ++i) {
 			auto thread = std::unique_ptr<std::thread>(new std::thread([this] {
 				frameCompressionProc();
 			}));
 
 			m_frameCompressionThreads.push_back(std::move(thread));
 		}
+		
+		//start background threads bundle comrpessed frame together
+		if (m_frameBundleSize > 1) {
+			auto numBundleThreads =  min(std::thread::hardware_concurrency(), m_frameBundleSize);
+			m_frameBundleThreads.reserve(numBundleThreads);
+			for (unsigned int i = 0; i < numBundleThreads; ++i) {
+				auto thread = std::unique_ptr<std::thread>(new std::thread([this] {
+					frameBundleProc();
+				}));
+				
+				m_frameBundleThreads.push_back(std::move(thread));
+			}
+		}//if (m_frameBundleSize > 1)
 		
 		//start background thread to record video
 		m_videoThread = std::unique_ptr<std::thread>(new std::thread([this] {
@@ -82,6 +111,10 @@ namespace HQRemote {
 			m_frameCompressCv.notify_all();
 		}
 		{
+			std::lock_guard<std::mutex> lg(m_frameBundleLock);
+			m_frameBundleCv.notify_all();
+		}
+		{
 			std::lock_guard<std::mutex> lg(m_frameCompressLock);
 			m_frameSendingCv.notify_all();
 		}
@@ -103,6 +136,11 @@ namespace HQRemote {
 				compressThread->join();
 		}
 		
+		for (auto& bundleThread : m_frameBundleThreads) {
+			if (bundleThread->joinable())
+				bundleThread->join();
+		}
+		
 		if (m_videoThread->joinable())
 			m_videoThread->join();
 
@@ -118,6 +156,16 @@ namespace HQRemote {
 		if (frameRef != nullptr) {
 			time_checkpoint_t time;
 			getTimeCheckPoint(time);
+			
+			if (m_lastCapturedFrameTime != 0)
+			{
+				auto curFrameInterval = getElapsedTime(m_lastCapturedFrameTime, time);
+				if (curFrameInterval < m_intendedFrameInterval)//skip
+					return;
+			
+				m_frameCaptureInterval = 0.8 * m_frameCaptureInterval + 0.2 * curFrameInterval;
+			}
+			m_lastCapturedFrameTime = time;
 			
 			//send to frame compression threads
 			{
@@ -240,19 +288,52 @@ namespace HQRemote {
 					//convert to frame event
 					auto frameEvent = std::make_shared<FrameEvent>((ConstDataRef)compressedFrame, frameId);
 
-					//send to frame sending thread
-					m_frameSendingLock.lock();
-					m_compressedFrames.insert(std::pair<uint64_t, DataRef>(frameId, *frameEvent));
-					if (m_compressedFrames.size() > MAX_PENDING_FRAMES)
+					if (m_frameBundleSize <= 1)
 					{
-						//too many pending frames. remove the first one
-						auto frameIte = m_compressedFrames.begin();
-						m_compressedFrames.erase(frameIte);
+						//send to frame sending thread
+						pushFrameDataForSending(frameId, *frameEvent);
 					}
-					m_frameSendingCv.notify_one();
-					m_frameSendingLock.unlock();
+					else {
+						//send to frame bundling thread
+						pushCompressedFrameForBundling(frameEvent);
+					}
 				}//if (compressedFrame != nullptr)
 			}//if (m_capturedFramesForCompress.size() > 0)
+		}//while (m_running)
+	}
+	
+	void Engine::frameBundleProc() {
+		SetCurrentThreadName("frameBundleThread");
+		
+		while (m_running) {
+			std::unique_lock<std::mutex> lk(m_frameBundleLock);
+			
+			//wait until we have at least one compressed frame
+			m_frameBundleCv.wait(lk, [this] {return !(m_running && m_frameBundles.size() == 0); });
+			
+			if (m_frameBundles.size() > 0) {
+				auto bundleIte = m_frameBundles.begin();
+				auto bundleId = bundleIte->first;
+				auto bundle = bundleIte->second;
+				m_frameBundles.erase(bundleIte);
+				lk.unlock();
+				
+				if (m_sendFrame) {
+					auto bundleEvent = std::make_shared<CompressedEvents>(*bundle);
+					if (bundleEvent->event.type == COMPRESSED_EVENTS)
+					{
+						//send to frame sending thread
+						pushFrameDataForSending(bundleId, *bundleEvent);
+					}
+				}//if (m_sendFrame)
+				
+#if DEBUG_CAPTURED_FRAMES > 0
+				for (auto &frame: *bundle)
+				{
+					debugFrame(frame);
+				}//if (frameId > m_lastSentFrameId)
+#endif//#if DEBUG_CAPTURED_FRAMES > 0
+			}//if (m_frameBundles.size() > 0)
 		}//while (m_running)
 	}
 
@@ -262,50 +343,124 @@ namespace HQRemote {
 		while (m_running) {
 			std::unique_lock<std::mutex> lk(m_frameSendingLock);
 
-			//wait until we have at least one compressed frame
-			m_frameSendingCv.wait(lk, [this] {return !(m_running && m_compressedFrames.size() == 0); });
+			//wait until we have at least one frame data available for sending
+			m_frameSendingCv.wait(lk, [this] {return !(m_running && m_sendingFrames.size() == 0); });
 
-			if (m_compressedFrames.size() > 0) {
-				auto frameIte = m_compressedFrames.begin();
+			if (m_sendingFrames.size() > 0) {
+				auto frameIte = m_sendingFrames.begin();
 				auto frameId = frameIte->first;
 				auto frame = frameIte->second;
-				m_compressedFrames.erase(frameIte);
+				m_sendingFrames.erase(frameIte);
 				lk.unlock();
 
 				if (frameId > m_lastSentFrameId)//ignore lower id frame (it may be because the compression thead was too slow to produce the frame)
 				{
-					time_checkpoint_t curTime;
-					getTimeCheckPoint(curTime);
 					if (m_sendFrame)
 					{
-						auto frameElapsedTime = getElapsedTime(m_lastSentFrameTime, curTime);
-
-						if (frameElapsedTime >= m_frameSendingInterval)
+						if (m_frameBundleSize > 1)
 						{
-							m_connHandler->sendDataUnreliable(frame);
+							//send frame interval
+							PlainEvent frameIntervalEvent(FRAME_INTERVAL);
+							frameIntervalEvent.event.frameInterval = m_frameCaptureInterval;
+							m_connHandler->sendDataUnreliable(frameIntervalEvent);
+						}
+						
+						m_connHandler->sendDataUnreliable(frame);
 
-							m_lastSentFrameId = frameId;
-							m_lastSentFrameTime = curTime;
-						}//if (frameElapsedTime <= m_frameSendingInterval)
+						m_lastSentFrameId = frameId;
 					}//if (m_sendFrame)
-
+					
 #if DEBUG_CAPTURED_FRAMES > 0
-					//write to file
-					static int fileIdx = 0;
-
-					std::stringstream ss;
-					fileIdx = (fileIdx + 1) % DEBUG_CAPTURED_FRAMES;
-
-					ss << platformGetWritableFolder() << "___debug_captured_frame_" << fileIdx << ".jpg";
-					std::ofstream os(ss.str(), std::ofstream::binary);
-					if (os.good()) {
-						os.write((char*)frame->data(), frame->size());
-						os.close();
-					}
-#endif //if DEBUG_CAPTURED_FRAMES > 0
+					if (m_frameBundleSize <= 1)//no frame bundle, so we can debug individual frame here
+						debugFrame(frameId, frame->data(), frame->size());
+#endif//#if DEBUG_CAPTURED_FRAMES > 0
 				}//if (frameId > m_lastSentFrameId)
-			}//if (m_compressedFrames.size() > 0)
+			}//if (m_sendingFrames() > 0)
 		}//while (m_running)
+	}
+	
+	void Engine::pushCompressedFrameForBundling(const FrameEventRef& frame) {
+		const auto bundleId = (frame->event.renderedFrameData.frameId - 1) / m_frameBundleSize + 1;
+		const auto maxBundles = MAX_PENDING_FRAMES / m_frameBundleSize;
+		
+		m_frameBundleLock.lock();
+		auto bundleIte = m_incompleteFrameBundles.find(bundleId);
+		FrameBundleRef bundle;
+		if (bundleIte == m_incompleteFrameBundles.end())
+		{
+			if (m_incompleteFrameBundles.size() >= maxBundles)
+			{
+				//too many pending bundles. remove the first one
+				auto ite = m_incompleteFrameBundles.begin();
+				m_incompleteFrameBundles.erase(ite);
+			}
+			
+			//create new bundle
+			bundle = std::make_shared<CompressedEvents::EventList>();
+			auto re = m_incompleteFrameBundles.insert(std::pair<uint64_t, FrameBundleRef>(bundleId, bundle));
+			if (re.second == false)
+				return;
+			bundleIte = re.first;
+		}
+		
+		bundle = bundleIte->second;
+		
+		//insert frame to bundle
+		bundle->push_back(frame);
+		
+		if (bundle->size() == m_frameBundleSize)//bundle is full
+		{
+			//transfer bundle from incomplete list to complete list
+			if (m_frameBundles.size() >= maxBundles)
+			{
+				//too many pending bundles. remove the first one
+				auto ite = m_frameBundles.begin();
+				m_frameBundles.erase(ite);
+			}
+			
+			m_frameBundles.insert(std::pair<uint64_t, FrameBundleRef>(bundleId, bundle));
+			m_incompleteFrameBundles.erase(bundleIte);
+			
+			//notify frame bundling thread
+			m_frameBundleCv.notify_one();
+		}
+		m_frameBundleLock.unlock();
+	}
+	
+	void Engine::pushFrameDataForSending(uint64_t id, const DataRef& data) {
+		m_frameSendingLock.lock();
+		m_sendingFrames.insert(std::pair<uint64_t, DataRef>(id, data));
+		if (m_sendingFrames.size() > MAX_PENDING_FRAMES)
+		{
+			//too many pending frames. remove the first one
+			auto frameIte = m_sendingFrames.begin();
+			m_sendingFrames.erase(frameIte);
+		}
+		m_frameSendingCv.notify_one();
+		m_frameSendingLock.unlock();
+	}
+	
+	void Engine::debugFrame(const FrameEventRef& frameEvent)
+	{
+		debugFrame(frameEvent->event.renderedFrameData.frameId,
+				   frameEvent->event.renderedFrameData.frameData,
+				   frameEvent->event.renderedFrameData.frameSize);
+	}
+	
+	void Engine::debugFrame(uint64_t id, const void* data, size_t size)
+	{
+		//write to file
+		static int fileIdx = 0;
+		
+		std::stringstream ss;
+		fileIdx = (fileIdx + 1) % DEBUG_CAPTURED_FRAMES;
+		
+		ss << platformGetWritableFolder() << "___debug_captured_frame_" << fileIdx << ".jpg";
+		std::ofstream os(ss.str(), std::ofstream::binary);
+		if (os.good()) {
+			os.write((char*)data, size);
+			os.close();
+		}
 	}
 	
 	/*--------- video recording thread ----*/

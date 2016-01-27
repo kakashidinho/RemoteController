@@ -123,10 +123,14 @@ namespace HQRemote {
 	}
 	
 	void IConnectionHandler::sendData(ConstDataRef data) {
+		if (data == nullptr)
+			return;
 		sendData(data->data(), data->size());
 	}
 
 	void IConnectionHandler::sendDataUnreliable(ConstDataRef data) {
+		if (data == nullptr)
+			return;
 		sendDataUnreliable(data->data(), data->size());
 	}
 

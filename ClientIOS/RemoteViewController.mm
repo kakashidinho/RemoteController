@@ -10,6 +10,8 @@
 
 #define MAX_FRAMES_TO_PROCESS 30
 
+#define DESIRED_FRAME_INTERVAL (1 / 30.0)
+
 @interface RemoteViewController ()
 
 @property (strong, atomic) dispatch_queue_t backGroundDispatchQueue;
@@ -19,7 +21,14 @@
 
 @property (atomic) uint64_t frameInProcessing;
 
+@property (atomic) uint64_t lastReceivedFrame;
 @property (atomic) uint64_t lastRenderedFrame;
+
+
+@property (atomic) HQRemote::time_checkpoint_t lastReceivedFrameTime;
+@property (atomic) HQRemote::time_checkpoint_t lastRenderedFrameTime;
+
+@property (atomic) double remoteFrameInterval;
 
 @property (atomic, strong) NSTimer* connLoopTimer;
 
@@ -52,8 +61,10 @@
 	
 	
 	//
-	self.lastRenderedFrame = 0;
+	self.lastRenderedFrame = self.lastReceivedFrame = 0;
 	self.frameInProcessing = 0;
+	
+	self.lastRenderedFrameTime = self.lastReceivedFrameTime = 0;
 }
 
 - (void)didReceiveMemoryWarning {
@@ -190,70 +201,158 @@
 	else {
 		auto dataRef = _connHandler->receiveData();
 		if (dataRef) {
-			auto eventRef = HQRemote::deserializeEvent(std::move(dataRef));
-			if (eventRef) {
-				switch (eventRef->event.type) {
-					case HQRemote::RENDERED_FRAME:
-					{
-						uint64_t frameId = eventRef->event.renderedFrameData.frameId;
-						
-						if (self.frameInProcessing > MAX_FRAMES_TO_PROCESS)
-						{
+			dispatch_async(self.backGroundDispatchQueue, ^{
+				auto l_dataRef = dataRef;
+				auto eventRef = HQRemote::deserializeEvent(std::move(l_dataRef));
+				[self handleRemoteEvent:eventRef];
+			});
+		}//if (dataRef)
+	}
+}
+
+- (void) handleRemoteEvent: (HQRemote::EventRef) eventRef {
+	if (eventRef) {
+		switch (eventRef->event.type) {
+			case HQRemote::RENDERED_FRAME:
+			{
+				HQRemote::time_checkpoint_t time;
+				uint64_t frameId = eventRef->event.renderedFrameData.frameId;
+				
+				if (self.frameInProcessing > MAX_FRAMES_TO_PROCESS)
+				{
 #ifdef DEBUG
-							fprintf(stderr, "discarded a frame due to too many in decompressing queue\n");
+					fprintf(stderr, "discarded a frame due to too many in decompressing queue\n");
 #endif
-							break;//skip
-						}
-						self.frameInProcessing ++;
+					break;//skip
+				}
+				self.frameInProcessing ++;
+				
+				//synchronize the decompression of the frame
+				HQRemote::getTimeCheckPoint(time);
+				double dispatchDelay = 0;
+				double intendedDispatchElapsedTime = 0;
+				
+				if (_lastReceivedFrame != 0)
+				{
+					intendedDispatchElapsedTime = (frameId - _lastReceivedFrame) * _remoteFrameInterval;
+				}
+				
+				if (_lastReceivedFrameTime != 0)
+				{
+					auto elapsed = HQRemote::getElapsedTime(_lastReceivedFrameTime, time);
+					if (elapsed < intendedDispatchElapsedTime)
+						dispatchDelay = intendedDispatchElapsedTime - elapsed;
+				}//if (_lastRenderedFrameTime != 0)
+				
+				_lastReceivedFrameTime = time;
+				_lastReceivedFrame = frameId;
+				
+				auto decompressBlock = ^{
+					auto &event = eventRef->event;
+					//decode the image data in background
+					NSData* nsFrameData = [NSData dataWithBytesNoCopy:event.renderedFrameData.frameData
+															   length:event.renderedFrameData.frameSize
+														 freeWhenDone:NO];
+					UIImage *image = [[UIImage alloc] initWithData:nsFrameData];
+					
+					// Decompress image
+					if (image) {
+						CGSize size = self.remoteFrameView.frame.size;
 						
-						dispatch_async(self.backGroundDispatchQueue, ^{
-							auto &event = eventRef->event;
-							//decode the image data in background
-							NSData* nsFrameData = [NSData dataWithBytesNoCopy:event.renderedFrameData.frameData
-																	   length:event.renderedFrameData.frameSize
-																 freeWhenDone:NO];
-							UIImage *image = [[UIImage alloc] initWithData:nsFrameData];
+						UIGraphicsBeginImageContext(size);
+						
+						//[image drawInRect:CGRectMake(0, 0, size.width, size.height)];
+						//this will draw  the image flipped
+						CGContextDrawImage(UIGraphicsGetCurrentContext(), CGRectMake(0, 0, size.width, size.height), image.CGImage);
+						
+						image = UIGraphicsGetImageFromCurrentImageContext();
+						
+						UIGraphicsEndImageContext();
+						
+						//update the view on ui thread
+						dispatch_async(dispatch_get_main_queue(), ^{
+							self.frameInProcessing--;
 							
-							// Decompress image
-							if (image) {
-								CGSize size = self.remoteFrameView.frame.size;
-								
-								UIGraphicsBeginImageContext(size);
-								
-								//[image drawInRect:CGRectMake(0, 0, size.width, size.height)];
-								//this will draw  the image flipped
-								CGContextDrawImage(UIGraphicsGetCurrentContext(), CGRectMake(0, 0, size.width, size.height), image.CGImage);
-								
-								image = UIGraphicsGetImageFromCurrentImageContext();
-								
-								UIGraphicsEndImageContext();
-								
-								//update the view on ui thread
-								dispatch_async(dispatch_get_main_queue(), ^{
-									self.frameInProcessing--;
-									
-									if (self.lastRenderedFrame >= frameId)//skip
+							if (_lastRenderedFrame >= frameId)//skip
+							{
+#ifdef DEBUG
+								fprintf(stderr, "discarded a frame\n");
+#endif
+								return;
+							}
+							
+							//synchronize the display of the frame
+							HQRemote::time_checkpoint_t time;
+							HQRemote::getTimeCheckPoint(time);
+							
+							double delay = 0;
+							double intendedElapsedTime = 0;
+							
+							if (_lastRenderedFrame != 0)
+							{
+								intendedElapsedTime = (frameId - _lastRenderedFrame) * _remoteFrameInterval;
+							}
+							
+							if (_lastRenderedFrameTime != 0)
+							{
+								auto elapsed = HQRemote::getElapsedTime(_lastRenderedFrameTime, time);
+								if (elapsed < intendedElapsedTime)
+									delay = intendedElapsedTime - elapsed;
+							}//if (_lastRenderedFrameTime != 0)
+							
+							if (delay > 0)
+							{
+								dispatch_after(delay, dispatch_get_main_queue(), ^{
+									if (_lastRenderedFrame >= frameId)//skip
 									{
 #ifdef DEBUG
-										fprintf(stderr, "discarded a frame\n");
+										fprintf(stderr, "discarded a frame (async)\n");
 #endif
 										return;
 									}
-									self.remoteFrameView.image = image;
 									
-									self.lastRenderedFrame = frameId;
+									_remoteFrameView.image = image;
+									
+									_lastRenderedFrame = frameId;
+									HQRemote::getTimeCheckPoint(_lastRenderedFrameTime);
 								});
+							}
+							else
+							{
+								_remoteFrameView.image = image;
+								
+								_lastRenderedFrame = frameId;
+								_lastRenderedFrameTime = time;
 							}
 						});
 					}
-						break;//case HQRemote::RENDERED_FRAME
-						
-					default:
-						break;
+				};//decompressBlock
+				
+				if (dispatchDelay > 0)
+				{
+					dispatch_after(dispatchDelay, self.backGroundDispatchQueue, decompressBlock);
 				}
-			}//if (eventRef)
-		}//if (dataRef)
-	}
+				else {
+					dispatch_async(self.backGroundDispatchQueue, decompressBlock);
+				}
+			}
+				break;//case HQRemote::RENDERED_FRAME
+			case HQRemote::COMPRESSED_EVENTS:
+			{
+				auto compressedEventRef = std::static_pointer_cast<HQRemote::CompressedEvents>(eventRef);
+				
+				for (auto & event: *compressedEventRef) {
+					[self handleRemoteEvent:event];
+				}
+			}
+				break;
+			case HQRemote::FRAME_INTERVAL:
+				_remoteFrameInterval = eventRef->event.frameInterval;
+				break;
+			default:
+				break;
+		}
+	}//if (eventRef)
 }
 
 - (void) sendRemoteEvent: (HQRemote::EventRef) eventRef {

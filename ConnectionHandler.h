@@ -27,10 +27,8 @@
 
 namespace HQRemote {
 #ifdef WIN32
-	typedef SSIZE_T _ssize_t;
 	typedef SOCKET socket_t;
 #else
-	typedef ssize_t _ssize_t;
 	typedef int socket_t;
 #endif
 

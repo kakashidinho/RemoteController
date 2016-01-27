@@ -29,8 +29,14 @@ namespace HQRemote {
 	class HQREMOTE_API Engine {
 	public:
 
-		Engine(int port, std::shared_ptr<IFrameCapturer> frameCapturer, std::shared_ptr<IImgCompressor> imgCompressor = nullptr);
-		Engine(std::shared_ptr<IConnectionHandler> connHandler, std::shared_ptr<IFrameCapturer> frameCapturer, std::shared_ptr<IImgCompressor> imgCompressor = nullptr);
+		Engine(int port,
+			   std::shared_ptr<IFrameCapturer> frameCapturer,
+			   std::shared_ptr<IImgCompressor> imgCompressor = nullptr,
+			   size_t frameBundleSize = 1);
+		Engine(std::shared_ptr<IConnectionHandler> connHandler,
+			   std::shared_ptr<IFrameCapturer> frameCapturer,
+			   std::shared_ptr<IImgCompressor> imgCompressor = nullptr,
+			   size_t frameBundleSize = 1);
 		~Engine();
 
 		//capture current frame and send to remote controller
@@ -50,28 +56,43 @@ namespace HQRemote {
 		EventRef handleEventInternal(const EventRef& event);
 
 		void frameCompressionProc();
+		void frameBundleProc();
 		void frameSendingProc();
 		void videoRecordingProc();
 		void frameSavingProc();
+		
+		
+		void pushCompressedFrameForBundling(const FrameEventRef& frame);
+		void pushFrameDataForSending(uint64_t id, const DataRef& data);
+		void debugFrame(const FrameEventRef& frameEvent);
+		void debugFrame(uint64_t id, const void* data, size_t size);
 
 		std::shared_ptr<IFrameCapturer> m_frameCapturer;
 		std::shared_ptr<IImgCompressor> m_imgCompressor;
 		std::shared_ptr<IConnectionHandler> m_connHandler;
 
 		//frame compression & sending thread
+		typedef std::shared_ptr<CompressedEvents::EventList> FrameBundleRef;
 		std::list<ConstDataRef> m_capturedFramesForCompress;
-		std::map<uint64_t, DataRef> m_compressedFrames;
+		std::map<uint64_t, FrameBundleRef> m_incompleteFrameBundles;
+		std::map<uint64_t, FrameBundleRef> m_frameBundles;
+		std::map<uint64_t, DataRef> m_sendingFrames;
 		std::mutex m_frameCompressLock;
+		std::mutex m_frameBundleLock;
 		std::mutex m_frameSendingLock;
 		std::condition_variable m_frameCompressCv;
+		std::condition_variable m_frameBundleCv;
 		std::condition_variable m_frameSendingCv;
 		std::unique_ptr<std::thread> m_frameSendingThread;
 		std::vector<std::unique_ptr<std::thread> > m_frameCompressionThreads;
+		std::vector<std::unique_ptr<std::thread> > m_frameBundleThreads;
 		
+		size_t m_frameBundleSize;
 		uint64_t m_processedCapturedFrames;
 		uint64_t m_lastSentFrameId;
-		time_checkpoint_t m_lastSentFrameTime;
-		double m_frameSendingInterval;
+		time_checkpoint_t m_lastCapturedFrameTime;
+		double m_frameCaptureInterval;
+		double m_intendedFrameInterval;
 		std::atomic<bool> m_sendFrame;
 		
 		//video recording thread
