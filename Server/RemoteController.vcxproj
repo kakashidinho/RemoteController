@@ -193,6 +193,7 @@ call ../touch.bat "$(OutDir)$(TargetName).lib"</Command>
     <ClCompile Include="..\third-party\jpeg-9a\jctrans.c" />
     <ClCompile Include="..\win32\ConnectionHandlerWin32.cpp" />
     <ClCompile Include="..\win32\TimerWin32.cpp" />
+    <ClCompile Include="..\ZlibUtils.cpp" />
     <ClCompile Include="apple\ImgCompressorApple.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
@@ -263,6 +264,7 @@ call ../touch.bat "$(OutDir)$(TargetName).lib"</Command>
     <ClInclude Include="..\third-party\jpeg-9a\jpeglib.h" />
     <ClInclude Include="..\third-party\jpeg-9a\jversion.h" />
     <ClInclude Include="..\Timer.h" />
+    <ClInclude Include="..\ZlibUtils.h" />
     <ClInclude Include="Engine.h" />
     <ClInclude Include="FrameCapturer.h" />
     <ClInclude Include="FrameCapturerGL.h" />

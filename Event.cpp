@@ -3,8 +3,7 @@
 #include <limits>
 #include <stdarg.h>
 
-#include <zlib.h>
-
+#include "ZlibUtils.h"
 #include "Event.h"
 #include "Common.h"
 
@@ -12,7 +11,6 @@
 #	undef max
 #endif
 
-#define COMPRESS_CHUNK_SIZE (256 * 1024)
 
 namespace HQRemote {
 	/*----------- PlainEvent -------------*/
@@ -129,22 +127,20 @@ namespace HQRemote {
 			
 			//serialize to storage
 			//storage layout:
-			//event's generic info | uncompressed size | offset table | compressed data
+			//event's generic info | offset table | compressed data
 			
 			GrowableData uncompresedData;
 			auto growableStorage = std::static_pointer_cast<GrowableData>(this->storage);
 			
-			//placeholder for uncompressed size + event offset table
-			auto uncompressedSizeOff = growableStorage->size();
-			assert(uncompressedSizeOff == sizeof(this->event));
-			assert(uncompressedSizeOff % sizeof(uint64_t) == 0);
+			//placeholder for event offset table
+			auto offsetTableOff = growableStorage->size();
+			assert(offsetTableOff == sizeof(this->event));
+			assert(offsetTableOff % sizeof(uint64_t) == 0);
 			
-			growableStorage->expand(sizeof(uint64_t) * (1 + m_events.size()));
+			growableStorage->expand(sizeof(uint64_t) * (m_events.size()));
 			
 			std::vector<uint64_t> offsetTable(m_events.size());
 			size_t i = 0;
-			z_stream sz;
-			memset(&sz, 0, sizeof(sz));
 			
 			//combine the event's serialized data into one single data
 			for (auto &event: m_events) {
@@ -155,39 +151,11 @@ namespace HQRemote {
 			}
 			
 			//compress the combined data
-			if (deflateInit(&sz, Z_DEFAULT_COMPRESSION) != Z_OK)
-				throw std::runtime_error("deflateInit failed");
-			if (uncompresedData.size() > std::numeric_limits<uint32_t>::max())
-				throw std::runtime_error("uncompressed data too big");
+			zlibCompress(uncompresedData, 0, *growableStorage);
 			
-			int re;
-			unsigned char buffer[COMPRESS_CHUNK_SIZE];
-			sz.next_in = uncompresedData.data();
-			sz.avail_in = uncompresedData.size();
-			sz.next_out = buffer;
-			sz.avail_out = sizeof(buffer);
-			
-			while ((re = deflate(&sz, Z_FINISH)) != Z_STREAM_END && re == Z_OK) {
-				growableStorage->push_back(buffer, sizeof(buffer) - sz.avail_out);
-				
-				sz.avail_out = sizeof(buffer);
-			}
-			
-			growableStorage->push_back(buffer, sizeof(buffer) - sz.avail_out);
-			
-			//finalize
-			deflateEnd(&sz);
-			
-			uint64_t& uncompressedSize = *(uint64_t*)(growableStorage->data() + uncompressedSizeOff);
-			uint64_t *pOffsetTable = &uncompressedSize + 1;
-			
-			uncompressedSize = uncompresedData.size();
+			uint64_t *pOffsetTable = (uint64_t*)(growableStorage->data() + offsetTableOff);
 			memcpy(pOffsetTable, offsetTable.data(), offsetTable.size() * sizeof(offsetTable[0]));
-			
-			if (re != Z_STREAM_END)
-			{
-				throw std::runtime_error("compression failed");
-			}
+
 		} catch (...) {
 			//failed
 			this->storage = nullptr;
@@ -199,22 +167,13 @@ namespace HQRemote {
 	
 	void CompressedEvents::deserializeFromStorage() {
 		//storage layout:
-		//event's generic info | uncompressed size | offset table | compressed data
-		auto uncompressedSizeOff = sizeof(this->event);
+		//event's generic info | offset table | compressed data
+		auto offsetTableOff = sizeof(this->event);
 		
-		uint64_t& uncompressedSize = *(uint64_t*)(this->storage->data() + uncompressedSizeOff);
-		uint64_t *offsetTable = &uncompressedSize + 1;
-		unsigned char* compressedData = (unsigned char*)(offsetTable + this->event.compressedEvents.numEvents);
-		_ssize_t compressedSize = (_ssize_t)this->storage->size() - (_ssize_t)(this->storage->data() - compressedData);
-		if (compressedSize < 0)
-			throw  std::runtime_error("Size is too small for decompression");
-		
-		auto decompressedData = std::make_shared<CData>(uncompressedSize);
-		uLongf decompressedSize = decompressedData->size();
-		if (uncompress(decompressedData->data(), &decompressedSize, compressedData, compressedSize) != Z_OK
-			|| decompressedSize != uncompressedSize) {
-			throw  std::runtime_error("Decompression failed");
-		}
+		uint64_t *offsetTable = (uint64_t*)(this->storage->data() + offsetTableOff);
+		DataSegment compressedData(this->storage, offsetTableOff + m_events.size() * sizeof(offsetTable[0]));
+		auto decompressedData = zlibDecompress(compressedData);
+		auto uncompressedSize = decompressedData->size();
 		
 		//deserialize individual events
 		for (uint32_t i = 0; i < this->event.compressedEvents.numEvents; ++i) {

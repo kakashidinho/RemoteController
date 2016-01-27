@@ -4,6 +4,7 @@
 #include <memory>
 #include <functional>
 #include <vector>
+#include <stdexcept>
 
 namespace HQRemote {
 	//data wrapper
@@ -89,20 +90,56 @@ namespace HQRemote {
 		std::vector<unsigned char> m_data;
 	};
 	
-	struct DataSegment: public IData {
+	template <class T>
+	struct TDataSegment: public T {
 	public:
-		DataSegment(DataRef parent, size_t offset, size_t size)
+		typedef std::shared_ptr<T> SrcDataRef;
+
+		TDataSegment(SrcDataRef parent, size_t offset)
+			: m_parent(parent), m_offset(offset), m_size(parent->size() - offset)
+		{}
+
+		TDataSegment(SrcDataRef parent, size_t offset, size_t size)
 		: m_parent(parent), m_offset(offset), m_size(size)
 		{}
 		
-		virtual unsigned char* data() override { return m_parent->data() + m_offset; }
 		virtual const unsigned char* data() const override { return m_parent->data() + m_offset; }
 		
 		virtual size_t size() const override { return m_size; }
-	private:
-		DataRef m_parent;
+	protected:
+		SrcDataRef m_parent;
 		size_t m_offset;
 		size_t m_size;
+	};
+
+	class DataSegment : public TDataSegment < IData > {
+	public:
+		typedef TDataSegment < IData > Parent;
+
+		DataSegment(SrcDataRef parent, size_t offset)
+			: Parent(parent, offset)
+		{}
+
+		DataSegment(SrcDataRef parent, size_t offset, size_t size)
+			: Parent(parent, offset, size)
+		{}
+
+		virtual unsigned char* data() override { return m_parent->data() + m_offset; }
+	};
+
+	class ConstDataSegment : public TDataSegment < const IData > {
+	public:
+		typedef TDataSegment <const IData > Parent;
+
+		ConstDataSegment(SrcDataRef parent, size_t offset)
+			: Parent(parent, offset)
+		{}
+
+		ConstDataSegment(SrcDataRef parent, size_t offset, size_t size)
+			: Parent(parent, offset, size)
+		{}
+
+		virtual unsigned char* data() override { throw std::runtime_error("Const Data is not allowed to be modified"); }
 	};
 }
 

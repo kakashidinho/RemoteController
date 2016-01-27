@@ -30,6 +30,16 @@ namespace HQRemote {
 		bool m_flip;
 	};
 
+	class ZlibImgComressor : public IImgCompressor{
+	public:
+		ZlibImgComressor(int level);//pass 0 to use default compression level
+
+		virtual DataRef compress(ConstDataRef src, uint32_t width, uint32_t height, unsigned int numChannels) override;
+		DataRef decompress(ConstDataRef src, uint32_t& width, uint32_t &height, unsigned int numChannels);
+	private:
+		int m_level;
+	};
+
 	DataRef convertToJpeg(ConstDataRef src, uint32_t width, uint32_t height, unsigned int numChannels, bool outputlowRes, bool flip);
 	DataRef convertToPng(ConstDataRef src, uint32_t width, uint32_t height, unsigned int numChannels, bool outputlowRes, bool flip);
 }

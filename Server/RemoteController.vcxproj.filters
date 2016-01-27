@@ -219,6 +219,9 @@
     <ClCompile Include="..\win32\TimerWin32.cpp">
       <Filter>Source Files\Common\win32</Filter>
     </ClCompile>
+    <ClCompile Include="..\ZlibUtils.cpp">
+      <Filter>Source Files\Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\third-party\jpeg-9a\win32\jconfig.h">
@@ -282,6 +285,9 @@
       <Filter>Source Files\Common</Filter>
     </ClInclude>
     <ClInclude Include="..\Timer.h">
+      <Filter>Source Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ZlibUtils.h">
       <Filter>Source Files\Common</Filter>
     </ClInclude>
   </ItemGroup>
