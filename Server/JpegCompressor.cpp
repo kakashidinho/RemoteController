@@ -5,9 +5,13 @@
 
 #include "jpeglib.h"
 
+#ifndef MIN
+#	define MIN(a,b) (a) < (b)? (a) : (b)
+#endif
+
 namespace HQRemote {
 	DataRef convertToJpeg(ConstDataRef src, uint32_t width, uint32_t height, unsigned int numChannels, bool outputlowRes, bool flip) {
-		//TODO: deal with outputlowRes & flip
+		//TODO: deal with <outputlowRes>
 
 		unsigned char* compressedFrameData = NULL;
 		unsigned long compressedFrameSize = 0;
@@ -33,15 +37,26 @@ namespace HQRemote {
 		cinfo.num_components = 3;
 		//cinfo.data_precision = 4;
 		cinfo.dct_method = JDCT_FLOAT;
-		jpeg_set_quality(&cinfo, 15, TRUE);//TODO: a bit low quality
+		jpeg_set_quality(&cinfo, outputlowRes ? 40 : 80, TRUE);//TODO: a bit low quality
+
 		/* Now do the compression .. */
 		jpeg_start_compress(&cinfo, TRUE);
 		/* like reading a file, this time write one row at a time */
-		while (cinfo.next_scanline < cinfo.image_height)
+		if (flip)
 		{
-			row_pointer[0] = (unsigned char*)&src->data()[cinfo.next_scanline * cinfo.image_width * cinfo.input_components];
-			jpeg_write_scanlines(&cinfo, row_pointer, 1);
-		}
+			while (cinfo.next_scanline < cinfo.image_height)
+			{
+				row_pointer[0] = (unsigned char*)&src->data()[(cinfo.image_height - cinfo.next_scanline - 1) * cinfo.image_width * cinfo.input_components];
+				jpeg_write_scanlines(&cinfo, row_pointer, 1);
+			}
+		}//flip
+		else {
+			while (cinfo.next_scanline < cinfo.image_height)
+			{
+				row_pointer[0] = (unsigned char*)&src->data()[cinfo.next_scanline * cinfo.image_width * cinfo.input_components];
+				jpeg_write_scanlines(&cinfo, row_pointer, 1);
+			}
+		}//flip
 		/* similar to read file, clean up after we're done compressing */
 		jpeg_finish_compress(&cinfo);
 		jpeg_destroy_compress(&cinfo);
