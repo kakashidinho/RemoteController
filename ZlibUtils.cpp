@@ -13,7 +13,7 @@
 #define COMPRESS_CHUNK_SIZE (256 * 1024)
 
 namespace HQRemote {
-	void zlibCompress(const IData& uncompressedData, int level, GrowableData& dst) {
+	void HQ_FASTCALL zlibCompress(const IData& uncompressedData, int level, GrowableData& dst) {
 		if (level == 0)
 			level = Z_DEFAULT_COMPRESSION;
 
@@ -59,18 +59,18 @@ namespace HQRemote {
 		}
 	}
 
-	DataRef zlibDecompress(const IData& src) {
+	DataRef HQ_FASTCALL zlibDecompress(const IData& src) {
 		return zlibDecompress(src.data(), src.size());
 	}
 
-	DataRef zlibDecompress(const void* src, size_t size) {
+	DataRef HQ_FASTCALL zlibDecompress(const void* src, size_t size) {
 		const uint64_t& uncompressedSize = *(const uint64_t*)(src);
 		const unsigned char* compressedData = (const unsigned char*)(&uncompressedSize + 1);
 		_ssize_t compressedSize = (_ssize_t)size - sizeof(uncompressedSize);
 		if (compressedSize < 0)
 			throw  std::runtime_error("Size is too small for decompression");
 
-		auto decompressedData = std::make_shared<CData>(uncompressedSize);
+		auto decompressedData = std::make_shared<CData>((size_t)uncompressedSize);
 		uLongf decompressedSize = decompressedData->size();
 		int re;
 		if ((re = uncompress(decompressedData->data(), &decompressedSize, compressedData, compressedSize)) != Z_OK

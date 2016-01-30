@@ -6,9 +6,9 @@
 namespace HQRemote {
 	//pass <level>=0 to use default compression level.
 	//<dst>'s current size must be multiple of 64 bits
-	void zlibCompress(const IData& src, int level, GrowableData& dst);
-	DataRef zlibDecompress(const IData& src);
-	DataRef zlibDecompress(const void* src, size_t size);
+	HQREMOTE_API void HQ_FASTCALL zlibCompress(const IData& src, int level, GrowableData& dst);
+	HQREMOTE_API DataRef HQ_FASTCALL zlibDecompress(const IData& src);
+	HQREMOTE_API DataRef HQ_FASTCALL zlibDecompress(const void* src, size_t size);
 }
 
 #endif
