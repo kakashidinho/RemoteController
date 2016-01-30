@@ -14,7 +14,7 @@
 
 namespace HQRemote {
 	/*----------- PlainEvent -------------*/
-	DataRef PlainEvent::serialize() {
+	DataRef PlainEvent::serialize() const {
 		auto data = std::make_shared<CData>(sizeof(this->event));
 		//TODO: assume all sides use the same byte order for now
 		memcpy(data->data(), &this->event, sizeof(this->event));
@@ -47,7 +47,7 @@ namespace HQRemote {
 		: PlainEvent(type), storage(std::make_shared<CData>(storageSize))
 	{}
 
-	DataRef DataEvent::serialize() {
+	DataRef DataEvent::serialize() const {
 		if (this->storage == nullptr)
 		{
 			return PlainEvent::serialize();

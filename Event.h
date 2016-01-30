@@ -82,15 +82,15 @@ namespace HQRemote {
 		PlainEvent(EventType type) : event(type) {}
 		virtual ~PlainEvent() {}
 
-		virtual DataRef serialize();
+		virtual DataRef serialize() const;
 		virtual void deserialize(const DataRef& data);
 		virtual void deserialize(DataRef&& data);
 
 		//cast to data
-		operator DataRef(){
+		operator DataRef() const{
 			return serialize();
 		}
-		operator ConstDataRef(){
+		operator ConstDataRef() const{
 			return serialize();
 		}
 	protected:
@@ -103,14 +103,14 @@ namespace HQRemote {
 		DataEvent(EventType type);
 		DataEvent(EventType type, uint32_t storageSize);
 		
-		virtual DataRef serialize() override;
+		virtual DataRef serialize() const override;
 		virtual void deserialize(const DataRef& data) override;
 		virtual void deserialize(DataRef&& data) override;
 
 	protected:
 		virtual void deserializeFromStorage() = 0;
 		
-		DataRef storage;
+		mutable DataRef storage;
 	};
 	
 	struct HQREMOTE_API CompressedEvents : public DataEvent {
