@@ -19,6 +19,22 @@
 #	endif
 #endif
 
+#ifndef HQREMOTE_API_TYPEDEF
+#	if defined WIN32
+#		define HQREMOTE_API_TYPEDEF HQREMOTE_API
+#	else
+#		define HQREMOTE_API_TYPEDEF
+#	endif
+#endif
+
+#ifndef HQ_FASTCALL
+#	if defined WIN32
+#		define HQ_FASTCALL __fastcall
+#	else
+#		define HQ_FASTCALL
+#	endif
+#endif
+
 namespace HQRemote {
 #ifdef WIN32
 	typedef SSIZE_T _ssize_t;

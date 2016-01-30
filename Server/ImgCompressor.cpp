@@ -48,16 +48,24 @@ namespace HQRemote {
 		return compressedData;
 	}
 
-	DataRef ZlibImgComressor::decompress(ConstDataRef src, uint32_t& width, uint32_t &height, unsigned int numChannels) {
-		//read meta data
-		memcpy(&width, src->data(), sizeof(width));
-		memcpy(&height, src->data() + sizeof(width), sizeof(height));
-		memcpy(&numChannels, src->data() + (sizeof(width) + sizeof(height)), sizeof(numChannels));
+	DataRef ZlibImgComressor::decompress(ConstDataRef src, uint32_t& width, uint32_t &height, unsigned int& numChannels) {
+		return decompress(src->data(), src->size(), width, height, numChannels);
+	}
 
-		ConstDataSegment compressedData(src, (sizeof(width) + sizeof(height) + sizeof(numChannels) + 4));
+	DataRef ZlibImgComressor::decompress(const void* src, size_t srcSize, uint32_t& width, uint32_t &height, unsigned int& numChannels) {
+		//read meta data
+		auto csrc = (const unsigned char*)src;
+
+		memcpy(&width, csrc, sizeof(width));
+		memcpy(&height, csrc + sizeof(width), sizeof(height));
+		memcpy(&numChannels, csrc + (sizeof(width) + sizeof(height)), sizeof(numChannels));
+
+		auto compressedDataOffset = (sizeof(width) + sizeof(height) + sizeof(numChannels) + 4);
+		auto compressedData = (csrc + compressedDataOffset);
+		auto compressedSize = srcSize - compressedDataOffset;
 
 		try {
-			return zlibDecompress(compressedData);
+			return zlibDecompress(compressedData, compressedSize);
 		}
 		catch (...) {
 			return nullptr;

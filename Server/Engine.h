@@ -42,6 +42,9 @@ namespace HQRemote {
 		//capture current frame and send to remote controller
 		void captureAndSendFrame();
 		ConstEventRef getEvent();
+
+		bool start();
+		void stop();
 	private:
 		void platformConstruct();
 		void platformDestruct();
@@ -54,6 +57,7 @@ namespace HQRemote {
 		void platformEndRecording();
 
 		EventRef handleEventInternal(const EventRef& event);
+		void sendHostInfo();
 
 		void frameCompressionProc();
 		void frameBundleProc();

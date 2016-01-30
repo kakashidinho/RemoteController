@@ -55,10 +55,21 @@ namespace HQRemote {
 		}
 
 		platformConstruct();
+	}
+	Engine::~Engine() {
+		stop();
+		
+		platformDestruct();
+	}
+
+	bool Engine::start()
+	{
+		stop();
+
+		if (!m_connHandler->start())
+			return false;
 
 		m_running = true;
-		
-		m_connHandler->start();
 
 		//start background thread to send compressed frame to remote side
 		m_frameSendingThread = std::unique_ptr<std::thread>(new std::thread([this] {
@@ -66,7 +77,7 @@ namespace HQRemote {
 		}));
 
 		//start background threads compress captured frames
-		auto numCompressThreads =  max(std::thread::hardware_concurrency(), DEFAULT_NUM_COMPRESS_THREADS);
+		auto numCompressThreads = max(std::thread::hardware_concurrency(), DEFAULT_NUM_COMPRESS_THREADS);
 		m_frameCompressionThreads.reserve(numCompressThreads);
 		for (unsigned int i = 0; i < numCompressThreads; ++i) {
 			auto thread = std::unique_ptr<std::thread>(new std::thread([this] {
@@ -75,32 +86,36 @@ namespace HQRemote {
 
 			m_frameCompressionThreads.push_back(std::move(thread));
 		}
-		
+
 		//start background threads bundle comrpessed frame together
 		if (m_frameBundleSize > 1) {
-			auto numBundleThreads =  min(std::thread::hardware_concurrency(), m_frameBundleSize);
+			auto numBundleThreads = min(std::thread::hardware_concurrency(), m_frameBundleSize);
 			m_frameBundleThreads.reserve(numBundleThreads);
 			for (unsigned int i = 0; i < numBundleThreads; ++i) {
 				auto thread = std::unique_ptr<std::thread>(new std::thread([this] {
 					frameBundleProc();
 				}));
-				
+
 				m_frameBundleThreads.push_back(std::move(thread));
 			}
 		}//if (m_frameBundleSize > 1)
-		
-		//start background thread to record video
+
+		 //start background thread to record video
 		m_videoThread = std::unique_ptr<std::thread>(new std::thread([this] {
 			videoRecordingProc();
 		}));
-		
-		
+
+
 		//start backgroun thread to save screenshot
 		m_screenshotThread = std::unique_ptr<std::thread>(new std::thread([this] {
 			frameSavingProc();
 		}));
+
+		return true;
 	}
-	Engine::~Engine() {
+
+	void Engine::stop()
+	{
 		m_running = false;
 
 		m_connHandler->stop();
@@ -128,26 +143,29 @@ namespace HQRemote {
 		}
 
 		//join with all threads
-		if (m_frameSendingThread->joinable())
+		if (m_frameSendingThread && m_frameSendingThread->joinable())
 			m_frameSendingThread->join();
-		
+		m_frameSendingThread = nullptr;
+
 		for (auto& compressThread : m_frameCompressionThreads) {
 			if (compressThread->joinable())
 				compressThread->join();
 		}
-		
+		m_frameCompressionThreads.clear();
+
 		for (auto& bundleThread : m_frameBundleThreads) {
 			if (bundleThread->joinable())
 				bundleThread->join();
 		}
-		
-		if (m_videoThread->joinable())
-			m_videoThread->join();
+		m_frameBundleThreads.clear();
 
-		if (m_screenshotThread->joinable())
+		if (m_videoThread && m_videoThread->joinable())
+			m_videoThread->join();
+		m_videoThread = nullptr;
+
+		if (m_screenshotThread && m_screenshotThread->joinable())
 			m_screenshotThread->join();
-		
-		platformDestruct();
+		m_screenshotThread = nullptr;
 	}
 
 	//capture current frame and send to remote controller
@@ -250,18 +268,25 @@ namespace HQRemote {
 		case HOST_INFO:
 		{
 			//return host's info to remote's side
-			auto event = std::make_shared<PlainEvent>(HOST_INFO);
-			event->event.hostInfo.width = m_frameCapturer->getFrameWidth();
-			event->event.hostInfo.height = m_frameCapturer->getFrameHeight();
-
-			m_connHandler->sendData(*event);
+			sendHostInfo();
 		}
 			break;
+		case FRAME_INTERVAL:
+			//change frame interval
+			m_intendedFrameInterval = event->event.frameInterval;
 		default:
 			//forward the event for users to process themselves
 			return event;
 		}
 		return nullptr;
+	}
+
+	void Engine::sendHostInfo() {
+		auto event = std::make_shared<PlainEvent>(HOST_INFO);
+		event->event.hostInfo.width = m_frameCapturer->getFrameWidth();
+		event->event.hostInfo.height = m_frameCapturer->getFrameHeight();
+
+		m_connHandler->sendData(*event);
 	}
 
 	void Engine::frameCompressionProc() {

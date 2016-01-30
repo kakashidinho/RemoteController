@@ -1,14 +1,21 @@
 #ifndef HQREMOTE_DATA_H
 #define HQREMOTE_DATA_H
 
+#include "Common.h"
+
 #include <memory>
 #include <functional>
 #include <vector>
 #include <stdexcept>
 
+#if defined WIN32 || defined _MSC_VER
+#	pragma warning(push)
+#	pragma warning(disable:4251)
+#endif
+
 namespace HQRemote {
 	//data wrapper
-	struct IData {
+	struct HQREMOTE_API IData {
 		virtual ~IData() {}
 
 		virtual unsigned char* data() = 0;
@@ -17,10 +24,10 @@ namespace HQRemote {
 		virtual size_t size() const = 0;
 	};
 	
-	typedef std::shared_ptr<IData> DataRef;
-	typedef std::shared_ptr<const IData> ConstDataRef;
+	typedef HQREMOTE_API_TYPEDEF std::shared_ptr<IData> DataRef;
+	typedef HQREMOTE_API_TYPEDEF std::shared_ptr<const IData> ConstDataRef;
 
-	struct CData : public IData {
+	struct HQREMOTE_API CData : public IData {
 		typedef std::function<void(unsigned char*)> DestructFunc;
 
 		CData()
@@ -57,7 +64,7 @@ namespace HQRemote {
 		DestructFunc m_destructFunc;
 	};
 	
-	struct GrowableData: public IData {
+	struct HQREMOTE_API GrowableData: public IData {
 		GrowableData()
 		{
 		}
@@ -91,7 +98,7 @@ namespace HQRemote {
 	};
 	
 	template <class T>
-	struct TDataSegment: public T {
+	struct HQREMOTE_API TDataSegment: public T {
 	public:
 		typedef std::shared_ptr<T> SrcDataRef;
 
@@ -112,7 +119,7 @@ namespace HQRemote {
 		size_t m_size;
 	};
 
-	class DataSegment : public TDataSegment < IData > {
+	class HQREMOTE_API DataSegment : public TDataSegment < IData > {
 	public:
 		typedef TDataSegment < IData > Parent;
 
@@ -127,7 +134,7 @@ namespace HQRemote {
 		virtual unsigned char* data() override { return m_parent->data() + m_offset; }
 	};
 
-	class ConstDataSegment : public TDataSegment < const IData > {
+	class HQREMOTE_API ConstDataSegment : public TDataSegment < const IData > {
 	public:
 		typedef TDataSegment <const IData > Parent;
 
@@ -142,5 +149,9 @@ namespace HQRemote {
 		virtual unsigned char* data() override { throw std::runtime_error("Const Data is not allowed to be modified"); }
 	};
 }
+
+#if defined WIN32 || defined _MSC_VER
+#	pragma warning(pop)
+#endif
 
 #endif

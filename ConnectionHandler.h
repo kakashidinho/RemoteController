@@ -38,7 +38,7 @@ namespace HQRemote {
 #endif
 
 	struct HQREMOTE_API ConnectionEndpoint {
-		ConnectionEndpoint(std::string addr, int _port)
+		ConnectionEndpoint(const std::string& addr, int _port)
 		: address(addr), port(_port)
 		{}
 		
@@ -51,7 +51,7 @@ namespace HQRemote {
 	public:
 		virtual ~IConnectionHandler();
 
-		void start();
+		bool start();
 		void stop();
 		bool running() const;
 
@@ -67,7 +67,7 @@ namespace HQRemote {
 	protected:
 		IConnectionHandler();
 		
-		virtual void startImpl() = 0;
+		virtual bool startImpl() = 0;
 		virtual void stopImpl() = 0;
 		
 		std::atomic<bool> m_running;
@@ -92,7 +92,7 @@ namespace HQRemote {
 
 		int platformGetLastSocketErr() const;
 		
-		virtual void startImpl() override;
+		virtual bool startImpl() override;
 		virtual void stopImpl() override;
 
 		void sendDataNoLock(const void* data, size_t size);
@@ -115,6 +115,7 @@ namespace HQRemote {
 			double rtt;
 		};
 
+		virtual bool socketInitImpl() = 0;
 		virtual void initConnectionImpl() = 0;
 		virtual void addtionalRcvThreadCleanupImpl() = 0;
 		virtual void addtionalSocketCleanupImpl() = 0;
@@ -162,6 +163,7 @@ namespace HQRemote {
 		~BaseUnreliableSocketHandler();
 
 	protected:
+		virtual bool socketInitImpl() override;
 		virtual void initConnectionImpl() override;
 		virtual void addtionalRcvThreadCleanupImpl() override;
 		virtual void addtionalSocketCleanupImpl() override;
@@ -178,6 +180,7 @@ namespace HQRemote {
 
 		virtual bool connected() const override;
 	private:
+		virtual bool socketInitImpl() override;
 		virtual void initConnectionImpl() override;
 		virtual void addtionalRcvThreadCleanupImpl() override;
 		virtual void addtionalSocketCleanupImpl() override;

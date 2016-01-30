@@ -24,7 +24,7 @@ namespace HQRemote {
 		}
 
 		//implementation
-		if (m_totalFrames < 3)
+		if (m_totalFrames < m_queueSize)
 		{
 			//if total frames rendered so far is less than 3 we won't read frame data directly from capturer since the frame capturer may not finish its capture of the frame yet
 			if (frameptr != nullptr)
@@ -40,7 +40,10 @@ namespace HQRemote {
 		}
 
 		m_totalFrames++;
-		m_currentFrameIdx = (m_totalFrames) % m_queueSize;
+		if (m_queueSize)
+			m_currentFrameIdx = (m_totalFrames) % m_queueSize;
+		else
+			m_currentFrameIdx = 0;
 
 		return frameptr;
 	}

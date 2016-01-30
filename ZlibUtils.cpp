@@ -60,9 +60,13 @@ namespace HQRemote {
 	}
 
 	DataRef zlibDecompress(const IData& src) {
-		const uint64_t& uncompressedSize = *(const uint64_t*)(src.data());
+		return zlibDecompress(src.data(), src.size());
+	}
+
+	DataRef zlibDecompress(const void* src, size_t size) {
+		const uint64_t& uncompressedSize = *(const uint64_t*)(src);
 		const unsigned char* compressedData = (const unsigned char*)(&uncompressedSize + 1);
-		_ssize_t compressedSize = (_ssize_t)src.size() - (_ssize_t)(src.data() - compressedData);
+		_ssize_t compressedSize = (_ssize_t)size - sizeof(uncompressedSize);
 		if (compressedSize < 0)
 			throw  std::runtime_error("Size is too small for decompression");
 

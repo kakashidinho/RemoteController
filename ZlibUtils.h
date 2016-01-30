@@ -8,6 +8,7 @@ namespace HQRemote {
 	//<dst>'s current size must be multiple of 64 bits
 	void zlibCompress(const IData& src, int level, GrowableData& dst);
 	DataRef zlibDecompress(const IData& src);
+	DataRef zlibDecompress(const void* src, size_t size);
 }
 
 #endif

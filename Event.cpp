@@ -224,7 +224,7 @@ namespace HQRemote {
 	}
 
 	//factory function
-	EventRef deserializeEvent(DataRef&& data) {
+	EventRef HQ_FASTCALL deserializeEvent(DataRef&& data) {
 		try {
 			//inspect event type first
 			auto& dataRefCopy = data;

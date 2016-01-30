@@ -7,6 +7,11 @@
 #include <memory>
 #include <list>
 
+#if defined WIN32 || defined _MSC_VER
+#	pragma warning(push)
+#	pragma warning(disable:4251)
+#endif
+
 namespace HQRemote {
 	typedef uint32_t EventType;
 
@@ -34,7 +39,7 @@ namespace HQRemote {
 		NO_EVENT,
 	};
 
-	struct Event {
+	struct HQREMOTE_API Event {
 		Event(EventType _type) : type(_type)
 		{}
 		union {
@@ -70,7 +75,7 @@ namespace HQRemote {
 		EventType type;
 	};
 
-	struct PlainEvent {
+	struct HQREMOTE_API PlainEvent {
 		Event event;
 
 		PlainEvent() : event(NO_EVENT) {}
@@ -91,10 +96,10 @@ namespace HQRemote {
 	protected:
 	};
 
-	typedef std::shared_ptr<PlainEvent> EventRef;
-	typedef std::shared_ptr<const PlainEvent> ConstEventRef;
+	typedef HQREMOTE_API_TYPEDEF std::shared_ptr<PlainEvent> EventRef;
+	typedef HQREMOTE_API_TYPEDEF std::shared_ptr<const PlainEvent> ConstEventRef;
 	
-	struct DataEvent : public PlainEvent {
+	struct HQREMOTE_API DataEvent : public PlainEvent {
 		DataEvent(EventType type);
 		DataEvent(EventType type, uint32_t storageSize);
 		
@@ -108,7 +113,7 @@ namespace HQRemote {
 		DataRef storage;
 	};
 	
-	struct CompressedEvents : public DataEvent {
+	struct HQREMOTE_API CompressedEvents : public DataEvent {
 		typedef std::list<EventRef> EventList;
 		typedef EventList::iterator iterator;
 		typedef EventList::const_iterator const_iterator;
@@ -132,7 +137,7 @@ namespace HQRemote {
 		EventList m_events;
 	};
 
-	struct FrameEvent : public DataEvent {
+	struct HQREMOTE_API FrameEvent : public DataEvent {
 		FrameEvent();
 		FrameEvent(uint32_t frameSize, uint64_t frameId);
 		explicit FrameEvent(ConstDataRef frameData, uint64_t frameId);
@@ -141,13 +146,17 @@ namespace HQRemote {
 		virtual void deserializeFromStorage() override;
 	};
 
-	typedef std::shared_ptr<DataEvent> DataEventRef;
-	typedef std::shared_ptr<const DataEvent> ConstDataEventRef;
+	typedef HQREMOTE_API_TYPEDEF std::shared_ptr<DataEvent> DataEventRef;
+	typedef HQREMOTE_API_TYPEDEF std::shared_ptr<const DataEvent> ConstDataEventRef;
 	
-	typedef std::shared_ptr<FrameEvent> FrameEventRef;
-	typedef std::shared_ptr<const FrameEvent> ConstFrameEventRef;
+	typedef HQREMOTE_API_TYPEDEF std::shared_ptr<FrameEvent> FrameEventRef;
+	typedef HQREMOTE_API_TYPEDEF std::shared_ptr<const FrameEvent> ConstFrameEventRef;
 
-	EventRef deserializeEvent(DataRef&& data);
+	HQREMOTE_API  EventRef HQ_FASTCALL deserializeEvent(DataRef&& data);
 }
+
+#if defined WIN32 || defined _MSC_VER
+#	pragma warning(pop)
+#endif
 
 #endif

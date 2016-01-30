@@ -93,14 +93,17 @@ namespace HQRemote {
 	IConnectionHandler::~IConnectionHandler() {
 	}
 	
-	void IConnectionHandler::start() {
+	bool IConnectionHandler::start() {
 		stop();
 		
-		startImpl();
+		if (!startImpl())
+			return false;
 		
 		m_running = true;
 		
 		getTimeCheckPoint(m_startTime);
+
+		return true;
 	}
 	
 	void IConnectionHandler::stop() {
@@ -147,8 +150,11 @@ namespace HQRemote {
 	}
 
 
-	void SocketConnectionHandler::startImpl()
+	bool SocketConnectionHandler::startImpl()
 	{
+		if (!socketInitImpl())
+			return false;
+
 		m_running = true;
 		
 		//invalidate last connectionless ping info
@@ -159,6 +165,8 @@ namespace HQRemote {
 		m_recvThread = std::unique_ptr<std::thread>(new std::thread([this] {
 			recvProc();
 		}));
+
+		return true;
 	}
 
 	void SocketConnectionHandler::stopImpl()
@@ -191,7 +199,7 @@ namespace HQRemote {
 	}
 
 	bool SocketConnectionHandler::connected() const {
-		return m_connSocket != INVALID_SOCKET || m_connLessSocket != INVALID_SOCKET;
+		return m_connSocket != INVALID_SOCKET || (m_connLessSocket != INVALID_SOCKET && m_connLessSocketDestAddr != nullptr);
 	}
 
 	//obtain data received through background thread
@@ -581,9 +589,8 @@ namespace HQRemote {
 
 						if (re == SOCKET_ERROR) {
 							std::lock_guard<std::mutex> lg(m_socketLock);
-							//close socket
-							closesocket(m_connLessSocket);
-							m_connLessSocket = INVALID_SOCKET;
+							//invalidate remote end point
+							m_connLessSocketDestAddr = nullptr;
 						}
 					}//if (select(l_connLessSocket + 1, &sset, NULL, NULL, &timeout) == 1 && FD_ISSET(l_connSocket, &sset))
 				}//if (l_connLessSocket != INVALID_SOCKET)
@@ -648,7 +655,7 @@ namespace HQRemote {
 
 	}
 
-	void BaseUnreliableSocketHandler::initConnectionImpl() {
+	bool BaseUnreliableSocketHandler::socketInitImpl() {
 		_ssize_t re;
 
 		sockaddr_in sa;
@@ -658,7 +665,7 @@ namespace HQRemote {
 		sa.sin_addr.s_addr = _INADDR_ANY;
 
 		std::lock_guard<std::mutex> lg(m_socketLock);
-		 //create connection less socket
+		//create connection less socket
 		if (m_connLessSocket == INVALID_SOCKET && m_connLessPort != 0) {
 			m_connLessSocketDestAddr = nullptr;
 
@@ -674,6 +681,12 @@ namespace HQRemote {
 				}
 			}//if (m_connLessSocket != INVALID_SOCKET)
 		}//if (m_connLessSocket == INVALID_SOCKET && m_connLessPort != 0)
+
+		return m_connLessSocket != INVALID_SOCKET;
+	}
+
+	void BaseUnreliableSocketHandler::initConnectionImpl() {
+		
 	}
 
 	void BaseUnreliableSocketHandler::addtionalRcvThreadCleanupImpl() {
@@ -697,7 +710,11 @@ namespace HQRemote {
 				&& m_connSocket != INVALID_SOCKET;
 	}
 	
-	void SocketServerHandler::initConnectionImpl() {
+	bool SocketServerHandler::socketInitImpl() {
+		//create connection less socket
+		if (!BaseUnreliableSocketHandler::socketInitImpl())
+			return false;
+
 		_ssize_t re;
 
 		sockaddr_in sa;
@@ -733,6 +750,10 @@ namespace HQRemote {
 
 		}//if (m_serverSocket == INVALID_SOCKET)
 
+		return (m_serverSocket != INVALID_SOCKET);
+	}
+
+	void SocketServerHandler::initConnectionImpl() {
 		if (m_serverSocket != INVALID_SOCKET) {
 			//accepting incoming remote connection
 			socket_t connSocket = accept(m_serverSocket, NULL, NULL);
@@ -745,7 +766,7 @@ namespace HQRemote {
 					m_connSocket = connSocket;
 				}
 				
-				//create connectionless socket
+				//establish connectionless connection
 				BaseUnreliableSocketHandler::initConnectionImpl();
 			}//if (connSocket != INVALID_SOCKET)
 		}//if (m_serverSocket != INVALID_SOCKET && m_port != 0)
@@ -794,7 +815,7 @@ namespace HQRemote {
 	void UnreliableSocketClientHandler::initConnectionImpl() {
 		if (m_connLessRemoteEndpoint.port != 0)
 		{
-			BaseUnreliableSocketHandler::initConnectionImpl();//create unreliable socket
+			BaseUnreliableSocketHandler::initConnectionImpl();//super
 			
 			std::lock_guard<std::mutex> lg(m_socketLock);
 			

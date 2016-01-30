@@ -9,17 +9,18 @@
 #ifndef Remote_ImgCompressor_h
 #define Remote_ImgCompressor_h
 
+#include "../Common.h"
 #include "../Data.h"
 
 namespace HQRemote {
-	class IImgCompressor {
+	class HQREMOTE_API IImgCompressor {
 	public:
 		virtual ~IImgCompressor() {}
 
 		virtual DataRef compress(ConstDataRef src, uint32_t width, uint32_t height, unsigned int numChannels) = 0;
 	};
 
-	class JpegImgCompressor : public IImgCompressor {
+	class HQREMOTE_API JpegImgCompressor : public IImgCompressor {
 	public:
 		JpegImgCompressor(bool outputLowRes, bool outputFlipped);
 
@@ -30,12 +31,13 @@ namespace HQRemote {
 		bool m_flip;
 	};
 
-	class ZlibImgComressor : public IImgCompressor{
+	class HQREMOTE_API ZlibImgComressor : public IImgCompressor{
 	public:
-		ZlibImgComressor(int level);//pass 0 to use default compression level
+		ZlibImgComressor(int level = 0);//pass 0 to use default compression level
 
 		virtual DataRef compress(ConstDataRef src, uint32_t width, uint32_t height, unsigned int numChannels) override;
-		DataRef decompress(ConstDataRef src, uint32_t& width, uint32_t &height, unsigned int numChannels);
+		DataRef decompress(ConstDataRef src, uint32_t& width, uint32_t &height, unsigned int& numChannels);
+		DataRef decompress(const void* src, size_t srcSize, uint32_t& width, uint32_t &height, unsigned int& numChannels);
 	private:
 		int m_level;
 	};
