@@ -29,6 +29,10 @@ namespace HQRemote {
 	}
 
 	DataRef ZlibImgComressor::compress(ConstDataRef src, uint32_t width, uint32_t height, unsigned int numChannels) {
+		return compress(src->data(), src->size(), width, height, numChannels);
+	}
+
+	DataRef ZlibImgComressor::compress(const void* src, size_t size, uint32_t width, uint32_t height, unsigned int numChannels) {
 		auto compressedData = std::make_shared<GrowableData>();
 		
 		//init metadata
@@ -38,7 +42,7 @@ namespace HQRemote {
 		compressedData->expand(4);//padding
 
 		try {
-			zlibCompress(*src, m_level, *compressedData);
+			zlibCompress(src, size, m_level, *compressedData);
 		}
 		catch (...)
 		{

@@ -36,6 +36,7 @@ namespace HQRemote {
 		ZlibImgComressor(int level = 0);//pass 0 to use default compression level
 
 		virtual DataRef compress(ConstDataRef src, uint32_t width, uint32_t height, unsigned int numChannels) override;
+		DataRef compress(const void* src, size_t size, uint32_t width, uint32_t height, unsigned int numChannels);
 		DataRef decompress(ConstDataRef src, uint32_t& width, uint32_t &height, unsigned int& numChannels);
 		DataRef decompress(const void* src, size_t srcSize, uint32_t& width, uint32_t &height, unsigned int& numChannels);
 	private:
