@@ -60,7 +60,7 @@ namespace HQRemote {
 		checkPoint = time64;
 	}
 	
-	std::string getCurrentTimeStr() {
+	CString getCurrentTimeStr() {
 		std::lock_guard<std::mutex> lg(g_lock);
 
 		timeval tv;
@@ -72,7 +72,8 @@ namespace HQRemote {
 		ss << ptm->tm_mday << "-" << ptm->tm_mon + 1 << "-" << ptm->tm_year + 1900 << "-"
 		<< ptm->tm_hour << "-" << ptm->tm_min << "-" << ptm->tm_sec << "-" << tv.tv_usec;
 		
-		return ss.str();
+		auto str = ss.str();
+		return CString(str.c_str(), str.size());
 	}
 
 	uint64_t generateIDFromTime(const time_checkpoint_t& time) {

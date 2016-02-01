@@ -9,6 +9,9 @@
 #ifndef Remote_Timer_h
 #define Remote_Timer_h
 
+#include "Common.h"
+#include "CString.h"
+
 #include <string>
 
 #if defined WIN32/*---windows---*/
@@ -30,7 +33,7 @@ namespace HQRemote {
 	
 	typedef LARGE_INTEGER time_checkpoint_t;
 
-	class TimeCompare {
+	class HQREMOTE_API TimeCompare {
 	public:
 		bool operator() (const time_checkpoint_t& t1, const time_checkpoint_t& t2) const {
 			return t1.QuadPart < t2.QuadPart;
@@ -41,7 +44,7 @@ namespace HQRemote {
 	
 	typedef uint64_t time_checkpoint_t;
 
-	class TimeCompare {
+	class HQREMOTE_API TimeCompare {
 	public:
 		bool operator() (const time_checkpoint_t& t1, const time_checkpoint_t& t2) const {
 			return t1 < t2;
@@ -54,21 +57,21 @@ namespace HQRemote {
 #endif//#if defined WIN32
 	
 	///get time check point
-	void getTimeCheckPoint(time_checkpoint_t& checkPoint);
+	HQREMOTE_API void HQ_FASTCALL getTimeCheckPoint(time_checkpoint_t& checkPoint);
 	///get elapsed time in seconds between two check points
-	double getElapsedTime(const time_checkpoint_t& point1 , const time_checkpoint_t& point2);
+	HQREMOTE_API double HQ_FASTCALL getElapsedTime(const time_checkpoint_t& point1 , const time_checkpoint_t& point2);
 	
-	std::string getCurrentTimeStr();
+	HQREMOTE_API CString HQ_FASTCALL getCurrentTimeStr();
 	
-	uint64_t getTimeCheckPoint64();
-	uint64_t convertToTimeCheckPoint64(const time_checkpoint_t& checkPoint);
-	void convertToTimeCheckPoint(time_checkpoint_t& checkPoint, uint64_t time64);
+	HQREMOTE_API uint64_t HQ_FASTCALL getTimeCheckPoint64();
+	HQREMOTE_API uint64_t HQ_FASTCALL convertToTimeCheckPoint64(const time_checkpoint_t& checkPoint);
+	HQREMOTE_API void HQ_FASTCALL convertToTimeCheckPoint(time_checkpoint_t& checkPoint, uint64_t time64);
 
-	double getElapsedTime64(uint64_t point1, uint64_t point2);
+	HQREMOTE_API double HQ_FASTCALL getElapsedTime64(uint64_t point1, uint64_t point2);
 
 	//generate increasing id based on time
-	uint64_t generateIDFromTime(const time_checkpoint_t& time);
-	inline uint64_t generateIDFromTime() {
+	HQREMOTE_API uint64_t HQ_FASTCALL generateIDFromTime(const time_checkpoint_t& time);
+	static inline uint64_t HQ_FASTCALL generateIDFromTime() {
 		time_checkpoint_t time;
 		getTimeCheckPoint(time);
 		return generateIDFromTime(time);

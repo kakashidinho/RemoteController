@@ -11,6 +11,7 @@
 #endif
 
 #include "Common.h"
+#include "CString.h"
 #include "Data.h"
 #include "Event.h"
 #include "Timer.h"
@@ -38,11 +39,11 @@ namespace HQRemote {
 #endif
 
 	struct HQREMOTE_API ConnectionEndpoint {
-		ConnectionEndpoint(const std::string& addr, int _port)
+		ConnectionEndpoint(const char* addr, int _port)
 		: address(addr), port(_port)
 		{}
 		
-		std::string address;
+		CString address;
 		int port;
 	};
 	

@@ -35,6 +35,14 @@
 #	endif
 #endif
 
+#ifndef HQ_APICALL
+#	if defined WIN32
+#		define HQ_APICALL __cdecl
+#	else
+#		define HQ_APICALL
+#	endif
+#endif
+
 namespace HQRemote {
 #ifdef WIN32
 	typedef SSIZE_T _ssize_t;

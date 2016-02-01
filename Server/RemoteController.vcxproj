@@ -249,6 +249,7 @@ call ../touch.bat "$(OutDir)$(TargetName).lib"</Command>
   <ItemGroup>
     <ClInclude Include="..\Common.h" />
     <ClInclude Include="..\ConnectionHandler.h" />
+    <ClInclude Include="..\CString.h" />
     <ClInclude Include="..\Data.h" />
     <ClInclude Include="..\Event.h" />
     <ClInclude Include="..\third-party\glew\include\GL\glew.h" />
