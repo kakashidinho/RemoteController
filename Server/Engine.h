@@ -42,6 +42,9 @@ namespace HQRemote {
 		//capture current frame and send to remote controller
 		void captureAndSendFrame();
 		ConstEventRef getEvent();
+
+		void sendEvent(const PlainEvent& event);
+		void sendEventUnreliable(const PlainEvent& event);
 		void sendEvent(const ConstEventRef& event);
 		void sendEventUnreliable(const ConstEventRef& event);
 

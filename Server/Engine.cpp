@@ -244,6 +244,15 @@ namespace HQRemote {
 		m_connHandler->sendDataUnreliable(*event);
 	}
 
+	void Engine::sendEvent(const PlainEvent& event) {
+		m_connHandler->sendData(event);
+	}
+
+	void Engine::sendEventUnreliable(const PlainEvent& event)
+	{
+		m_connHandler->sendDataUnreliable(event);
+	}
+
 	EventRef Engine::handleEventInternal(const EventRef& event) {
 		//process internal event
 		switch (event->event.type) {
