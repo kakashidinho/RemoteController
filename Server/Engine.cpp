@@ -323,6 +323,7 @@ namespace HQRemote {
 
 				auto compressedFrame = m_imgCompressor->compress(
 													 frame,
+													 frameId,
 													 m_frameCapturer->getFrameWidth(),
 													 m_frameCapturer->getFrameHeight(),
 													 m_frameCapturer->getNumColorChannels());

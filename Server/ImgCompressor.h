@@ -17,14 +17,14 @@ namespace HQRemote {
 	public:
 		virtual ~IImgCompressor() {}
 
-		virtual DataRef compress(ConstDataRef src, uint32_t width, uint32_t height, unsigned int numChannels) = 0;
+		virtual DataRef compress(ConstDataRef src, uint64_t id, uint32_t width, uint32_t height, unsigned int numChannels) = 0;
 	};
 
 	class HQREMOTE_API JpegImgCompressor : public IImgCompressor {
 	public:
 		JpegImgCompressor(bool outputLowRes, bool outputFlipped);
 
-		virtual DataRef compress(ConstDataRef src, uint32_t width, uint32_t height, unsigned int numChannels) override;
+		virtual DataRef compress(ConstDataRef src, uint64_t id, uint32_t width, uint32_t height, unsigned int numChannels) override;
 
 	private:
 		bool m_outputLowRes;
@@ -35,7 +35,7 @@ namespace HQRemote {
 	public:
 		ZlibImgComressor(int level = 0);//pass 0 to use default compression level
 
-		virtual DataRef compress(ConstDataRef src, uint32_t width, uint32_t height, unsigned int numChannels) override;
+		virtual DataRef compress(ConstDataRef src, uint64_t id, uint32_t width, uint32_t height, unsigned int numChannels) override;
 		DataRef compress(const void* src, size_t size, uint32_t width, uint32_t height, unsigned int numChannels);
 		DataRef decompress(ConstDataRef src, uint32_t& width, uint32_t &height, unsigned int& numChannels);
 		DataRef decompress(const void* src, size_t srcSize, uint32_t& width, uint32_t &height, unsigned int& numChannels);

@@ -19,7 +19,7 @@ namespace HQRemote {
 	{
 	}
 
-	DataRef JpegImgCompressor::compress(ConstDataRef src, uint32_t width, uint32_t height, unsigned int numChannels) {
+	DataRef JpegImgCompressor::compress(ConstDataRef src, uint64_t id, uint32_t width, uint32_t height, unsigned int numChannels) {
 		return convertToJpeg(src, width, height, numChannels, m_outputLowRes, m_flip);
 	}
 
@@ -28,7 +28,7 @@ namespace HQRemote {
 		m_level = level;
 	}
 
-	DataRef ZlibImgComressor::compress(ConstDataRef src, uint32_t width, uint32_t height, unsigned int numChannels) {
+	DataRef ZlibImgComressor::compress(ConstDataRef src, uint64_t id, uint32_t width, uint32_t height, unsigned int numChannels) {
 		return compress(src->data(), src->size(), width, height, numChannels);
 	}
 
