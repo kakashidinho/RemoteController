@@ -154,6 +154,7 @@ namespace HQRemote {
 		UnreliablePingInfo m_lastConnLessPing;
 
 		time_checkpoint_t m_lastRecvTime;
+		size_t m_numLastestDataReceived;
 		std::atomic<float> m_recvRate;
 
 		bool m_enableReconnect;

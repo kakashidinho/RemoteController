@@ -14,6 +14,8 @@
 
 #define NUM_PENDING_MSGS_TO_START_DISCARD 60
 
+#define RCV_RATE_UPDATE_INTERVAL 1.0
+
 #ifndef min
 #	define min(a,b) ((a) < (b) ? (a) : (b))
 #endif
@@ -227,13 +229,18 @@ namespace HQRemote {
 		time_checkpoint_t curTime;
 		getTimeCheckPoint(curTime);
 
+		m_numLastestDataReceived += data->size();
+		
 		auto elapsedTime = getElapsedTime(m_lastRecvTime, curTime);
-		if (elapsedTime > 0.0)
+		if (elapsedTime >= RCV_RATE_UPDATE_INTERVAL)
 		{
-			m_recvRate = 0.8f * m_recvRate + 0.2f * data->size() / (float)elapsedTime;
+			m_recvRate = 0.8f * m_recvRate + 0.2f * m_numLastestDataReceived / (float)elapsedTime;
+			
 			m_lastRecvTime = curTime;
+			m_numLastestDataReceived = 0;
 		}
 
+		//discard data if no more room
 		if (discardIfFull && m_dataQueue.size() > NUM_PENDING_MSGS_TO_START_DISCARD)
 		{
 #if defined DEBUG || defined _DEBUG
@@ -583,6 +590,9 @@ namespace HQRemote {
 				if (!connectedBefore)
 				{
 					getTimeCheckPoint(m_lastRecvTime);
+					m_numLastestDataReceived = 0;
+					m_recvRate = 0;
+
 					connectedBefore = true;
 				}
 
