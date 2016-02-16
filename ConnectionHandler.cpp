@@ -139,7 +139,7 @@ namespace HQRemote {
 
 	/*----------------SocketConnectionHandler ----------------*/
 	SocketConnectionHandler::SocketConnectionHandler()
-		:m_connLessSocket(INVALID_SOCKET), m_connSocket(INVALID_SOCKET), m_enableReconnect(true)
+		:m_connLessSocket(INVALID_SOCKET), m_connSocket(INVALID_SOCKET), m_enableReconnect(true), m_recvRate(0)
 	{
 		platformConstruct();
 	}
@@ -222,6 +222,17 @@ namespace HQRemote {
 
 	void SocketConnectionHandler::pushDataToQueue(DataRef data, bool discardIfFull) {
 		std::lock_guard<std::mutex> lg(m_dataLock);
+
+		//calculate data rate
+		time_checkpoint_t curTime;
+		getTimeCheckPoint(curTime);
+
+		auto elapsedTime = getElapsedTime(m_lastRecvTime, curTime);
+		if (elapsedTime > 0.0)
+		{
+			m_recvRate = 0.8f * m_recvRate + 0.2f * data->size() / (float)elapsedTime;
+			m_lastRecvTime = curTime;
+		}
 
 		if (discardIfFull && m_dataQueue.size() > NUM_PENDING_MSGS_TO_START_DISCARD)
 		{
@@ -569,8 +580,12 @@ namespace HQRemote {
 			m_socketLock.unlock();
 			//we have an existing connection
 			if (l_connected) {
-				connectedBefore = true;
-				
+				if (!connectedBefore)
+				{
+					getTimeCheckPoint(m_lastRecvTime);
+					connectedBefore = true;
+				}
+
 				//wat for at most 1ms
 				timeval timeout;
 				timeout.tv_sec = 0;

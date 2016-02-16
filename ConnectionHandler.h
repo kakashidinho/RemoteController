@@ -64,7 +64,7 @@ namespace HQRemote {
 		virtual void sendDataUnreliable(ConstDataRef data);
 		virtual void sendData(const void* data, size_t size) = 0;
 		virtual void sendDataUnreliable(const void* data, size_t size) = 0;
-		
+		virtual float getReceiveRate() const = 0;
 	protected:
 		IConnectionHandler();
 		
@@ -85,6 +85,10 @@ namespace HQRemote {
 		virtual DataRef receiveData() override;
 		virtual void sendData(const void* data, size_t size) override;
 		virtual void sendDataUnreliable(const void* data, size_t size) override;
+
+		virtual float getReceiveRate() const override {
+			return m_recvRate;
+		}
 	private:
 		struct MsgChunk;
 
@@ -148,6 +152,9 @@ namespace HQRemote {
 		std::unique_ptr<sockaddr_in> m_connLessSocketDestAddr;//destination endpoint of connectionless socket
 		
 		UnreliablePingInfo m_lastConnLessPing;
+
+		time_checkpoint_t m_lastRecvTime;
+		std::atomic<float> m_recvRate;
 
 		bool m_enableReconnect;
 		
