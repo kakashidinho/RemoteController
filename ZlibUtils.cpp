@@ -20,6 +20,8 @@ namespace HQRemote {
 	void HQ_FASTCALL zlibCompress(const void* uncompressedData, size_t size, int level, GrowableData& dst) {
 		if (level == 0)
 			level = Z_DEFAULT_COMPRESSION;
+		else if (level == -1)
+			level = 0;
 
 		z_stream sz;
 		memset(&sz, 0, sizeof(sz));
@@ -32,6 +34,7 @@ namespace HQRemote {
 
 		//compress the data
 		if (deflateInit(&sz, level) != Z_OK)
+		//if (deflateInit2(&sz, level, Z_DEFLATED, 15, 8, Z_DEFAULT_COMPRESSION) != Z_OK)
 			throw std::runtime_error("deflateInit failed");
 		if (size > std::numeric_limits<uint32_t>::max())
 			throw std::runtime_error("uncompressed data too big");

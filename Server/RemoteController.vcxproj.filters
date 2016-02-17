@@ -37,6 +37,9 @@
     <Filter Include="Source Files\Common\mac">
       <UniqueIdentifier>{ea3677c7-8a0e-4ba9-8a91-4201c0fc2e35}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Client">
+      <UniqueIdentifier>{917dc2ab-3cfd-4f63-a176-0e5229e4eae9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\third-party\jpeg-9a\jaricom.c">
@@ -222,6 +225,9 @@
     <ClCompile Include="..\ZlibUtils.cpp">
       <Filter>Source Files\Common</Filter>
     </ClCompile>
+    <ClCompile Include="..\Client\Client.cpp">
+      <Filter>Source Files\Client</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\third-party\jpeg-9a\win32\jconfig.h">
@@ -292,6 +298,9 @@
     </ClInclude>
     <ClInclude Include="..\CString.h">
       <Filter>Source Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Client\Client.h">
+      <Filter>Source Files\Client</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

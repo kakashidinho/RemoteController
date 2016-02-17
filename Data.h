@@ -38,6 +38,12 @@ namespace HQRemote {
 			:m_size(size), m_data(new unsigned char[size]), m_destructFunc([](unsigned char* data) { delete[] data; })
 		{}
 
+		CData(const unsigned char* data, size_t size)
+			:CData(size)
+		{
+			memcpy(m_data, data, size);
+		}
+
 		//this object will take ownership of the passed pointer
 		CData(unsigned char* data, size_t size, DestructFunc destructFunc) {
 			transferFrom(data, size, destructFunc);

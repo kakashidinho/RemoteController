@@ -33,7 +33,7 @@ namespace HQRemote {
 
 	class HQREMOTE_API ZlibImgComressor : public IImgCompressor{
 	public:
-		ZlibImgComressor(int level = 0);//pass 0 to use default compression level
+		ZlibImgComressor(int level = 0);//pass 0 to use default compression level, -1 to disable compression
 
 		virtual DataRef compress(ConstDataRef src, uint64_t id, uint32_t width, uint32_t height, unsigned int numChannels) override;
 		DataRef compress(const void* src, size_t size, uint32_t width, uint32_t height, unsigned int numChannels);
