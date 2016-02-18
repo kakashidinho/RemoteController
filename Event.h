@@ -148,8 +148,8 @@ namespace HQRemote {
 	};
 
 	struct HQREMOTE_API FrameEvent : public DataEvent {
-		FrameEvent(EventType type = RENDERED_FRAME);
-		FrameEvent(uint32_t frameSize, uint64_t frameId, EventType type = RENDERED_FRAME);
+		explicit FrameEvent(EventType type = RENDERED_FRAME);
+		explicit FrameEvent(uint32_t frameSize, uint64_t frameId, EventType type = RENDERED_FRAME);
 		explicit FrameEvent(ConstDataRef frameData, uint64_t frameId, EventType type = RENDERED_FRAME);
 
 	private:

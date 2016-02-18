@@ -15,7 +15,8 @@
 
 namespace HQRemote {
 	//data wrapper
-	struct HQREMOTE_API IData {
+	class HQREMOTE_API IData {
+	public:
 		virtual ~IData() {}
 
 		virtual unsigned char* data() = 0;
@@ -27,7 +28,8 @@ namespace HQRemote {
 	typedef HQREMOTE_API_TYPEDEF std::shared_ptr<IData> DataRef;
 	typedef HQREMOTE_API_TYPEDEF std::shared_ptr<const IData> ConstDataRef;
 
-	struct HQREMOTE_API CData : public IData {
+	class HQREMOTE_API CData : public IData {
+	public:
 		typedef std::function<void(unsigned char*)> DestructFunc;
 
 		CData()
@@ -70,7 +72,8 @@ namespace HQRemote {
 		DestructFunc m_destructFunc;
 	};
 	
-	struct HQREMOTE_API GrowableData: public IData {
+	class HQREMOTE_API GrowableData: public IData {
+	public:
 		GrowableData()
 		{
 		}
@@ -104,7 +107,7 @@ namespace HQRemote {
 	};
 	
 	template <class T>
-	struct HQREMOTE_API TDataSegment: public T {
+	class HQREMOTE_API TDataSegment: public T {
 	public:
 		typedef std::shared_ptr<T> SrcDataRef;
 

@@ -22,7 +22,10 @@ namespace HQRemote {
 		Client(std::shared_ptr<IConnectionHandler> connHandler, float frameInterval);
 		~Client();
 
+		//query generic event
 		ConstEventRef getEvent();
+		ConstFrameEventRef getFrameEvent();
+		ConstFrameEventRef getAudioEvent();
 
 		void sendEvent(const PlainEvent& event);
 		void sendEventUnreliable(const PlainEvent& event);
@@ -48,15 +51,19 @@ namespace HQRemote {
 	private:
 		class AudioDecoder;
 
+		void tryRecvEvent();
 		void handleEventInternal(const EventRef& event);
 		void runAsync(std::function<void()> task);
 
 		void handleAsyncTaskProc();
 		void audioProcessingProc();
 
+		void pushDecodedAudioPacket(uint64_t packetId, const void* data, size_t size);
+
 		std::shared_ptr<IConnectionHandler> m_connHandler;
 
 		std::mutex m_eventLock;
+		std::mutex m_frameQueueLock;
 		std::list<ConstEventRef> m_eventQueue;
 		typedef std::map<uint64_t, ConstFrameEventRef> FrameQueue;
 		FrameQueue m_frameQueue;
@@ -70,14 +77,15 @@ namespace HQRemote {
 		uint64_t m_lastRcvFrameTime64;
 		uint64_t m_lastRcvFrameId;
 
-		std::mutex m_audioLock;
-		std::condition_variable m_audioCv;
+		std::mutex m_audioEncodedPacketsLock;
+		std::mutex m_audioDecodedPacketsLock;
+		std::condition_variable m_audioEncodedPacketsCv;
 		std::unique_ptr<std::thread> m_audioThread;
-		FrameQueue m_audioDecodedPackets;
-		FrameQueue m_audioEncodedPackets;
 		std::shared_ptr<AudioDecoder> m_audioDecoder;
+		FrameQueue m_audioEncodedPackets;
+		std::list<ConstFrameEventRef> m_audioDecodedPackets;
 
-		uint64_t m_lastRcvAudioPacketId;
+		uint64_t m_lastDecodedAudioPacketId;
 
 		std::atomic<bool> m_running;
 	};

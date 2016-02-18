@@ -9,6 +9,8 @@
 #define MAX_PENDING_FRAMES 10
 #define MAX_PENDING_AUDIO_PACKETS 60
 
+#define MAX_ADDITIONAL_PACKETS_BEFORE_PROCEED 3
+
 namespace HQRemote {
 	/*----- Engine::AudioEncoder ----*/
 	class Client::AudioDecoder {
@@ -21,7 +23,10 @@ namespace HQRemote {
 			m_dec = opus_decoder_create(sampleRate, numChannels, &error);
 
 			if (error != OPUS_OK)
-				throw std::runtime_error(opus_strerror(error));
+			{
+				auto errorStr = opus_strerror(error);
+				throw std::runtime_error(errorStr);
+			}
 		}
 
 		~AudioDecoder() {
@@ -42,7 +47,7 @@ namespace HQRemote {
 	/*---------- Client ------------*/
 	Client::Client(std::shared_ptr<IConnectionHandler> connHandler, float frameInterval)
 		: m_connHandler(connHandler), m_running(false), m_frameInterval(frameInterval), m_lastRcvFrameTime64(0), m_lastRcvFrameId(0),
-		m_lastRcvAudioPacketId(0)
+		m_lastDecodedAudioPacketId(0)
 	{
 		if (!m_connHandler)
 		{
@@ -82,7 +87,7 @@ namespace HQRemote {
 		m_lastRcvFrameTime64 = 0;
 		m_lastRcvFrameId = 0;
 
-		m_lastRcvAudioPacketId = 0;
+		m_lastDecodedAudioPacketId = 0;
 
 		m_eventQueue.clear();
 		m_frameQueue.clear();
@@ -124,8 +129,8 @@ namespace HQRemote {
 			m_taskCv.notify_all();
 		}
 		{
-			std::lock_guard<std::mutex> lg(m_audioLock);
-			m_audioCv.notify_all();
+			std::lock_guard<std::mutex> lg(m_audioEncodedPacketsLock);
+			m_audioEncodedPacketsCv.notify_all();
 		}
 
 		//wait for all tasks to finish
@@ -141,7 +146,7 @@ namespace HQRemote {
 		m_audioThread = nullptr;
 	}
 
-	ConstEventRef Client::getEvent() {
+	void Client::tryRecvEvent() {
 		auto data = m_connHandler->receiveData();
 		if (data != nullptr)
 		{
@@ -153,9 +158,29 @@ namespace HQRemote {
 				}
 			});
 		}
+	}
+
+	ConstEventRef Client::getEvent() {
+		tryRecvEvent();
 
 		ConstEventRef event = nullptr;
 		std::lock_guard<std::mutex> lg(m_eventLock);
+
+		//query generic event
+		if (m_eventQueue.size() > 0)
+		{
+			event = m_eventQueue.front();
+			m_eventQueue.pop_front();
+		}
+
+		return event;
+	}
+
+	ConstFrameEventRef Client::getFrameEvent() {
+		tryRecvEvent();
+
+		ConstFrameEventRef event = nullptr;
+		std::lock_guard<std::mutex> lg(m_frameQueueLock);
 
 		//discard out of date frames
 		FrameQueue::iterator frameIte;
@@ -195,17 +220,39 @@ namespace HQRemote {
 			}
 		}//if (m_frameQueue.size() > 0)
 
-		//no frame event available for rendering
-		if (event == nullptr)
-		{
-			if (m_eventQueue.size() > 0)
-			{
-				event = m_eventQueue.front();
-				m_eventQueue.pop_front();
-			}
-		}//if (event == nullptr)
-
 		return event;
+	}
+
+	ConstFrameEventRef Client::getAudioEvent() {
+		tryRecvEvent();
+
+		std::lock_guard<std::mutex> lg(m_audioDecodedPacketsLock);
+
+		if (m_audioDecodedPackets.size() > 0)
+		{
+			auto event = m_audioDecodedPackets.front();
+			m_audioDecodedPackets.pop_front();
+
+			return event;
+		}
+
+		return nullptr;
+	}
+
+	void Client::pushDecodedAudioPacket(uint64_t packetId, const void* data, size_t size) {
+		std::lock_guard<std::mutex> lg(m_audioDecodedPacketsLock);
+
+		try {
+			if (m_audioDecodedPackets.size() >= MAX_PENDING_AUDIO_PACKETS)
+				m_audioDecodedPackets.pop_front();
+
+			auto audioDecodedEventRef = std::make_shared<FrameEvent>(size, packetId, AUDIO_DECODED_PACKET);
+			memcpy(audioDecodedEventRef->event.renderedFrameData.frameData, data, size);
+
+			m_audioDecodedPackets.push_back(audioDecodedEventRef);
+		}
+		catch (...) {
+		}
 	}
 
 	void Client::handleEventInternal(const EventRef& eventRef) {
@@ -214,7 +261,7 @@ namespace HQRemote {
 		switch (event.type) {
 		case RENDERED_FRAME:
 		{
-			std::lock_guard<std::mutex> lg(m_eventLock);
+			std::lock_guard<std::mutex> lg(m_frameQueueLock);
 
 			while (m_frameQueue.size() >= MAX_PENDING_FRAMES)
 			{
@@ -238,15 +285,13 @@ namespace HQRemote {
 
 			try {
 				//make sure we processed all pending audio data
-				std::lock_guard<std::mutex> lg(m_audioLock);
+				std::lock_guard<std::mutex> lg(m_audioEncodedPacketsLock);
+				std::lock_guard<std::mutex> lg2(m_eventLock);//lock decoded packets queue
 
-				try {
-					m_audioEncodedPackets.clear();
+				m_audioEncodedPackets.clear();
+				m_audioDecodedPackets.clear();
 
-					m_audioCv.notify_all();
-				}
-				catch (...) {
-				}
+				m_audioEncodedPacketsCv.notify_all();
 
 				//recreate new encoder
 				m_audioDecoder = std::make_shared<AudioDecoder>(sampleRate, numChannels);
@@ -258,15 +303,15 @@ namespace HQRemote {
 			break;//AUDIO_STREAM_INFO
 		case AUDIO_ENCODED_PACKET:
 		{
-			std::lock_guard<std::mutex> lg(m_audioLock);
+			std::lock_guard<std::mutex> lg(m_audioEncodedPacketsLock);
 
 			try {
 				if (m_audioEncodedPackets.size() >= MAX_PENDING_AUDIO_PACKETS)
 					m_audioEncodedPackets.erase(m_audioEncodedPackets.begin());
 
-				m_audioEncodedPackets[event.renderedFrameData.frameId] = eventRef;
+				m_audioEncodedPackets[event.renderedFrameData.frameId] = std::static_pointer_cast<const FrameEvent> (eventRef);
 
-				m_audioCv.notify_all();
+				m_audioEncodedPacketsCv.notify_all();
 			}
 			catch (...) {
 			}
@@ -340,25 +385,79 @@ namespace HQRemote {
 		//TODO: we support only 16 bit PCM for now
 		SetCurrentThreadName("audioProcessingProc");
 
+		const int max_frame_size = 48000 * 2;//TODO: not sure about this
+		const int max_buffer_samples = max_frame_size * 2;
+
+		opus_int16* buffer;
+
+		try {
+			buffer = new opus_int16[max_buffer_samples];
+		}
+		catch (...) {
+			//TODO: print message
+			return;
+		}
+		uint32_t lastNumPendingPackets = 0;
+
 		//TODO: some frame size may not work in opus_encode
 		while (m_running) {
-			std::unique_lock<std::mutex> lk(m_audioLock);
+			std::unique_lock<std::mutex> lk(m_audioEncodedPacketsLock);
 
 			//wait until we have at least one captured frame
-			m_audioCv.wait(lk, [this] {return !(m_running && m_audioEncodedPackets.size() == 0); });
+			m_audioEncodedPacketsCv.wait(lk, [this] {return !(m_running && m_audioEncodedPackets.size() == 0); });
 
 			if (m_audioEncodedPackets.size() > 0) {
 				auto audioDecoder = m_audioDecoder;
 				auto encodedPacketIte = m_audioEncodedPackets.begin();
 				auto encodedPacketId = encodedPacketIte->first;
 				auto encodedPacketEventRef = encodedPacketIte->second; 
-				m_audioEncodedPackets.erase(encodedPacketIte);
-				lk.unlock();
 
-				if (audioDecoder != nullptr) {
-					
-				}//if (m_audioDecoder != nullptr)
+				//either this is a subsequent packet to the previous decoded packet or there are too many packets arrived since we started waiting for the subsequent packet
+				if (encodedPacketId == m_lastDecodedAudioPacketId + 1 || m_lastDecodedAudioPacketId == 0 || encodedPacketId <= m_lastDecodedAudioPacketId
+					|| (lastNumPendingPackets != 0 && m_audioEncodedPackets.size() - lastNumPendingPackets > MAX_ADDITIONAL_PACKETS_BEFORE_PROCEED))
+				{
+					m_audioEncodedPackets.erase(encodedPacketIte);
+					lk.unlock();
+
+					if (audioDecoder != nullptr && encodedPacketId > m_lastDecodedAudioPacketId) {
+						auto out_max_samples = max_buffer_samples / audioDecoder->getNumChannels();
+
+						if (m_lastDecodedAudioPacketId != 0)
+						{
+							//decode lost packets
+							for (auto i = m_lastDecodedAudioPacketId + 1; i < encodedPacketId; ++i)
+							{
+								auto samples = opus_decode(
+									*audioDecoder,
+									NULL, 0,
+									buffer, out_max_samples, 0);
+
+								if (samples > 0)
+									pushDecodedAudioPacket(i, buffer, samples * audioDecoder->getNumChannels());
+							}
+						}//if (m_lastDecodedAudioPacketId != 0)
+
+						//decode packet
+						auto samples = opus_decode(
+							*audioDecoder,
+							(const unsigned char*)encodedPacketEventRef->event.renderedFrameData.frameData, encodedPacketEventRef->event.renderedFrameData.frameSize,
+							buffer, out_max_samples, 0);
+
+						if (samples > 0)
+							pushDecodedAudioPacket(encodedPacketId, buffer, samples * audioDecoder->getNumChannels() * sizeof(opus_int16));
+
+						m_lastDecodedAudioPacketId = encodedPacketId;
+					}//if (m_audioDecoder != nullptr)
+
+					lastNumPendingPackets = 0;
+				}
+				else if (lastNumPendingPackets == 0) {
+					//we will wait for a while, hopefully the expected package will arrive in time
+					lastNumPendingPackets = m_audioEncodedPackets.size();
+				}
 			}//if (m_audioRawPackets.size() > 0)
 		}//while (m_running)
+
+		delete[] buffer;
 	}
 }

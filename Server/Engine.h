@@ -6,6 +6,7 @@
 #include "../Event.h"
 #include "../Timer.h"
 #include "FrameCapturer.h"
+#include "AudioCapturer.h"
 #include "ImgCompressor.h"
 
 #include <stdint.h>
@@ -31,10 +32,12 @@ namespace HQRemote {
 
 		Engine(int port,
 			   std::shared_ptr<IFrameCapturer> frameCapturer,
+			   std::shared_ptr<IAudioCapturer> audioCapturer = nullptr,
 			   std::shared_ptr<IImgCompressor> imgCompressor = nullptr,
 			   size_t frameBundleSize = 1);
 		Engine(std::shared_ptr<IConnectionHandler> connHandler,
 			   std::shared_ptr<IFrameCapturer> frameCapturer,
+			   std::shared_ptr<IAudioCapturer> audioCapturer = nullptr,
 			   std::shared_ptr<IImgCompressor> imgCompressor = nullptr,
 			   size_t frameBundleSize = 1);
 		~Engine();
@@ -53,8 +56,7 @@ namespace HQRemote {
 
 		//audio streaming
 		//TODO: only support 16 bit PCM right now
-		bool setAudioSettings(int sampleRate, int numChannels);
-		void sendAudio(const ConstDataRef& pcmData);
+		void captureAndSendAudio();
 	private:
 		class AudioEncoder;
 
@@ -70,6 +72,7 @@ namespace HQRemote {
 
 		EventRef handleEventInternal(const EventRef& event);
 		void sendHostInfo();
+		void sendAudioInfo();
 
 		void frameCompressionProc();
 		void frameBundleProc();
@@ -78,6 +81,7 @@ namespace HQRemote {
 		void frameSavingProc();
 		void audioSendingProc();
 		
+		void updateAudioSettingsIfNeeded();
 		
 		void pushCompressedFrameForBundling(const FrameEventRef& frame);
 		void pushFrameDataForSending(uint64_t id, const DataRef& data);
@@ -85,6 +89,7 @@ namespace HQRemote {
 		void debugFrame(uint64_t id, const void* data, size_t size);
 
 		std::shared_ptr<IFrameCapturer> m_frameCapturer;
+		std::shared_ptr<IAudioCapturer> m_audioCapturer;
 		std::shared_ptr<IImgCompressor> m_imgCompressor;
 		std::shared_ptr<IConnectionHandler> m_connHandler;
 
