@@ -52,6 +52,7 @@ namespace HQRemote {
 		void runAsync(std::function<void()> task);
 
 		void handleAsyncTaskProc();
+		void audioProcessingProc();
 
 		std::shared_ptr<IConnectionHandler> m_connHandler;
 

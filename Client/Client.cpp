@@ -7,6 +7,7 @@
 #include <future>
 
 #define MAX_PENDING_FRAMES 10
+#define MAX_PENDING_AUDIO_PACKETS 60
 
 namespace HQRemote {
 	/*----- Engine::AudioEncoder ----*/
@@ -104,6 +105,11 @@ namespace HQRemote {
 			}
 		}//if (preprocessEventAsync)
 
+		//start background thread to process audio from remote side
+		m_audioThread = std::unique_ptr<std::thread>(new std::thread([this] {
+			audioProcessingProc();
+		}));
+
 		return true;
 	}
 
@@ -117,6 +123,10 @@ namespace HQRemote {
 			std::lock_guard<std::mutex> lg(m_taskLock);
 			m_taskCv.notify_all();
 		}
+		{
+			std::lock_guard<std::mutex> lg(m_audioLock);
+			m_audioCv.notify_all();
+		}
 
 		//wait for all tasks to finish
 		for (auto& thread : m_taskThreads) {
@@ -125,6 +135,10 @@ namespace HQRemote {
 		}
 
 		m_taskThreads.clear();
+
+		if (m_audioThread && m_audioThread->joinable())
+			m_audioThread->join();
+		m_audioThread = nullptr;
 	}
 
 	ConstEventRef Client::getEvent() {
@@ -238,7 +252,23 @@ namespace HQRemote {
 				m_audioDecoder = std::make_shared<AudioDecoder>(sampleRate, numChannels);
 			}
 			catch (...) {
-				//TODO: print message
+				//TODO: print error message
+			}
+		}
+			break;//AUDIO_STREAM_INFO
+		case AUDIO_ENCODED_PACKET:
+		{
+			std::lock_guard<std::mutex> lg(m_audioLock);
+
+			try {
+				if (m_audioEncodedPackets.size() >= MAX_PENDING_AUDIO_PACKETS)
+					m_audioEncodedPackets.erase(m_audioEncodedPackets.begin());
+
+				m_audioEncodedPackets[event.renderedFrameData.frameId] = eventRef;
+
+				m_audioCv.notify_all();
+			}
+			catch (...) {
 			}
 		}
 			break;
@@ -303,6 +333,32 @@ namespace HQRemote {
 				//run task
 				task();
 			}//if (m_taskQueue.size())
+		}//while (m_running)
+	}
+
+	void Client::audioProcessingProc() {
+		//TODO: we support only 16 bit PCM for now
+		SetCurrentThreadName("audioProcessingProc");
+
+		//TODO: some frame size may not work in opus_encode
+		while (m_running) {
+			std::unique_lock<std::mutex> lk(m_audioLock);
+
+			//wait until we have at least one captured frame
+			m_audioCv.wait(lk, [this] {return !(m_running && m_audioEncodedPackets.size() == 0); });
+
+			if (m_audioEncodedPackets.size() > 0) {
+				auto audioDecoder = m_audioDecoder;
+				auto encodedPacketIte = m_audioEncodedPackets.begin();
+				auto encodedPacketId = encodedPacketIte->first;
+				auto encodedPacketEventRef = encodedPacketIte->second; 
+				m_audioEncodedPackets.erase(encodedPacketIte);
+				lk.unlock();
+
+				if (audioDecoder != nullptr) {
+					
+				}//if (m_audioDecoder != nullptr)
+			}//if (m_audioRawPackets.size() > 0)
 		}//while (m_running)
 	}
 }
