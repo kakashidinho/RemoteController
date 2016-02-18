@@ -50,7 +50,14 @@ namespace HQRemote {
 
 		bool start();
 		void stop();
+
+		//audio streaming
+		//TODO: only support 16 bit PCM right now
+		bool setAudioSettings(int sampleRate, int numChannels);
+		void sendAudio(const ConstDataRef& pcmData);
 	private:
+		class AudioEncoder;
+
 		void platformConstruct();
 		void platformDestruct();
 		std::string platformGetWritableFolder();
@@ -69,6 +76,7 @@ namespace HQRemote {
 		void frameSendingProc();
 		void videoRecordingProc();
 		void frameSavingProc();
+		void audioSendingProc();
 		
 		
 		void pushCompressedFrameForBundling(const FrameEventRef& frame);
@@ -104,6 +112,15 @@ namespace HQRemote {
 		double m_intendedFrameInterval;
 		std::atomic<bool> m_sendFrame;
 		
+		//audio thread
+		std::mutex m_audioLock;
+		std::condition_variable m_audioCv;
+		std::unique_ptr<std::thread> m_audioThread;
+		std::shared_ptr<AudioEncoder> m_audioEncoder;
+		std::list<ConstDataRef> m_audioRawPackets;
+
+		uint64_t m_sentAudioPackets;
+
 		//video recording thread
 		std::map<time_checkpoint_t, ConstDataRef, TimeCompare> m_capturedFramesForVideo;
 		std::unique_ptr<std::thread> m_videoThread;

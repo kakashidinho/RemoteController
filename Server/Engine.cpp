@@ -1,6 +1,9 @@
 #include "Engine.h"
 #include "ImgCompressor.h"
 
+#include <opus.h>
+#include <opus_defines.h>
+
 #include <assert.h>
 #include <fstream>
 #include <sstream>
@@ -21,6 +24,35 @@
 #endif
 
 namespace HQRemote {
+	/*----- Engine::AudioEncoder ----*/
+	class Engine::AudioEncoder {
+	public:
+		AudioEncoder(int32_t sampleRate, int numChannels)
+			:m_sampleRate(sampleRate), m_numChannels(numChannels)
+		{
+			int error;
+
+			m_enc = opus_encoder_create(sampleRate, numChannels, OPUS_APPLICATION_AUDIO, &error);
+
+			if (error != OPUS_OK)
+				throw std::runtime_error(opus_strerror(error));
+		}
+
+		~AudioEncoder() {
+			opus_encoder_destroy(m_enc);
+		}
+
+		operator OpusEncoder* () { return m_enc; }
+
+		int32_t getSampleRate() const { return m_sampleRate; }
+		int getNumChannels() const { return m_numChannels; }
+	private:
+		OpusEncoder* m_enc;
+
+		int32_t m_sampleRate;
+		int m_numChannels;
+	};
+
 
 	/*------------Engine -----------*/
 	Engine::Engine(int port,
@@ -69,7 +101,17 @@ namespace HQRemote {
 		if (!m_connHandler->start())
 			return false;
 
+		m_capturedFramesForCompress.clear();
+		m_capturedFramesForSave.clear();
+		m_capturedFramesForVideo.clear();
+		m_incompleteFrameBundles.clear();
+		m_frameBundles.clear();
+		m_sendingFrames.clear();
+		m_audioRawPackets.clear();
+		m_sentAudioPackets = 0;
+
 		m_running = true;
+		m_sendFrame = false;
 
 		//start background thread to send compressed frame to remote side
 		m_frameSendingThread = std::unique_ptr<std::thread>(new std::thread([this] {
@@ -111,6 +153,11 @@ namespace HQRemote {
 			frameSavingProc();
 		}));
 
+		//start background thread to process audio and send to remote side
+		m_audioThread = std::unique_ptr<std::thread>(new std::thread([this] {
+			audioSendingProc();
+		}));
+
 		return true;
 	}
 
@@ -141,6 +188,10 @@ namespace HQRemote {
 			std::lock_guard<std::mutex> lg(m_screenshotLock);
 			m_screenshotCv.notify_all();
 		}
+		{
+			std::lock_guard<std::mutex> lg(m_audioLock);
+			m_audioCv.notify_all();
+		}
 
 		//join with all threads
 		if (m_frameSendingThread && m_frameSendingThread->joinable())
@@ -166,6 +217,10 @@ namespace HQRemote {
 		if (m_screenshotThread && m_screenshotThread->joinable())
 			m_screenshotThread->join();
 		m_screenshotThread = nullptr;
+
+		if (m_audioThread && m_audioThread->joinable())
+			m_audioThread->join();
+		m_audioThread = nullptr;
 	}
 
 	//capture current frame and send to remote controller
@@ -220,6 +275,62 @@ namespace HQRemote {
 					m_videoCv.notify_all();
 				}
 			}
+		}
+	}
+
+	bool Engine::setAudioSettings(int sampleRate, int numChannels) {
+		if (!m_running)
+			return false;
+
+		if (m_audioEncoder != nullptr && m_audioEncoder->getSampleRate() == sampleRate && m_audioEncoder->getNumChannels() == numChannels)
+			return true;
+
+		try {
+			//make sure we processed all pending audio data
+			std::lock_guard<std::mutex> lg(m_audioLock);
+
+			try {
+				m_audioRawPackets.clear();
+
+				m_audioCv.notify_all();
+			}
+			catch (...) {
+			}
+
+			//recreate new encoder
+			m_audioEncoder = std::make_shared<AudioEncoder>(sampleRate, numChannels);
+		}
+		catch (...) {
+			//TODO: print message
+			return false;
+		}
+
+
+		//notify remote side about the audio settings
+		PlainEvent event(AUDIO_STREAM_INFO);
+		event.event.audioStreamInfo.sampleRate = sampleRate;
+		event.event.audioStreamInfo.numChannels = numChannels;
+
+		sendEvent(event);
+
+		return true;
+	}
+
+	void Engine::sendAudio(const ConstDataRef& pcmData) {
+		if (!m_running || !m_audioEncoder)
+			return;
+
+		std::lock_guard<std::mutex> lg(m_audioLock);
+
+		try {
+			if (m_audioRawPackets.size() >= MAX_PENDING_FRAMES)
+				m_audioRawPackets.pop_front();
+
+			m_audioRawPackets.push_back(pcmData);
+
+			m_audioCv.notify_all();
+		}
+		catch (...) {
 		}
 	}
 
@@ -618,5 +729,91 @@ namespace HQRemote {
 				}//if (compressedFrame != nullptr)
 			}//if (m_capturedFramesForSave() > 0)
 		}//while (m_running)
+	}
+
+	void Engine::audioSendingProc() {
+		//TODO: we support only 16 bit PCM for now
+		SetCurrentThreadName("audioSendingProc");
+
+		//TODO: some frame size may not work in opus_encode
+		size_t batchMinSamplesPerChannel = 480;
+		size_t currentBatchSamplesPerChannel = 0;
+		std::vector<opus_int16> batchBuffer;
+		auto batchEncodeBuffer = std::make_shared<GrowableData>(batchMinSamplesPerChannel * 2);
+		batchBuffer.reserve(batchMinSamplesPerChannel * 2);
+
+		while (m_running) {
+			std::unique_lock<std::mutex> lk(m_audioLock);
+
+			//wait until we have at least one captured frame
+			m_audioCv.wait(lk, [this] {return !(m_running && m_audioRawPackets.size() == 0); });
+
+			if (m_audioRawPackets.size() > 0) {
+				auto audioEncoder = m_audioEncoder;
+				auto rawPacket = m_audioRawPackets.front();
+				m_audioRawPackets.pop_front();
+				lk.unlock();
+
+				if (audioEncoder != nullptr && m_sendFrame) {
+					auto totalRawSamples = rawPacket->size() / sizeof(opus_int16);
+					auto numRawSamplesPerChannel = totalRawSamples / audioEncoder->getNumChannels();
+					auto raw_samples = (opus_int16*)rawPacket->data();
+					
+					bool batchFull = false;
+					try {
+						batchBuffer.insert(batchBuffer.end(), raw_samples, raw_samples + totalRawSamples);
+
+						currentBatchSamplesPerChannel += numRawSamplesPerChannel;
+
+						if (currentBatchSamplesPerChannel >= batchMinSamplesPerChannel)
+						{
+							batchFull = true;
+						}
+					}
+					catch (...) {
+						batchFull = true;
+					}
+
+					if (batchFull) {
+						auto batchSize = batchBuffer.size() * sizeof(batchBuffer[0]);
+
+						size_t offset = 0;
+						size_t remainSamplesPerChannel = currentBatchSamplesPerChannel;
+
+						int len = 0;
+
+						do {
+							auto input = batchBuffer.data() + offset;
+							auto output = batchEncodeBuffer->data();
+							auto outputMaxSize = batchEncodeBuffer->size();
+
+							len = opus_encode(*audioEncoder, 
+											  input, remainSamplesPerChannel, 
+											  output, outputMaxSize);
+
+							if (len > 0) {
+								auto packet = std::make_shared<DataSegment>(batchEncodeBuffer, 0, len);
+								auto packetId = m_sentAudioPackets++;
+								FrameEvent audioPacketEvent(packet, packetId, AUDIO_ENCODED_PACKET);
+
+								sendEventUnreliable(audioPacketEvent);
+							}//if (len > 0)
+
+							auto encoded_samples_per_channel = opus_packet_get_samples_per_frame(output, audioEncoder->getSampleRate()) * opus_packet_get_nb_frames(output, len);
+
+							offset += encoded_samples_per_channel * audioEncoder->getNumChannels();
+							if (encoded_samples_per_channel <= remainSamplesPerChannel)
+								remainSamplesPerChannel -= encoded_samples_per_channel;
+							else
+								remainSamplesPerChannel = 0;
+						} while (len >= 0 && remainSamplesPerChannel > 0);
+
+						batchBuffer.clear();
+						currentBatchSamplesPerChannel = 0;
+					}//if (batchFull)
+				}//if (m_audioEncoder != nullptr)
+			}//if (m_audioRawPackets.size() > 0)
+		}//while (m_running)
+
 	}
 }

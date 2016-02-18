@@ -34,6 +34,10 @@ namespace HQRemote {
 		
 		FRAME_INTERVAL,
 		
+		AUDIO_STREAM_INFO,
+		AUDIO_ENCODED_PACKET,
+		AUDIO_DECODED_PACKET,
+
 		COMPRESSED_EVENTS,
 
 		NO_EVENT,
@@ -54,6 +58,7 @@ namespace HQRemote {
 				uint32_t height;
 			} hostInfo;
 
+			//this data can be used for both frame & audio packet event
 			struct {
 				uint64_t frameId;
 				union {
@@ -66,6 +71,11 @@ namespace HQRemote {
 			struct {
 				uint32_t numEvents;
 			} compressedEvents;
+
+			struct {
+				int32_t sampleRate;
+				int32_t numChannels;
+			} audioStreamInfo;
 			
 			double frameInterval;
 
@@ -101,7 +111,7 @@ namespace HQRemote {
 	
 	struct HQREMOTE_API DataEvent : public PlainEvent {
 		DataEvent(EventType type);
-		DataEvent(EventType type, uint32_t storageSize);
+		DataEvent(uint32_t storageSize, EventType type);
 		
 		virtual DataRef serialize() const override;
 		virtual void deserialize(const DataRef& data) override;
@@ -138,9 +148,9 @@ namespace HQRemote {
 	};
 
 	struct HQREMOTE_API FrameEvent : public DataEvent {
-		FrameEvent();
-		FrameEvent(uint32_t frameSize, uint64_t frameId);
-		explicit FrameEvent(ConstDataRef frameData, uint64_t frameId);
+		FrameEvent(EventType type = RENDERED_FRAME);
+		FrameEvent(uint32_t frameSize, uint64_t frameId, EventType type = RENDERED_FRAME);
+		explicit FrameEvent(ConstDataRef frameData, uint64_t frameId, EventType type = RENDERED_FRAME);
 
 	private:
 		virtual void deserializeFromStorage() override;

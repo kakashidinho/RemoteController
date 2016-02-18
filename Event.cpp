@@ -43,7 +43,7 @@ namespace HQRemote {
 		: PlainEvent(type)
 	{}
 
-	DataEvent::DataEvent(EventType type, uint32_t storageSize) 
+	DataEvent::DataEvent(uint32_t storageSize, EventType type)
 		: PlainEvent(type), storage(std::make_shared<CData>(storageSize))
 	{}
 
@@ -192,16 +192,16 @@ namespace HQRemote {
 	}
 	
 	/*----------- FrameEvent -------------*/
-	FrameEvent::FrameEvent()
-		: DataEvent(RENDERED_FRAME)
+	FrameEvent::FrameEvent(EventType type)
+		: DataEvent(type)
 	{
 		event.renderedFrameData.frameId = 0;
 		event.renderedFrameData.frameSize = 0;
 		event.renderedFrameData.frameData = NULL;
 	}
 
-	FrameEvent::FrameEvent(uint32_t frameSize, uint64_t frameId)
-		: DataEvent(RENDERED_FRAME, sizeof(event) + frameSize)
+	FrameEvent::FrameEvent(uint32_t frameSize, uint64_t frameId, EventType type)
+		: DataEvent(sizeof(event) + frameSize, type)
 	{
 		//frame data will use "this->storage" as its backing store
 		event.renderedFrameData.frameId = frameId;
@@ -209,8 +209,8 @@ namespace HQRemote {
 		event.renderedFrameData.frameData = storage->data() + sizeof(event);
 	}
 
-	FrameEvent::FrameEvent(ConstDataRef frameData, uint64_t frameId)
-		:FrameEvent(frameData->size(), frameId)
+	FrameEvent::FrameEvent(ConstDataRef frameData, uint64_t frameId, EventType type)
+		:FrameEvent(frameData->size(), frameId, type)
 	{
 		assert(frameData->size() <= std::numeric_limits<uint32_t>::max());
 		
@@ -233,10 +233,10 @@ namespace HQRemote {
 			plainEvent.deserialize(dataRefCopy);
 
 			switch (plainEvent.event.type) {
-			case RENDERED_FRAME:
+			case RENDERED_FRAME: case AUDIO_ENCODED_PACKET:
 			{
 				//this is non-plain event
-				auto frameEvent = std::make_shared<FrameEvent>();
+				auto frameEvent = std::make_shared<FrameEvent>(plainEvent.event.type);
 				frameEvent->deserialize(std::forward<DataRef>(data));
 
 				return frameEvent;

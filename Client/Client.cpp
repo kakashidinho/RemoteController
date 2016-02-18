@@ -1,13 +1,47 @@
 #include "Client.h"
 #include "../Timer.h"
 
+#include <opus.h>
+#include <opus_defines.h>
+
 #include <future>
 
 #define MAX_PENDING_FRAMES 10
 
 namespace HQRemote {
+	/*----- Engine::AudioEncoder ----*/
+	class Client::AudioDecoder {
+	public:
+		AudioDecoder(int32_t sampleRate, int numChannels)
+			:m_sampleRate(sampleRate), m_numChannels(numChannels)
+		{
+			int error;
+
+			m_dec = opus_decoder_create(sampleRate, numChannels, &error);
+
+			if (error != OPUS_OK)
+				throw std::runtime_error(opus_strerror(error));
+		}
+
+		~AudioDecoder() {
+			opus_decoder_destroy(m_dec);
+		}
+
+		operator OpusDecoder* () { return m_dec; }
+
+		int32_t getSampleRate() const { return m_sampleRate; }
+		int getNumChannels() const { return m_numChannels; }
+	private:
+		OpusDecoder* m_dec;
+
+		int32_t m_sampleRate;
+		int m_numChannels;
+	};
+
+	/*---------- Client ------------*/
 	Client::Client(std::shared_ptr<IConnectionHandler> connHandler, float frameInterval)
-		: m_connHandler(connHandler), m_running(false), m_frameInterval(frameInterval), m_lastRcvFrameTime64(0), m_lastRcvFrameId(0)
+		: m_connHandler(connHandler), m_running(false), m_frameInterval(frameInterval), m_lastRcvFrameTime64(0), m_lastRcvFrameId(0),
+		m_lastRcvAudioPacketId(0)
 	{
 		if (!m_connHandler)
 		{
@@ -47,8 +81,12 @@ namespace HQRemote {
 		m_lastRcvFrameTime64 = 0;
 		m_lastRcvFrameId = 0;
 
+		m_lastRcvAudioPacketId = 0;
+
 		m_eventQueue.clear();
 		m_frameQueue.clear();
+		m_audioEncodedPackets.clear();
+		m_audioDecodedPackets.clear();
 
 
 		if (preprocessEventAsync)
@@ -176,6 +214,31 @@ namespace HQRemote {
 			}
 			catch (...) {
 				//TODO
+			}
+		}
+			break;
+		case AUDIO_STREAM_INFO:
+		{
+			auto sampleRate = event.audioStreamInfo.sampleRate;
+			auto numChannels = event.audioStreamInfo.numChannels;
+
+			try {
+				//make sure we processed all pending audio data
+				std::lock_guard<std::mutex> lg(m_audioLock);
+
+				try {
+					m_audioEncodedPackets.clear();
+
+					m_audioCv.notify_all();
+				}
+				catch (...) {
+				}
+
+				//recreate new encoder
+				m_audioDecoder = std::make_shared<AudioDecoder>(sampleRate, numChannels);
+			}
+			catch (...) {
+				//TODO: print message
 			}
 		}
 			break;

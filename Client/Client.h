@@ -11,6 +11,11 @@
 #include <thread>
 #include <vector>
 
+#if defined WIN32 || defined _MSC_VER
+#	pragma warning(push)
+#	pragma warning(disable:4251)
+#endif
+
 namespace HQRemote {
 	class HQREMOTE_API Client {
 	public:
@@ -41,6 +46,8 @@ namespace HQRemote {
 		bool start(bool preprocessEventAsync = true);
 		void stop();
 	private:
+		class AudioDecoder;
+
 		void handleEventInternal(const EventRef& event);
 		void runAsync(std::function<void()> task);
 
@@ -62,8 +69,21 @@ namespace HQRemote {
 		uint64_t m_lastRcvFrameTime64;
 		uint64_t m_lastRcvFrameId;
 
+		std::mutex m_audioLock;
+		std::condition_variable m_audioCv;
+		std::unique_ptr<std::thread> m_audioThread;
+		FrameQueue m_audioDecodedPackets;
+		FrameQueue m_audioEncodedPackets;
+		std::shared_ptr<AudioDecoder> m_audioDecoder;
+
+		uint64_t m_lastRcvAudioPacketId;
+
 		std::atomic<bool> m_running;
 	};
 }
+
+#if defined WIN32 || defined _MSC_VER
+#	pragma warning(pop)
+#endif
 
 #endif
