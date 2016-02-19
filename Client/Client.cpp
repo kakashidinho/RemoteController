@@ -49,7 +49,7 @@ namespace HQRemote {
 	/*---------- Client ------------*/
 	Client::Client(std::shared_ptr<IConnectionHandler> connHandler, float frameInterval)
 		: m_connHandler(connHandler), m_running(false), m_frameInterval(frameInterval), m_lastRcvFrameTime64(0), m_lastRcvFrameId(0),
-		m_lastDecodedAudioPacketId(0)
+		m_lastDecodedAudioPacketId(0), m_totalRecvAudioPackets(0)
 	{
 		if (!m_connHandler)
 		{
@@ -90,6 +90,7 @@ namespace HQRemote {
 		m_lastRcvFrameId = 0;
 
 		m_lastDecodedAudioPacketId = 0;
+		m_totalRecvAudioPackets = 0;
 		m_audioDecodedBufferInitSize = 0;
 
 		m_eventQueue.clear();
@@ -328,6 +329,8 @@ namespace HQRemote {
 		{
 			std::lock_guard<std::mutex> lg(m_audioEncodedPacketsLock);
 
+			m_totalRecvAudioPackets++;
+
 			try {
 				if (m_audioEncodedPackets.size() >= MAX_PENDING_AUDIO_PACKETS)
 					m_audioEncodedPackets.erase(m_audioEncodedPackets.begin());
@@ -420,7 +423,7 @@ namespace HQRemote {
 			//TODO: print message
 			return;
 		}
-		uint32_t lastNumPendingPackets = 0;
+		uint32_t lastNumRecvPackets = 0;
 
 		//TODO: some frame size may not work in opus_encode
 		while (m_running) {
@@ -437,7 +440,7 @@ namespace HQRemote {
 
 				//either this is a subsequent packet to the previous decoded packet or there are too many packets arrived since we started waiting for the subsequent packet
 				if (encodedPacketId == m_lastDecodedAudioPacketId + 1 || m_lastDecodedAudioPacketId == 0 || encodedPacketId <= m_lastDecodedAudioPacketId
-					|| (lastNumPendingPackets != 0 && m_audioEncodedPackets.size() - lastNumPendingPackets > MAX_ADDITIONAL_PACKETS_BEFORE_PROCEED))
+					|| (lastNumRecvPackets != 0 && m_totalRecvAudioPackets - lastNumRecvPackets > MAX_ADDITIONAL_PACKETS_BEFORE_PROCEED))
 				{
 					m_audioEncodedPackets.erase(encodedPacketIte);
 					lk.unlock();
@@ -448,17 +451,21 @@ namespace HQRemote {
 						if (m_lastDecodedAudioPacketId != 0)
 						{
 							//decode lost packets
+							int lost_samples;
 							for (auto i = m_lastDecodedAudioPacketId + 1; i < encodedPacketId; ++i)
 							{
+								opus_decoder_ctl(*audioDecoder, OPUS_GET_LAST_PACKET_DURATION(&lost_samples));
 								auto samples = opus_decode(
 									*audioDecoder,
 									NULL, 0,
-									buffer, out_max_samples, 0);
+									buffer, lost_samples, 0);
 
+#if 0//don't render lost packet
 								if (samples > 0)
 								{
 									pushDecodedAudioPacket(i, buffer, samples * audioDecoder->getNumChannels(), samples * 1000.f / audioDecoder->getSampleRate());
 								}
+#endif
 							}
 						}//if (m_lastDecodedAudioPacketId != 0)
 
@@ -476,11 +483,11 @@ namespace HQRemote {
 						m_lastDecodedAudioPacketId = encodedPacketId;
 					}//if (m_audioDecoder != nullptr)
 
-					lastNumPendingPackets = 0;
+					lastNumRecvPackets = 0;
 				}
-				else if (lastNumPendingPackets == 0) {
+				else if (lastNumRecvPackets == 0) {
 					//we will wait for a while, hopefully the expected package will arrive in time
-					lastNumPendingPackets = m_audioEncodedPackets.size();
+					lastNumRecvPackets = m_totalRecvAudioPackets;
 				}
 			}//if (m_audioRawPackets.size() > 0)
 		}//while (m_running)

@@ -89,6 +89,7 @@ namespace HQRemote {
 		std::list<ConstFrameEventRef> m_audioDecodedPackets;
 
 		uint64_t m_lastDecodedAudioPacketId;
+		uint64_t m_totalRecvAudioPackets;
 		float m_audioDecodedBufferInitSize;//the size in bytes of pending decoded audio data before allowing audio rendering
 
 		std::atomic<bool> m_running;
