@@ -11,6 +11,8 @@
 
 #define MAX_ADDITIONAL_PACKETS_BEFORE_PROCEED 3
 
+#define DEFAULT_AUDIO_BUFFER_SIZE_MS 100 //ms
+
 namespace HQRemote {
 	/*----- Engine::AudioEncoder ----*/
 	class Client::AudioDecoder {
@@ -88,6 +90,7 @@ namespace HQRemote {
 		m_lastRcvFrameId = 0;
 
 		m_lastDecodedAudioPacketId = 0;
+		m_audioDecodedBufferInitSize = 0;
 
 		m_eventQueue.clear();
 		m_frameQueue.clear();
@@ -228,7 +231,7 @@ namespace HQRemote {
 
 		std::lock_guard<std::mutex> lg(m_audioDecodedPacketsLock);
 
-		if (m_audioDecodedPackets.size() > 0)
+		if (m_audioDecodedPackets.size() > 0 && m_audioDecodedBufferInitSize >= DEFAULT_AUDIO_BUFFER_SIZE_MS)
 		{
 			auto event = m_audioDecodedPackets.front();
 			m_audioDecodedPackets.pop_front();
@@ -239,20 +242,40 @@ namespace HQRemote {
 		return nullptr;
 	}
 
-	void Client::pushDecodedAudioPacket(uint64_t packetId, const void* data, size_t size) {
+	void Client::pushDecodedAudioPacket(uint64_t packetId, const void* data, size_t size, float sizeMs) {
 		std::lock_guard<std::mutex> lg(m_audioDecodedPacketsLock);
 
 		try {
 			if (m_audioDecodedPackets.size() >= MAX_PENDING_AUDIO_PACKETS)
+			{
+				auto packet = m_audioDecodedPackets.front();
 				m_audioDecodedPackets.pop_front();
+			}
 
 			auto audioDecodedEventRef = std::make_shared<FrameEvent>(size, packetId, AUDIO_DECODED_PACKET);
 			memcpy(audioDecodedEventRef->event.renderedFrameData.frameData, data, size);
 
 			m_audioDecodedPackets.push_back(audioDecodedEventRef);
+
+			if (m_audioDecodedBufferInitSize < DEFAULT_AUDIO_BUFFER_SIZE_MS)
+				m_audioDecodedBufferInitSize += sizeMs;
 		}
 		catch (...) {
 		}
+	}
+
+	uint32_t Client::getRemoteAudioSampleRate() const {
+		if (!m_audioDecoder)
+			return 0;
+
+		return m_audioDecoder->getSampleRate();
+	}
+
+	uint32_t Client::getNumRemoteAudioChannels() const {
+		if (!m_audioDecoder)
+			return 0;
+
+		return m_audioDecoder->getNumChannels();
 	}
 
 	void Client::handleEventInternal(const EventRef& eventRef) {
@@ -433,7 +456,9 @@ namespace HQRemote {
 									buffer, out_max_samples, 0);
 
 								if (samples > 0)
-									pushDecodedAudioPacket(i, buffer, samples * audioDecoder->getNumChannels());
+								{
+									pushDecodedAudioPacket(i, buffer, samples * audioDecoder->getNumChannels(), samples * 1000.f / audioDecoder->getSampleRate());
+								}
 							}
 						}//if (m_lastDecodedAudioPacketId != 0)
 
@@ -444,7 +469,9 @@ namespace HQRemote {
 							buffer, out_max_samples, 0);
 
 						if (samples > 0)
-							pushDecodedAudioPacket(encodedPacketId, buffer, samples * audioDecoder->getNumChannels() * sizeof(opus_int16));
+						{
+							pushDecodedAudioPacket(encodedPacketId, buffer, samples * audioDecoder->getNumChannels() * sizeof(opus_int16), samples * 1000.f / audioDecoder->getSampleRate());
+						}
 
 						m_lastDecodedAudioPacketId = encodedPacketId;
 					}//if (m_audioDecoder != nullptr)

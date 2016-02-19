@@ -46,6 +46,9 @@ namespace HQRemote {
 			return m_connHandler->getReceiveRate();
 		}
 
+		uint32_t getRemoteAudioSampleRate() const;
+		uint32_t getNumRemoteAudioChannels() const;
+
 		bool start(bool preprocessEventAsync = true);
 		void stop();
 	private:
@@ -58,7 +61,7 @@ namespace HQRemote {
 		void handleAsyncTaskProc();
 		void audioProcessingProc();
 
-		void pushDecodedAudioPacket(uint64_t packetId, const void* data, size_t size);
+		void pushDecodedAudioPacket(uint64_t packetId, const void* data, size_t size, float sizeMs);
 
 		std::shared_ptr<IConnectionHandler> m_connHandler;
 
@@ -86,6 +89,7 @@ namespace HQRemote {
 		std::list<ConstFrameEventRef> m_audioDecodedPackets;
 
 		uint64_t m_lastDecodedAudioPacketId;
+		float m_audioDecodedBufferInitSize;//the size in bytes of pending decoded audio data before allowing audio rendering
 
 		std::atomic<bool> m_running;
 	};
