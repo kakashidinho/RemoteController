@@ -54,21 +54,24 @@ namespace HQRemote {
 	private:
 		class AudioDecoder;
 
-		void tryRecvEvent();
+		void tryRecvEvent(EventType eventToDiscard = NO_EVENT, bool consumeAllAvailableData = false);
 		void handleEventInternal(const EventRef& event);
 		void runAsync(std::function<void()> task);
 
 		void handleAsyncTaskProc();
 		void audioProcessingProc();
 
-		void pushDecodedAudioPacket(uint64_t packetId, const void* data, size_t size, float sizeMs);
+		void pushDecodedAudioPacket(uint64_t packetId, const void* data, size_t size, float duration);
+		void flushEncodedAudioPackets();
+
+		typedef std::map<uint64_t, ConstFrameEventRef> FrameQueue;
+		typedef std::list<ConstFrameEventRef> AudioQueue;
 
 		std::shared_ptr<IConnectionHandler> m_connHandler;
 
 		std::mutex m_eventLock;
 		std::mutex m_frameQueueLock;
 		std::list<ConstEventRef> m_eventQueue;
-		typedef std::map<uint64_t, ConstFrameEventRef> FrameQueue;
 		FrameQueue m_frameQueue;
 
 		std::mutex m_taskLock;
@@ -86,10 +89,12 @@ namespace HQRemote {
 		std::unique_ptr<std::thread> m_audioThread;
 		std::shared_ptr<AudioDecoder> m_audioDecoder;
 		FrameQueue m_audioEncodedPackets;
-		std::list<ConstFrameEventRef> m_audioDecodedPackets;
+		AudioQueue m_audioDecodedPackets;
 
 		uint64_t m_lastDecodedAudioPacketId;
 		uint64_t m_totalRecvAudioPackets;
+		uint64_t m_lastQueriedAudioTime64;
+		uint64_t m_lastQueriedAudioPacketId;
 		float m_audioDecodedBufferInitSize;//the size in bytes of pending decoded audio data before allowing audio rendering
 
 		std::atomic<bool> m_running;

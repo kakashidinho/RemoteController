@@ -223,6 +223,18 @@ namespace HQRemote {
 		event.renderedFrameData.frameData = this->storage->data() + sizeof(this->event);
 	}
 
+	EventType HQ_FASTCALL peekEventType(const DataRef& data) {
+		try {
+			PlainEvent plainEvent;
+			plainEvent.deserialize(data);
+
+			return plainEvent.event.type;
+		}
+		catch (...) {
+			return NO_EVENT;
+		}
+	}
+
 	//factory function
 	EventRef HQ_FASTCALL deserializeEvent(DataRef&& data) {
 		try {

@@ -23,6 +23,8 @@
 #	define min(a,b) ((a) < (b) ? (a) : (b))
 #endif
 
+#define DEFAULT_FRAME_SIZE_MS 20
+
 namespace HQRemote {
 	/*----- Engine::AudioEncoder ----*/
 	class Engine::AudioEncoder {
@@ -438,6 +440,7 @@ namespace HQRemote {
 		PlainEvent event(AUDIO_STREAM_INFO);
 		event.event.audioStreamInfo.sampleRate = sampleRate;
 		event.event.audioStreamInfo.numChannels = numChannels;
+		event.event.audioStreamInfo.frameSizeMs = DEFAULT_FRAME_SIZE_MS;
 
 		sendEvent(event);
 	}
@@ -790,7 +793,7 @@ namespace HQRemote {
 					bool batchFull = false;
 
 					//frame size ideally should be 20ms
-					batchIdealSamplesPerChannel = audioEncoder->getSampleRate() * 20 / 1000;
+					batchIdealSamplesPerChannel = audioEncoder->getSampleRate() * DEFAULT_FRAME_SIZE_MS / 1000;
 
 					try {
 						batchBuffer.insert(batchBuffer.end(), raw_samples, raw_samples + totalRawSamples);

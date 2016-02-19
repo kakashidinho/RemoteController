@@ -75,6 +75,7 @@ namespace HQRemote {
 			struct {
 				int32_t sampleRate;
 				int32_t numChannels;
+				int32_t frameSizeMs;
 			} audioStreamInfo;
 			
 			double frameInterval;
@@ -163,6 +164,7 @@ namespace HQRemote {
 	typedef HQREMOTE_API_TYPEDEF std::shared_ptr<const FrameEvent> ConstFrameEventRef;
 
 	HQREMOTE_API  EventRef HQ_FASTCALL deserializeEvent(DataRef&& data);
+	HQREMOTE_API  EventType HQ_FASTCALL peekEventType(const DataRef& data);
 }
 
 #if defined WIN32 || defined _MSC_VER
