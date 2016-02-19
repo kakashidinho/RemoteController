@@ -270,6 +270,7 @@ namespace HQRemote {
 			if (!validPacket) {
 				//reset packet's counters
 				m_lastQueriedAudioTime64 = 0;
+				m_audioDecodedBufferInitSize = 0;
 
 				m_audioDecodedPackets.clear();
 
