@@ -55,11 +55,13 @@ namespace HQRemote {
 		class AudioDecoder;
 
 		void tryRecvEvent(EventType eventToDiscard = NO_EVENT, bool consumeAllAvailableData = false);
+		void handleEventInternal(const DataRef& data, EventType eventToDiscard);
 		void handleEventInternal(const EventRef& event);
 		void runAsync(std::function<void()> task);
 
 		void handleAsyncTaskProc();
 		void audioProcessingProc();
+		void dataPollingProc();
 
 		void pushDecodedAudioPacket(uint64_t packetId, const void* data, size_t size, float duration);
 		void flushEncodedAudioPackets();
@@ -73,6 +75,8 @@ namespace HQRemote {
 		std::mutex m_frameQueueLock;
 		std::list<ConstEventRef> m_eventQueue;
 		FrameQueue m_frameQueue;
+
+		std::unique_ptr<std::thread> m_dataPollingThread;
 
 		std::mutex m_taskLock;
 		std::condition_variable m_taskCv;

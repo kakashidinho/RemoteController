@@ -191,6 +191,13 @@ namespace HQRemote {
 
 		m_socketLock.unlock();
 
+		//wake any thread blocked when trying to retrieve data
+		{
+			m_dataLock.lock();
+			m_dataCv.notify_all();
+			m_dataLock.unlock();
+		}
+
 		//join with all threads
 		if (m_recvThread != nullptr && m_recvThread->joinable())
 		{
@@ -222,6 +229,20 @@ namespace HQRemote {
 		return data;
 	}
 
+	DataRef SocketConnectionHandler::receiveDataBlock() {
+		std::unique_lock<std::mutex> lk(m_dataLock);
+
+		m_dataCv.wait(lk, [this] { return !m_running || m_dataQueue.size() > 0; });
+
+		if (m_dataQueue.size())
+		{
+			auto re = m_dataQueue.front();
+			m_dataQueue.pop_front();
+			return re;
+		}
+		return nullptr;
+	}
+
 	void SocketConnectionHandler::pushDataToQueue(DataRef data, bool discardIfFull) {
 		std::lock_guard<std::mutex> lg(m_dataLock);
 
@@ -250,6 +271,8 @@ namespace HQRemote {
 		}
 		
 		m_dataQueue.push_back(data);
+
+		m_dataCv.notify_all();
 	}
 
 	void SocketConnectionHandler::sendData(const void* data, size_t size)

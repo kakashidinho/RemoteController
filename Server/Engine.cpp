@@ -23,7 +23,8 @@
 #	define min(a,b) ((a) < (b) ? (a) : (b))
 #endif
 
-#define DEFAULT_FRAME_SIZE_MS 20
+#define DEFAULT_AUDIO_FRAME_SIZE_MS 20
+#define DEFAULT_AUDIO_FRAME_BUNDLE 3
 
 namespace HQRemote {
 	/*----- Engine::AudioEncoder ----*/
@@ -440,7 +441,8 @@ namespace HQRemote {
 		PlainEvent event(AUDIO_STREAM_INFO);
 		event.event.audioStreamInfo.sampleRate = sampleRate;
 		event.event.audioStreamInfo.numChannels = numChannels;
-		event.event.audioStreamInfo.frameSizeMs = DEFAULT_FRAME_SIZE_MS;
+		event.event.audioStreamInfo.framesBundleSize = DEFAULT_AUDIO_FRAME_BUNDLE;
+		event.event.audioStreamInfo.frameSizeMs = DEFAULT_AUDIO_FRAME_SIZE_MS;
 
 		sendEvent(event);
 	}
@@ -502,7 +504,7 @@ namespace HQRemote {
 				lk.unlock();
 				
 				if (m_sendFrame) {
-					auto bundleEvent = std::make_shared<CompressedEvents>(*bundle);
+					auto bundleEvent = std::make_shared<CompressedEvents>(0, *bundle);
 					if (bundleEvent->event.type == COMPRESSED_EVENTS)
 					{
 						//send to frame sending thread
@@ -771,6 +773,10 @@ namespace HQRemote {
 		batchBuffers[0].reserve(batchIdealSamplesPerChannel * 2);
 		batchBuffers[1].reserve(batchIdealSamplesPerChannel * 2);
 
+#if DEFAULT_AUDIO_FRAME_BUNDLE > 1
+		std::list<EventRef> packetsBundle;
+#endif
+
 		while (m_running) {
 			std::unique_lock<std::mutex> lk(m_audioLock);
 
@@ -793,7 +799,7 @@ namespace HQRemote {
 					bool batchFull = false;
 
 					//frame size ideally should be 20ms
-					batchIdealSamplesPerChannel = audioEncoder->getSampleRate() * DEFAULT_FRAME_SIZE_MS / 1000;
+					batchIdealSamplesPerChannel = audioEncoder->getSampleRate() * DEFAULT_AUDIO_FRAME_SIZE_MS / 1000;
 
 					try {
 						batchBuffer.insert(batchBuffer.end(), raw_samples, raw_samples + totalRawSamples);
@@ -829,11 +835,23 @@ namespace HQRemote {
 											output, outputMaxSize);
 
 						if (len > 0) {
+							//send to client
 							ConstDataRef packet = std::make_shared<DataSegment>(batchEncodeBuffer, 0, len);
 							auto packetId = m_sentAudioPackets++;
-							FrameEvent audioPacketEvent(packet, packetId, AUDIO_ENCODED_PACKET);
+#if DEFAULT_AUDIO_FRAME_BUNDLE > 1
+							auto audioPacketEvent = std::make_shared<FrameEvent>(packet, packetId, AUDIO_ENCODED_PACKET);
+							packetsBundle.push_back(audioPacketEvent);
+							if (packetsBundle.size() == DEFAULT_AUDIO_FRAME_BUNDLE)
+							{
+								CompressedEvents bundleEvent(-1, packetsBundle);
+								sendEventUnreliable(bundleEvent);
 
+								packetsBundle.clear();
+							}
+#else//DEFAULT_AUDIO_FRAME_BUNDLE > 1
+							FrameEvent audioPacketEvent(packet, packetId, AUDIO_ENCODED_PACKET);
 							sendEventUnreliable(audioPacketEvent);
+#endif//DEFAULT_AUDIO_FRAME_BUNDLE > 1
 
 							//store the remaining unencoded samples
 							size_t encoded_samples_per_channel = opus_packet_get_samples_per_frame(output, audioEncoder->getSampleRate()) * opus_packet_get_nb_frames(output, len);

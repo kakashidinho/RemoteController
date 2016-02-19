@@ -84,7 +84,7 @@ namespace HQRemote {
 	}
 	
 	/*---------- CompressedEvents --------*/
-	CompressedEvents::CompressedEvents(const EventRef* event1, ...)
+	CompressedEvents::CompressedEvents(int zlibCompressLevel, const EventRef* event1, ...)
 	: DataEvent(COMPRESSED_EVENTS)
 	{
 		if (event1 == nullptr)
@@ -103,17 +103,17 @@ namespace HQRemote {
 		
 		va_end(args);
 		
-		init();
+		init(zlibCompressLevel);
 		
 	}
 	
-	CompressedEvents::CompressedEvents(const EventList& events)
+	CompressedEvents::CompressedEvents(int zlibCompressLevel, const EventList& events)
 	: DataEvent(COMPRESSED_EVENTS), m_events(events)
 	{
-		init();
+		init(zlibCompressLevel);
 	}
 	
-	void CompressedEvents::init() {
+	void CompressedEvents::init(int zlibCompressLevel) {
 		try {
 			//init generic info
 			assert(m_events.size() <= std::numeric_limits<uint32_t>::max());
@@ -151,7 +151,7 @@ namespace HQRemote {
 			}
 			
 			//compress the combined data
-			zlibCompress(uncompresedData, 0, *growableStorage);
+			zlibCompress(uncompresedData, zlibCompressLevel, *growableStorage);
 			
 			uint64_t *pOffsetTable = (uint64_t*)(growableStorage->data() + offsetTableOff);
 			memcpy(pOffsetTable, offsetTable.data(), offsetTable.size() * sizeof(offsetTable[0]));

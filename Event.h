@@ -75,6 +75,7 @@ namespace HQRemote {
 			struct {
 				int32_t sampleRate;
 				int32_t numChannels;
+				int32_t framesBundleSize;
 				int32_t frameSizeMs;
 			} audioStreamInfo;
 			
@@ -129,9 +130,9 @@ namespace HQRemote {
 		typedef EventList::iterator iterator;
 		typedef EventList::const_iterator const_iterator;
 		
-		CompressedEvents(): CompressedEvents(nullptr) {}
-		CompressedEvents(const EventRef* event1, ...);//last argument should be nullptr
-		CompressedEvents(const EventList& events);
+		CompressedEvents(): CompressedEvents(-1, nullptr) {}
+		CompressedEvents(int zlibCompressLevel, const EventRef* event1, ...);//last argument should be nullptr
+		CompressedEvents(int zlibCompressLevel, const EventList& events);
 		
 		iterator begin() { return m_events.begin(); }
 		const_iterator begin() const { return m_events.begin(); }
@@ -142,7 +143,7 @@ namespace HQRemote {
 		const_iterator cend() const { return m_events.cend(); }
 		
 	private:
-		void init();
+		void init(int zlibCompressLevel);
 		virtual void deserializeFromStorage() override;
 		
 		EventList m_events;

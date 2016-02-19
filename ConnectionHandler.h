@@ -60,11 +60,14 @@ namespace HQRemote {
 		virtual bool connected() const = 0;
 
 		virtual DataRef receiveData() = 0;
+		virtual DataRef receiveDataBlock() = 0;//this function will block until there is some data available
+
 		virtual void sendData(ConstDataRef data);
 		virtual void sendDataUnreliable(ConstDataRef data);
 		virtual void sendData(const void* data, size_t size) = 0;
 		virtual void sendDataUnreliable(const void* data, size_t size) = 0;
 		virtual float getReceiveRate() const = 0;
+
 	protected:
 		IConnectionHandler();
 		
@@ -83,6 +86,7 @@ namespace HQRemote {
 		virtual bool connected() const override;
 
 		virtual DataRef receiveData() override;
+		virtual DataRef receiveDataBlock() override;
 		virtual void sendData(const void* data, size_t size) override;
 		virtual void sendDataUnreliable(const void* data, size_t size) override;
 
@@ -145,6 +149,7 @@ namespace HQRemote {
 		std::map<uint64_t, MsgBuf> m_connLessBuffers;
 		std::list<DataRef> m_dataQueue;
 		std::mutex m_dataLock;
+		std::condition_variable m_dataCv;
 		std::unique_ptr<std::thread> m_recvThread;
 
 		std::atomic<socket_t> m_connSocket;

@@ -18,7 +18,7 @@ namespace HQRemote {
 	class Client::AudioDecoder {
 	public:
 		AudioDecoder(int32_t sampleRate, int numChannels)
-			:m_sampleRate(sampleRate), m_numChannels(numChannels), remoteFrameSizeSeconds(0)
+			:m_sampleRate(sampleRate), m_numChannels(numChannels), remoteFrameSizeSeconds(0), remoteFramesBundleSize(0)
 		{
 			int error;
 
@@ -41,6 +41,7 @@ namespace HQRemote {
 		int getNumChannels() const { return m_numChannels; }
 
 		double remoteFrameSizeSeconds;
+		int32_t remoteFramesBundleSize;
 	private:
 		OpusDecoder* m_dec;
 
@@ -123,6 +124,13 @@ namespace HQRemote {
 			audioProcessingProc();
 		}));
 
+		//start background thread to poll incoming network data
+		if (preprocessEventAsync) {
+			m_dataPollingThread = std::unique_ptr<std::thread>(new std::thread([this] {
+				dataPollingProc();
+			}));
+		}
+
 		return true;
 	}
 
@@ -152,6 +160,10 @@ namespace HQRemote {
 		if (m_audioThread && m_audioThread->joinable())
 			m_audioThread->join();
 		m_audioThread = nullptr;
+
+		if (m_dataPollingThread && m_dataPollingThread->joinable())
+			m_dataPollingThread->join();
+		m_dataPollingThread = nullptr;
 	}
 
 	void Client::tryRecvEvent(EventType eventToDiscard, bool consumeAllAvailableData) {
@@ -161,23 +173,14 @@ namespace HQRemote {
 			data = m_connHandler->receiveData();
 			if (data != nullptr)
 			{
-				auto eventType = peekEventType(data);
-
-				if (eventToDiscard != eventType) {
-					runAsync([=] {
-						auto _data = data;
-						auto event = deserializeEvent(std::move(_data));
-						if (event != nullptr) {
-							handleEventInternal(event);
-						}
-					});
-				}//if (eventToDiscard != eventType)
+				handleEventInternal(data, eventToDiscard);
 			}//if (data != nullptr)
 		} while (consumeAllAvailableData && data != nullptr);
 	}
 
 	ConstEventRef Client::getEvent() {
-		tryRecvEvent();
+		if (m_dataPollingThread == nullptr)//if we don't have dedicated polling thread then retrieve the event directly here
+			tryRecvEvent();
 
 		ConstEventRef event = nullptr;
 		std::lock_guard<std::mutex> lg(m_eventLock);
@@ -193,7 +196,8 @@ namespace HQRemote {
 	}
 
 	ConstFrameEventRef Client::getFrameEvent() {
-		tryRecvEvent();
+		if (m_dataPollingThread == nullptr)
+			tryRecvEvent();
 
 		ConstFrameEventRef event = nullptr;
 		std::lock_guard<std::mutex> lg(m_frameQueueLock);
@@ -240,7 +244,8 @@ namespace HQRemote {
 	}
 
 	ConstFrameEventRef Client::getAudioEvent() {
-		tryRecvEvent();
+		if (m_dataPollingThread == nullptr)
+			tryRecvEvent();
 
 		std::lock_guard<std::mutex> lg(m_audioDecodedPacketsLock);
 
@@ -334,6 +339,20 @@ namespace HQRemote {
 		return m_audioDecoder->getNumChannels();
 	}
 
+	void Client::handleEventInternal(const DataRef& data, EventType eventToDiscard) {
+		auto eventType = peekEventType(data);
+
+		if (eventToDiscard != eventType) {
+			runAsync([=] {
+				auto _data = data;
+				auto event = deserializeEvent(std::move(_data));
+				if (event != nullptr) {
+					handleEventInternal(event);
+				}
+			});
+		}//if (eventToDiscard != eventType)
+	}
+
 	void Client::handleEventInternal(const EventRef& eventRef) {
 		auto& event = eventRef->event;
 
@@ -362,6 +381,7 @@ namespace HQRemote {
 			auto sampleRate = event.audioStreamInfo.sampleRate;
 			auto numChannels = event.audioStreamInfo.numChannels;
 			auto frameSizeMs = event.audioStreamInfo.frameSizeMs;
+			auto framesBundleSize = event.audioStreamInfo.framesBundleSize;
 
 			try {
 				//make sure we processed all pending audio data
@@ -374,6 +394,7 @@ namespace HQRemote {
 				//recreate new encoder
 				m_audioDecoder = std::make_shared<AudioDecoder>(sampleRate, numChannels);
 				m_audioDecoder->remoteFrameSizeSeconds = frameSizeMs / 1000.f;
+				m_audioDecoder->remoteFramesBundleSize = framesBundleSize;
 			}
 			catch (...) {
 				//TODO: print error message
@@ -495,7 +516,7 @@ namespace HQRemote {
 
 				//either this is a subsequent packet to the previous decoded packet or there are too many packets arrived since we started waiting for the subsequent packet
 				if (encodedPacketId == m_lastDecodedAudioPacketId + 1 || m_lastDecodedAudioPacketId == 0 || encodedPacketId <= m_lastDecodedAudioPacketId
-					|| (lastNumRecvPackets != 0 && m_totalRecvAudioPackets - lastNumRecvPackets > MAX_ADDITIONAL_PACKETS_BEFORE_PROCEED))
+					|| (lastNumRecvPackets != 0 && m_totalRecvAudioPackets - lastNumRecvPackets > MAX_ADDITIONAL_PACKETS_BEFORE_PROCEED * audioDecoder->remoteFramesBundleSize))
 				{
 					m_audioEncodedPackets.erase(encodedPacketIte);
 					lk.unlock();
@@ -540,13 +561,27 @@ namespace HQRemote {
 
 					lastNumRecvPackets = 0;
 				}
-				else if (lastNumRecvPackets == 0) {
-					//we will wait for a while, hopefully the expected package will arrive in time
-					lastNumRecvPackets = m_totalRecvAudioPackets;
+				else {
+					if (lastNumRecvPackets == 0) {
+						//we will wait for a while, hopefully the expected package will arrive in time
+						lastNumRecvPackets = m_totalRecvAudioPackets;
+					}
+
+					std::this_thread::yield();
 				}
 			}//if (m_audioRawPackets.size() > 0)
 		}//while (m_running)
 
 		delete[] buffer;
+	}
+
+	void Client::dataPollingProc() {
+		SetCurrentThreadName("Client::dataPollingProc");
+
+		while (m_running) {
+			auto data = m_connHandler->receiveDataBlock();
+			if (data)
+				handleEventInternal(data, NO_EVENT);
+		}//while (m_running)
 	}
 }
