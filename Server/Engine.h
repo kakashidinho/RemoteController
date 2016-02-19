@@ -55,7 +55,7 @@ namespace HQRemote {
 		void stop();
 
 		//audio streaming
-		//TODO: only support 16 bit PCM right now
+		//TODO: only support 16 bit PCM, and sample rate (8000, 12000, 16000, 24000, or 48000) for now
 		void captureAndSendAudio();
 	private:
 		class AudioEncoder;
