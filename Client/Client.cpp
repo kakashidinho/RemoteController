@@ -515,7 +515,7 @@ namespace HQRemote {
 									NULL, 0,
 									buffer, lost_samples, 0);
 
-#if 0//don't render lost packet
+#if 1//don't render lost packet
 								if (samples > 0)
 								{
 									pushDecodedAudioPacket(i, buffer, samples * audioDecoder->getNumChannels(), (float)samples / audioDecoder->getSampleRate());
