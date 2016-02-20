@@ -767,6 +767,7 @@ namespace HQRemote {
 
 		//TODO: some frame size may not work in opus_encode
 		size_t batchIdealSamplesPerChannel = 480 * 2;
+		size_t batchIdealSize = 0;
 		std::vector<opus_int16> batchBuffers[2];
 		int nextBatchBufferIdx = 0;
 		auto batchEncodeBuffer = std::make_shared<GrowableData>(batchIdealSamplesPerChannel * 2);
@@ -795,48 +796,40 @@ namespace HQRemote {
 					auto numRawSamplesPerChannel = totalRawSamples / audioEncoder->getNumChannels();
 					size_t currentBatchSamplesPerChannel = batchBuffer.size() / audioEncoder->getNumChannels();
 					auto raw_samples = (opus_int16*)rawPacket->data();
-					
-					bool batchFull = false;
 
 					//frame size ideally should be 20ms
 					batchIdealSamplesPerChannel = audioEncoder->getSampleRate() * DEFAULT_AUDIO_FRAME_SIZE_MS / 1000;
+					batchIdealSize = batchIdealSamplesPerChannel * sizeof(opus_int16) * audioEncoder->getNumChannels();
+
+					if (batchIdealSize > batchEncodeBuffer->size())
+					{
+						batchEncodeBuffer->expand(batchIdealSize - batchEncodeBuffer->size());
+					}
 
 					try {
 						batchBuffer.insert(batchBuffer.end(), raw_samples, raw_samples + totalRawSamples);
 
 						currentBatchSamplesPerChannel += numRawSamplesPerChannel;
-
-						if (currentBatchSamplesPerChannel >= batchIdealSamplesPerChannel)
-						{
-							batchFull = true;
-						}
 					}
 					catch (...) {
-						batchFull = true;
+						//TODO
 					}
 
-					if (batchFull) {
-						auto batchSize = batchBuffer.size() * sizeof(batchBuffer[0]);
-						size_t remainSamplesPerChannel = currentBatchSamplesPerChannel;
+					size_t batchBufferOffset = 0;
+					int packet_len = 0;
 
-						if (batchSize > batchEncodeBuffer->size())
-						{
-							batchEncodeBuffer->expand(batchSize - batchEncodeBuffer->size());
-						}
-
-						int len = 0;
-
-						auto input = batchBuffer.data();
+					while (currentBatchSamplesPerChannel >= batchIdealSamplesPerChannel && packet_len >= 0) {
+						auto input = batchBuffer.data() + batchBufferOffset;
 						auto output = batchEncodeBuffer->data();
 						auto outputMaxSize = batchEncodeBuffer->size();
 
-						len = opus_encode(*audioEncoder, 
-											input, min(batchIdealSamplesPerChannel, remainSamplesPerChannel),
+						packet_len = opus_encode(*audioEncoder,
+											input, batchIdealSamplesPerChannel,
 											output, outputMaxSize);
 
-						if (len > 0) {
+						if (packet_len > 0) {
 							//send to client
-							ConstDataRef packet = std::make_shared<DataSegment>(batchEncodeBuffer, 0, len);
+							ConstDataRef packet = std::make_shared<DataSegment>(batchEncodeBuffer, 0, packet_len);
 							auto packetId = m_sentAudioPackets++;
 #if DEFAULT_AUDIO_FRAME_BUNDLE > 1
 							auto audioPacketEvent = std::make_shared<FrameEvent>(packet, packetId, AUDIO_ENCODED_PACKET);
@@ -854,27 +847,26 @@ namespace HQRemote {
 #endif//DEFAULT_AUDIO_FRAME_BUNDLE > 1
 
 							//store the remaining unencoded samples
-							size_t encoded_samples_per_channel = opus_packet_get_samples_per_frame(output, audioEncoder->getSampleRate()) * opus_packet_get_nb_frames(output, len);
+							size_t encoded_samples_per_channel = opus_packet_get_samples_per_frame(output, audioEncoder->getSampleRate()) * opus_packet_get_nb_frames(output, packet_len);
 
-							if (encoded_samples_per_channel <= remainSamplesPerChannel)
-								remainSamplesPerChannel -= encoded_samples_per_channel;
+							if (encoded_samples_per_channel <= currentBatchSamplesPerChannel)
+								currentBatchSamplesPerChannel -= encoded_samples_per_channel;
 							else
-								remainSamplesPerChannel = 0;
+								currentBatchSamplesPerChannel = 0;
 
-							if (remainSamplesPerChannel > 0)
-							{
-								auto offset = encoded_samples_per_channel * audioEncoder->getNumChannels();
-								
-								nextBatchBufferIdx = (nextBatchBufferIdx + 1) % 2;
-								auto& nextBatchBuffer = batchBuffers[nextBatchBufferIdx];
-								nextBatchBuffer.clear();
-								nextBatchBuffer.insert(nextBatchBuffer.begin(), batchBuffer.begin() + offset, batchBuffer.end());
-							}
-						}//if (len > 0)
+							batchBufferOffset += encoded_samples_per_channel * audioEncoder->getNumChannels();
+						}//if (packet_len > 0)
+					}//while (currentBatchSamplesPerChannel >= batchIdealSamplesPerChannel)
 
-						batchBuffer.clear();
-						currentBatchSamplesPerChannel = 0;
-					}//if (batchFull)
+					if (currentBatchSamplesPerChannel > 0)
+					{
+						nextBatchBufferIdx = (nextBatchBufferIdx + 1) % 2;
+						auto& nextBatchBuffer = batchBuffers[nextBatchBufferIdx];
+						nextBatchBuffer.clear();
+						nextBatchBuffer.insert(nextBatchBuffer.begin(), batchBuffer.begin() + batchBufferOffset, batchBuffer.end());
+					}
+
+					batchBuffer.clear();
 				}//if (m_audioEncoder != nullptr)
 			}//if (m_audioRawPackets.size() > 0)
 		}//while (m_running)
