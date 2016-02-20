@@ -76,6 +76,7 @@ namespace HQRemote {
 		std::list<ConstEventRef> m_eventQueue;
 		FrameQueue m_frameQueue;
 
+		std::mutex m_dataPollingLock;
 		std::unique_ptr<std::thread> m_dataPollingThread;
 
 		std::mutex m_taskLock;

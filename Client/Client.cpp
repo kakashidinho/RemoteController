@@ -7,7 +7,7 @@
 #include <future>
 
 #define MAX_PENDING_FRAMES 10
-#define MAX_PENDING_AUDIO_PACKETS 10
+#define MAX_PENDING_AUDIO_PACKETS 6
 
 #define MAX_ADDITIONAL_PACKETS_BEFORE_PROCEED 3
 
@@ -270,7 +270,7 @@ namespace HQRemote {
 			}
 
 			//skip packets if it arrived too late
-			bool validPacket = elapsedSinceLastPacket < expectedElapsedSinceLastPacket + 0.05;
+			bool validPacket = elapsedSinceLastPacket < expectedElapsedSinceLastPacket + 0.01;
 
 			if (!validPacket) {
 				//reset packet's counters
@@ -316,13 +316,24 @@ namespace HQRemote {
 	void Client::flushEncodedAudioPackets() {
 		//clear all pending packets for decoding and pending packets from network
 		std::lock_guard<std::mutex> lg(m_audioEncodedPacketsLock);
-		std::lock_guard<std::mutex> lg2(m_eventLock);
 
-		m_audioEncodedPackets.clear();
+		if (m_audioEncodedPackets.size()) {
+			FrameQueue::iterator ite = m_audioEncodedPackets.end();
+			--ite;
+			auto lastPacketId = ite->first;
+			if (lastPacketId > m_lastDecodedAudioPacketId)
+				m_lastDecodedAudioPacketId = lastPacketId;
 
-		m_audioEncodedPacketsCv.notify_all();
+			m_audioEncodedPackets.clear();
 
+			m_audioEncodedPacketsCv.notify_all();
+		}
+
+		//prevent data polling thread from polling further data
+		bool locked = m_dataPollingLock.try_lock();
 		tryRecvEvent(AUDIO_ENCODED_PACKET, true);
+		if (locked)
+			m_dataPollingLock.unlock();
 	}
 
 	uint32_t Client::getRemoteAudioSampleRate() const {
@@ -406,17 +417,25 @@ namespace HQRemote {
 			std::lock_guard<std::mutex> lg(m_audioEncodedPacketsLock);
 
 			m_totalRecvAudioPackets++;
+			if (m_audioDecoder) {
+				try {
+					if (m_audioEncodedPackets.size() >= MAX_PENDING_AUDIO_PACKETS)
+					{
+						auto oldestPacketIte = m_audioEncodedPackets.begin();
+						auto oldestPacketId = oldestPacketIte->first;
+						m_audioEncodedPackets.erase(oldestPacketIte);
 
-			try {
-				if (m_audioEncodedPackets.size() >= MAX_PENDING_AUDIO_PACKETS)
-					m_audioEncodedPackets.erase(m_audioEncodedPackets.begin());
+						if (oldestPacketId > m_lastDecodedAudioPacketId)
+							m_lastDecodedAudioPacketId = oldestPacketId;
+					}
 
-				m_audioEncodedPackets[event.renderedFrameData.frameId] = std::static_pointer_cast<const FrameEvent> (eventRef);
+					m_audioEncodedPackets[event.renderedFrameData.frameId] = std::static_pointer_cast<const FrameEvent> (eventRef);
 
-				m_audioEncodedPacketsCv.notify_all();
-			}
-			catch (...) {
-			}
+					m_audioEncodedPacketsCv.notify_all();
+				}
+				catch (...) {
+				}
+			}//if (m_audioDecoder)
 		}
 			break;
 		case COMPRESSED_EVENTS:
@@ -513,22 +532,25 @@ namespace HQRemote {
 				auto encodedPacketIte = m_audioEncodedPackets.begin();
 				auto encodedPacketId = encodedPacketIte->first;
 				auto encodedPacketEventRef = encodedPacketIte->second; 
+				auto l_lastDecodedAudioPacketId = m_lastDecodedAudioPacketId;
 
 				//either this is a subsequent packet to the previous decoded packet or there are too many packets arrived since we started waiting for the subsequent packet
-				if (encodedPacketId == m_lastDecodedAudioPacketId + 1 || m_lastDecodedAudioPacketId == 0 || encodedPacketId <= m_lastDecodedAudioPacketId
-					|| (lastNumRecvPackets != 0 && m_totalRecvAudioPackets - lastNumRecvPackets > MAX_ADDITIONAL_PACKETS_BEFORE_PROCEED * audioDecoder->remoteFramesBundleSize))
+				if (encodedPacketId == l_lastDecodedAudioPacketId + 1 || l_lastDecodedAudioPacketId == 0 || encodedPacketId <= l_lastDecodedAudioPacketId
+					|| (lastNumRecvPackets != 0 && m_totalRecvAudioPackets - lastNumRecvPackets > MAX_ADDITIONAL_PACKETS_BEFORE_PROCEED))
 				{
 					m_audioEncodedPackets.erase(encodedPacketIte);
+					if (encodedPacketId > m_lastDecodedAudioPacketId)
+						m_lastDecodedAudioPacketId = encodedPacketId;
 					lk.unlock();
 
-					if (audioDecoder != nullptr && encodedPacketId > m_lastDecodedAudioPacketId) {
+					if (audioDecoder != nullptr && encodedPacketId > l_lastDecodedAudioPacketId) {
 						auto out_max_samples = max_buffer_samples / audioDecoder->getNumChannels();
 
-						if (m_lastDecodedAudioPacketId != 0)
+						if (l_lastDecodedAudioPacketId != 0)
 						{
 							//decode lost packets
 							int lost_samples;
-							for (auto i = m_lastDecodedAudioPacketId + 1; i < encodedPacketId; ++i)
+							for (auto i = l_lastDecodedAudioPacketId + 1; i < encodedPacketId; ++i)
 							{
 								opus_decoder_ctl(*audioDecoder, OPUS_GET_LAST_PACKET_DURATION(&lost_samples));
 								auto samples = opus_decode(
@@ -555,8 +577,6 @@ namespace HQRemote {
 						{
 							pushDecodedAudioPacket(encodedPacketId, buffer, samples * audioDecoder->getNumChannels() * sizeof(opus_int16), (float)samples / audioDecoder->getSampleRate());
 						}
-
-						m_lastDecodedAudioPacketId = encodedPacketId;
 					}//if (m_audioDecoder != nullptr)
 
 					lastNumRecvPackets = 0;
@@ -579,7 +599,9 @@ namespace HQRemote {
 		SetCurrentThreadName("Client::dataPollingProc");
 
 		while (m_running) {
+			m_dataPollingLock.lock();
 			auto data = m_connHandler->receiveDataBlock();
+			m_dataPollingLock.unlock();
 			if (data)
 				handleEventInternal(data, NO_EVENT);
 		}//while (m_running)
