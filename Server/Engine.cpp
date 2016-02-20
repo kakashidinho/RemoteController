@@ -855,6 +855,12 @@ namespace HQRemote {
 								currentBatchSamplesPerChannel = 0;
 
 							batchBufferOffset += encoded_samples_per_channel * audioEncoder->getNumChannels();
+
+#if 0
+							char buf[1024];
+							sprintf(buf, "sent packet id=%llu\n", packetId);
+							OutputDebugStringA(buf);
+#endif
 						}//if (packet_len > 0)
 					}//while (currentBatchSamplesPerChannel >= batchIdealSamplesPerChannel)
 
