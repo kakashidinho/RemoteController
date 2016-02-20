@@ -421,13 +421,13 @@ namespace HQRemote {
 	}
 
 	void Engine::sendHostInfo() {
+		sendAudioInfo();
+
 		auto event = std::make_shared<PlainEvent>(HOST_INFO);
 		event->event.hostInfo.width = m_frameCapturer->getFrameWidth();
 		event->event.hostInfo.height = m_frameCapturer->getFrameHeight();
 
 		m_connHandler->sendData(*event);
-
-		sendAudioInfo();
 	}
 
 	void Engine::sendAudioInfo() {
