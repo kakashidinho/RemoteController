@@ -8,7 +8,7 @@
 
 #import <UIKit/UIKit.h>
 
-#include "../ConnectionHandler.h"
+#include "../Client/Client.h"
 
 @interface RemoteViewController : UIViewController
 
@@ -19,6 +19,6 @@
 @property (strong, nonatomic) IBOutlet UIImageView *remoteFrameView;
 
 @property (nonatomic) CGSize remoteFrameSize;
-@property (nonatomic, assign) std::shared_ptr<HQRemote::IConnectionHandler> connHandler;
+@property (nonatomic, assign) std::shared_ptr<HQRemote::Client> connHandler;
 
 @end

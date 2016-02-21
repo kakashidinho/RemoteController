@@ -24,10 +24,6 @@
 @property (atomic) uint64_t lastReceivedFrame;
 @property (atomic) uint64_t lastRenderedFrame;
 
-
-@property (atomic) HQRemote::time_checkpoint_t lastReceivedFrameTime;
-@property (atomic) HQRemote::time_checkpoint_t lastRenderedFrameTime;
-
 @property (atomic) double remoteFrameInterval;
 
 @property (atomic, strong) NSTimer* connLoopTimer;
@@ -63,8 +59,6 @@
 	//
 	self.lastRenderedFrame = self.lastReceivedFrame = 0;
 	self.frameInProcessing = 0;
-	
-	self.lastRenderedFrameTime = self.lastReceivedFrameTime = 0;
 }
 
 - (void)didReceiveMemoryWarning {
@@ -157,11 +151,11 @@
 {
 }
 
-- (std::shared_ptr<HQRemote::IConnectionHandler>) connHandler {
+- (std::shared_ptr<HQRemote::Client>) connHandler {
 	return _connHandler;
 }
 
-- (void) setConnHandler: (std::shared_ptr<HQRemote::IConnectionHandler>) handler {
+- (void) setConnHandler: (std::shared_ptr<HQRemote::Client>) handler {
 	
 	if (_connLoopTimer != nil)
 	{
@@ -173,7 +167,7 @@
 	if (_connHandler)
 	{
 		auto stopFrameEvent = HQRemote::PlainEvent(HQRemote::STOP_SEND_FRAME);
-		_connHandler->sendData(stopFrameEvent);
+		_connHandler->sendEvent(stopFrameEvent);
 		_connHandler->stop();
 	}
 	_connHandler = handler;
@@ -187,7 +181,7 @@
 														 repeats:YES];
 		
 		auto sendFrameEvent = HQRemote::PlainEvent(HQRemote::START_SEND_FRAME);
-		_connHandler->sendData(sendFrameEvent);
+		_connHandler->sendEvent(sendFrameEvent);
 	}
 	
 }
@@ -199,23 +193,16 @@
 		[self exit];
 	}
 	else {
-		auto dataRef = _connHandler->receiveData();
-		if (dataRef) {
-			dispatch_async(self.backGroundDispatchQueue, ^{
-				auto l_dataRef = dataRef;
-				auto eventRef = HQRemote::deserializeEvent(std::move(l_dataRef));
-				[self handleRemoteEvent:eventRef];
-			});
-		}//if (dataRef)
+		auto eventRef = _connHandler->getEvent();
+		[self handleRemoteEvent:eventRef];
 	}
 }
 
-- (void) handleRemoteEvent: (HQRemote::EventRef) eventRef {
+- (void) handleRemoteEvent: (HQRemote::ConstEventRef) eventRef {
 	if (eventRef) {
 		switch (eventRef->event.type) {
 			case HQRemote::RENDERED_FRAME:
 			{
-				HQRemote::time_checkpoint_t time;
 				uint64_t frameId = eventRef->event.renderedFrameData.frameId;
 				
 				if (self.frameInProcessing > MAX_FRAMES_TO_PROCESS)
@@ -227,24 +214,6 @@
 				}
 				self.frameInProcessing ++;
 				
-				//synchronize the decompression of the frame
-				HQRemote::getTimeCheckPoint(time);
-				double dispatchDelay = 0;
-				double intendedDispatchElapsedTime = 0;
-				
-				if (_lastReceivedFrame != 0)
-				{
-					intendedDispatchElapsedTime = (frameId - _lastReceivedFrame) * _remoteFrameInterval;
-				}
-				
-				if (_lastReceivedFrameTime != 0)
-				{
-					auto elapsed = HQRemote::getElapsedTime(_lastReceivedFrameTime, time);
-					if (elapsed < intendedDispatchElapsedTime)
-						dispatchDelay = intendedDispatchElapsedTime - elapsed;
-				}//if (_lastRenderedFrameTime != 0)
-				
-				_lastReceivedFrameTime = time;
 				_lastReceivedFrame = frameId;
 				
 				auto decompressBlock = ^{
@@ -280,74 +249,19 @@
 #endif
 								return;
 							}
-							
-							//synchronize the display of the frame
-							HQRemote::time_checkpoint_t time;
-							HQRemote::getTimeCheckPoint(time);
-							
-							double delay = 0;
-							double intendedElapsedTime = 0;
-							
-							if (_lastRenderedFrame != 0)
-							{
-								intendedElapsedTime = (frameId - _lastRenderedFrame) * _remoteFrameInterval;
-							}
-							
-							if (_lastRenderedFrameTime != 0)
-							{
-								auto elapsed = HQRemote::getElapsedTime(_lastRenderedFrameTime, time);
-								if (elapsed < intendedElapsedTime)
-									delay = intendedElapsedTime - elapsed;
-							}//if (_lastRenderedFrameTime != 0)
-							
-							if (delay > 0)
-							{
-								dispatch_after(delay, dispatch_get_main_queue(), ^{
-									if (_lastRenderedFrame >= frameId)//skip
-									{
-#ifdef DEBUG
-										fprintf(stderr, "discarded a frame (async)\n");
-#endif
-										return;
-									}
-									
-									_remoteFrameView.image = image;
-									
-									_lastRenderedFrame = frameId;
-									HQRemote::getTimeCheckPoint(_lastRenderedFrameTime);
-								});
-							}
-							else
-							{
-								_remoteFrameView.image = image;
+							_remoteFrameView.image = image;
 								
-								_lastRenderedFrame = frameId;
-								_lastRenderedFrameTime = time;
-							}
+							_lastRenderedFrame = frameId;
 						});
 					}
 				};//decompressBlock
 				
-				if (dispatchDelay > 0)
-				{
-					dispatch_after(dispatchDelay, self.backGroundDispatchQueue, decompressBlock);
-				}
-				else {
-					dispatch_async(self.backGroundDispatchQueue, decompressBlock);
-				}
+				dispatch_async(self.backGroundDispatchQueue, decompressBlock);
 			}
 				break;//case HQRemote::RENDERED_FRAME
-			case HQRemote::COMPRESSED_EVENTS:
-			{
-				auto compressedEventRef = std::static_pointer_cast<HQRemote::CompressedEvents>(eventRef);
-				
-				for (auto & event: *compressedEventRef) {
-					[self handleRemoteEvent:event];
-				}
-			}
-				break;
 			case HQRemote::FRAME_INTERVAL:
 				_remoteFrameInterval = eventRef->event.frameInterval;
+				_connHandler->setFrameInterval(_remoteFrameInterval);
 				break;
 			default:
 				break;
@@ -357,7 +271,7 @@
 
 - (void) sendRemoteEvent: (HQRemote::EventRef) eventRef {
 	if (_connHandler) {
-		_connHandler->sendData(*eventRef);
+		_connHandler->sendEvent(*eventRef);
 	}
 }
 

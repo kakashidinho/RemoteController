@@ -11,6 +11,7 @@
 
 #include "../Event.h"
 #include "../ConnectionHandler.h"
+#include "../Client/Client.h"
 
 #include <assert.h>
 
@@ -29,7 +30,7 @@ typedef enum State {
 @interface ViewController ()
 
 @property (atomic) State state;
-@property std::shared_ptr<HQRemote::IConnectionHandler> connHandler;
+@property std::shared_ptr<HQRemote::Client> clientEngine;
 @property (atomic, strong) NSTimer* connLoopTimer;
 
 @end
@@ -81,14 +82,15 @@ typedef enum State {
 	}
 	
 	//open connection
-	std::string stdip = [ip UTF8String];
+	auto stdip = [ip UTF8String];
 	
-	self.connHandler = std::make_shared<HQRemote::SocketClientHandler>(LISTENING_PORT, //tcp port
+	auto connHandler = std::make_shared<HQRemote::SocketClientHandler>(LISTENING_PORT, //tcp port
 																	   LISTENING_PORT+1, //udp port
 																	   HQRemote::ConnectionEndpoint(stdip, port), //remote tcp endpoint
 																	   HQRemote::ConnectionEndpoint(stdip, port + 1)); //remote udp endpoint
 	
-	self.connHandler->start();
+	self.clientEngine = std::make_shared<HQRemote::Client>(connHandler, 1.0 / 30);
+	self.clientEngine->start();
 	
 	self.connLoopTimer = [NSTimer scheduledTimerWithTimeInterval:0
 													  target:self
@@ -134,9 +136,9 @@ typedef enum State {
 
 //run loop
 - (void) connLoop {
-	if (_state != DISCONNECTED_STATE && _connHandler->connected() == false)//disconnected
+	if (_state != DISCONNECTED_STATE && _clientEngine->connected() == false)//disconnected
 	{
-		_connHandler->stop();
+		_clientEngine->stop();
 		[_connLoopTimer invalidate];
 		
 		[self displayError:@"There was a connection error"];
@@ -146,16 +148,16 @@ typedef enum State {
 	
 	switch (self.state) {
 		case DISCONNECTED_STATE:
-			if (_connHandler->connected()) {
+			if (_clientEngine->connected()) {
 				self.state = INITIALIZING_STATE;
 				
 				//send host info request
 				HQRemote::PlainEvent plain(HQRemote::HOST_INFO);
-				_connHandler->sendData(plain);
+				_clientEngine->sendEvent(plain);
 			}
-			else if (_connHandler->timeSinceStart() >= CONNECTION_TIME_OUT) {
+			else if (_clientEngine->timeSinceStart() >= CONNECTION_TIME_OUT) {
 				//stop connection
-				_connHandler->stop();
+				_clientEngine->stop();
 				[_connLoopTimer invalidate];
 				
 				[self displayError:@"Network unreachable"];
@@ -163,32 +165,28 @@ typedef enum State {
 			break;
 		case INITIALIZING_STATE:
 		{
-			auto data = _connHandler->receiveData();
-			if (data != nullptr)
-			{
-				auto eventRef = HQRemote::deserializeEvent(std::move(data));
-				if (eventRef != nullptr && eventRef->event.type == HQRemote::HOST_INFO) {
-					[_connLoopTimer invalidate];//stop handling the connection
+			auto eventRef = _clientEngine->getEvent();
+			if (eventRef != nullptr && eventRef->event.type == HQRemote::HOST_INFO) {
+				[_connLoopTimer invalidate];//stop handling the connection
+				
+				//create remote view
+				RemoteViewController* nextView = [self.storyboard instantiateViewControllerWithIdentifier:@"remoteScreen"];
+				
+				ViewController* __weak weakSelf = self;
+				
+				dispatch_async(dispatch_get_main_queue(), ^{
+					CGSize remoteFrameSize;
+					remoteFrameSize.width = eventRef->event.hostInfo.width;
+					remoteFrameSize.height = eventRef->event.hostInfo.height;
 					
-					//create remote view
-					RemoteViewController* nextView = [self.storyboard instantiateViewControllerWithIdentifier:@"remoteScreen"];
+					nextView.remoteFrameSize = remoteFrameSize;
 					
-					ViewController* __weak weakSelf = self;
+					nextView.connHandler = _clientEngine;
 					
-					dispatch_async(dispatch_get_main_queue(), ^{
-						CGSize remoteFrameSize;
-						remoteFrameSize.width = eventRef->event.hostInfo.width;
-						remoteFrameSize.height = eventRef->event.hostInfo.height;
-						
-						nextView.remoteFrameSize = remoteFrameSize;
-						
-						nextView.connHandler = _connHandler;
-						
-						[weakSelf presentViewController:nextView animated:YES completion:nil];
-						
-						[weakSelf setInProgress:NO];
-					});
-				}
+					[weakSelf presentViewController:nextView animated:YES completion:nil];
+					
+					[weakSelf setInProgress:NO];
+				});
 			}
 		}
 			break;
