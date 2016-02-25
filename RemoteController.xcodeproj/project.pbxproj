@@ -7,6 +7,17 @@
 	objects = {
 
 /* Begin PBXAggregateTarget section */
+		0A36DF101C7EABFF00EAABA3 /* opus_genconfig */ = {
+			isa = PBXAggregateTarget;
+			buildConfigurationList = 0A36DF131C7EABFF00EAABA3 /* Build configuration list for PBXAggregateTarget "opus_genconfig" */;
+			buildPhases = (
+				0A36DF181C7EAC1400EAABA3 /* ShellScript */,
+			);
+			dependencies = (
+			);
+			name = opus_genconfig;
+			productName = opus_genconfig;
+		};
 		0A4A868C1C7A32F000556B01 /* opus_ios */ = {
 			isa = PBXAggregateTarget;
 			buildConfigurationList = 0A4A868D1C7A32F000556B01 /* Build configuration list for PBXAggregateTarget "opus_ios" */;
@@ -14,6 +25,7 @@
 				0A4A86901C7A32F700556B01 /* ShellScript */,
 			);
 			dependencies = (
+				0A36DF151C7EAC0B00EAABA3 /* PBXTargetDependency */,
 			);
 			name = opus_ios;
 			productName = opus_ios;
@@ -25,6 +37,7 @@
 				0A4A86991C7A3FA100556B01 /* ShellScript */,
 			);
 			dependencies = (
+				0A36DF171C7EAC1000EAABA3 /* PBXTargetDependency */,
 			);
 			name = opus_mac;
 			productName = opus_mac;
@@ -100,6 +113,20 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		0A36DF141C7EAC0B00EAABA3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0A5716881C43520900AE78E7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0A36DF101C7EABFF00EAABA3;
+			remoteInfo = opus_genconfig;
+		};
+		0A36DF161C7EAC1000EAABA3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0A5716881C43520900AE78E7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0A36DF101C7EABFF00EAABA3;
+			remoteInfo = opus_genconfig;
+		};
 		0A5298931C522CF60008A9FA /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 0A5716881C43520900AE78E7 /* Project object */;
@@ -431,6 +458,9 @@
 				LastUpgradeCheck = 0720;
 				ORGANIZATIONNAME = "Le Hoang Quyen";
 				TargetAttributes = {
+					0A36DF101C7EABFF00EAABA3 = {
+						CreatedOnToolsVersion = 7.2.1;
+					};
 					0A4A868C1C7A32F000556B01 = {
 						CreatedOnToolsVersion = 7.2.1;
 					};
@@ -463,6 +493,7 @@
 				0A5298561C522A9F0008A9FA /* RemoteControllerIOS */,
 				0A4A868C1C7A32F000556B01 /* opus_ios */,
 				0A4A86951C7A3ED700556B01 /* opus_mac */,
+				0A36DF101C7EABFF00EAABA3 /* opus_genconfig */,
 			);
 		};
 /* End PBXProject section */
@@ -482,6 +513,21 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		0A36DF181C7EAC1400EAABA3 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PROJECT_DIR}/third-party/opus/autogen.sh",
+			);
+			outputPaths = (
+				"${PROJECT_DIR}/third-party/opus/configure",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "cd ${PROJECT_DIR}/third-party/opus\nPATH=${PATH}:/opt/local/bin\n./autogen.sh";
+		};
 		0A4A86901C7A32F700556B01 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -566,6 +612,16 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		0A36DF151C7EAC0B00EAABA3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0A36DF101C7EABFF00EAABA3 /* opus_genconfig */;
+			targetProxy = 0A36DF141C7EAC0B00EAABA3 /* PBXContainerItemProxy */;
+		};
+		0A36DF171C7EAC1000EAABA3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0A36DF101C7EABFF00EAABA3 /* opus_genconfig */;
+			targetProxy = 0A36DF161C7EAC1000EAABA3 /* PBXContainerItemProxy */;
+		};
 		0A5298941C522CF60008A9FA /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 0A5298561C522A9F0008A9FA /* RemoteControllerIOS */;
@@ -593,6 +649,20 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		0A36DF111C7EABFF00EAABA3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		0A36DF121C7EABFF00EAABA3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		0A4A868E1C7A32F000556B01 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -786,6 +856,14 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		0A36DF131C7EABFF00EAABA3 /* Build configuration list for PBXAggregateTarget "opus_genconfig" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0A36DF111C7EABFF00EAABA3 /* Debug */,
+				0A36DF121C7EABFF00EAABA3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+		};
 		0A4A868D1C7A32F000556B01 /* Build configuration list for PBXAggregateTarget "opus_ios" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -793,6 +871,7 @@
 				0A4A868F1C7A32F000556B01 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		0A4A86961C7A3ED800556B01 /* Build configuration list for PBXAggregateTarget "opus_mac" */ = {
 			isa = XCConfigurationList;
@@ -801,6 +880,7 @@
 				0A4A86981C7A3ED800556B01 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		0A52986E1C522A9F0008A9FA /* Build configuration list for PBXNativeTarget "RemoteControllerIOS" */ = {
 			isa = XCConfigurationList;
