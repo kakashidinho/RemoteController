@@ -150,6 +150,9 @@
 		0A29739D1C5205EA00A2F8F0 /* ConnectionHandlerApple.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ConnectionHandlerApple.cpp; path = apple/ConnectionHandlerApple.cpp; sourceTree = "<group>"; };
 		0A2973A01C52061300A2F8F0 /* ConnectionHandlerWin32.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = ConnectionHandlerWin32.cpp; path = win32/ConnectionHandlerWin32.cpp; sourceTree = "<group>"; };
 		0A2973A11C52061300A2F8F0 /* TimerWin32.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = TimerWin32.cpp; path = win32/TimerWin32.cpp; sourceTree = "<group>"; };
+		0A36AC5D1C7FFD4F00922BF2 /* ConnectionHandlerLinux.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ConnectionHandlerLinux.cpp; sourceTree = "<group>"; };
+		0A36AC5E1C7FFD7400922BF2 /* TimerLinux.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = TimerLinux.cpp; sourceTree = "<group>"; };
+		0A36AC601C80064C00922BF2 /* EngineAndroid.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = EngineAndroid.cpp; path = Server/android/EngineAndroid.cpp; sourceTree = "<group>"; };
 		0A44AC321C58BCC0007809DA /* ZlibUtils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ZlibUtils.cpp; sourceTree = "<group>"; };
 		0A44AC331C58BCC0007809DA /* ZlibUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ZlibUtils.h; sourceTree = "<group>"; };
 		0A4A843B1C7A1C2D00556B01 /* Client.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Client.cpp; path = Client/Client.cpp; sourceTree = "<group>"; };
@@ -229,6 +232,7 @@
 				0A29738F1C51FFB900A2F8F0 /* Event.cpp */,
 				0A2973901C51FFB900A2F8F0 /* Event.h */,
 				0A2973911C51FFB900A2F8F0 /* Timer.h */,
+				0A36AC5C1C7FFD2900922BF2 /* linux */,
 				0A29739F1C5205FA00A2F8F0 /* win32 */,
 				0A29739A1C51FFCD00A2F8F0 /* apple */,
 			);
@@ -251,6 +255,23 @@
 				0A2973A11C52061300A2F8F0 /* TimerWin32.cpp */,
 			);
 			name = win32;
+			sourceTree = "<group>";
+		};
+		0A36AC5C1C7FFD2900922BF2 /* linux */ = {
+			isa = PBXGroup;
+			children = (
+				0A36AC5D1C7FFD4F00922BF2 /* ConnectionHandlerLinux.cpp */,
+				0A36AC5E1C7FFD7400922BF2 /* TimerLinux.cpp */,
+			);
+			path = linux;
+			sourceTree = SOURCE_ROOT;
+		};
+		0A36AC5F1C80062800922BF2 /* android */ = {
+			isa = PBXGroup;
+			children = (
+				0A36AC601C80064C00922BF2 /* EngineAndroid.cpp */,
+			);
+			name = android;
 			sourceTree = "<group>";
 		};
 		0A4A843A1C7A1BF700556B01 /* Client */ = {
@@ -299,6 +320,7 @@
 				0AE5B0E11C44D95500155DB8 /* FrameCapturerGL.cpp */,
 				0AE5B0E21C44D95500155DB8 /* FrameCapturerGL.h */,
 				0AE5B0E31C44D95500155DB8 /* ImgCompressor.h */,
+				0A36AC5F1C80062800922BF2 /* android */,
 				0AE5B0E41C44D95500155DB8 /* win32 */,
 				0AE5B0DB1C44D95500155DB8 /* apple */,
 			);
@@ -863,6 +885,7 @@
 				0A36DF121C7EABFF00EAABA3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		0A4A868D1C7A32F000556B01 /* Build configuration list for PBXAggregateTarget "opus_ios" */ = {
 			isa = XCConfigurationList;

@@ -5,6 +5,7 @@
 
 #include <assert.h>
 #include <string>
+#include <limits>
 
 #ifdef max
 #	undef max

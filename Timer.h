@@ -22,6 +22,10 @@
 
 #	include <mach/mach_time.h>
 #	include <time.h>
+
+#elif defined __ANDROID__ /*----- android -----*/
+#	include <time.h>
+
 #else
 
 #	error need implementation
@@ -49,6 +53,16 @@ namespace HQRemote {
 		bool operator() (const time_checkpoint_t& t1, const time_checkpoint_t& t2) const {
 			return t1 < t2;
 }
+	};
+	
+#elif defined __ANDROID__ /*----- android -----*/
+	typedef struct timespec time_checkpoint_t;
+	
+	class HQREMOTE_API TimeCompare {
+	public:
+		bool operator() (const time_checkpoint_t& t1, const time_checkpoint_t& t2) const {
+			return t1.tv_sec < t2.tv_sec || (t1.tv_sec == t2.tv_sec && t1.tv_nsec < t2. tv_nsec);
+		}
 	};
 #else
 	
