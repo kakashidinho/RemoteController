@@ -10,7 +10,7 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := RemoteController
 
 LOCAL_CPPFLAGS := -std=c++11
-LOCAL_C_INCLUDES := $(LOCAL_PATH)/third-party/opus/include $(LOCAL_PATH)/jpeg-9a
+LOCAL_C_INCLUDES := $(LOCAL_PATH)/third-party/opus/include $(LOCAL_PATH)/third-party/jpeg-9a
 
 JPEG_SRC_FILES := 	third-party/jpeg-9a/jcapimin.c \
     				third-party/jpeg-9a/jcapistd.c \
