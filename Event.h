@@ -81,10 +81,11 @@ namespace HQRemote {
 			
 			double frameInterval;
 
-			unsigned char customData[8 + 8 + 4];
+			unsigned char customData[8 + 8 + 8];
 		};
 
 		EventType type;
+		int32_t reserved;
 	};
 
 	struct HQREMOTE_API PlainEvent {
