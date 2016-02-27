@@ -74,6 +74,12 @@ namespace HQRemote {
 #ifdef __ANDROID__
 
 		__android_log_vprint(ANDROID_LOG_ERROR, "HQRemote", format, arg);
+#elif defined WIN32
+
+		char buffer[1024];
+		vsnprintf(buffer, sizeof(buffer) - 1, format, arg);
+
+		OutputDebugStringA(buffer);
 #else
 		vfprintf(stderr, format, arg);
 #endif
