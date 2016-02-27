@@ -51,6 +51,9 @@ namespace HQRemote {
 #endif
 	
 	void SetCurrentThreadName(const char* threadName);
+
+	void Log(const char* format, ...); 
+	void LogErr(const char* format, ...);
 }
 
 #endif

@@ -724,10 +724,14 @@ namespace HQRemote {
 				re = ::bind(m_connLessSocket, (sockaddr*)&sa, sizeof(sa));
 				if (re == SOCKET_ERROR) {
 					//failed
+					LogErr("Failed to bind connectionless socket, error = %d\n", platformGetLastSocketErr());
+
 					closesocket(m_connLessSocket);
 					m_connLessSocket = INVALID_SOCKET;
 				}
 			}//if (m_connLessSocket != INVALID_SOCKET)
+			else
+				LogErr("Failed to create connectionless socket, error = %d\n", platformGetLastSocketErr());
 		}//if (m_connLessSocket == INVALID_SOCKET && m_connLessPort != 0)
 
 		return m_connLessSocket != INVALID_SOCKET;
@@ -782,6 +786,8 @@ namespace HQRemote {
 				re = ::bind(m_serverSocket, (sockaddr*)&sa, sizeof(sa));
 				if (re == SOCKET_ERROR) {
 					//failed
+					LogErr("Failed to bind server socket, error = %d\n", platformGetLastSocketErr());
+
 					closesocket(m_serverSocket);
 					m_serverSocket = INVALID_SOCKET;
 				}
@@ -795,6 +801,8 @@ namespace HQRemote {
 					}
 				}
 			}//if (m_serverSocket != INVALID_SOCKET)
+			else
+				LogErr("Failed to create server socket, error = %d\n", platformGetLastSocketErr());
 
 		}//if (m_serverSocket == INVALID_SOCKET)
 
@@ -945,6 +953,7 @@ namespace HQRemote {
 				re = ::connect(l_connSocket, (sockaddr*)&sa, sizeof(sa));
 				if (re == SOCKET_ERROR) {
 					//failed
+					LogErr("Failed to connect socket, error = %d\n", platformGetLastSocketErr());
 					
 					lk.lock();
 					if (m_connSocket != INVALID_SOCKET)

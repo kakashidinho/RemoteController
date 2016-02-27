@@ -81,7 +81,7 @@ LOCAL_ARM_MODE := arm
 
 LOCAL_CPP_FEATURES := exceptions
 
-LOCAL_LDLIBS := -lz
+LOCAL_LDLIBS := -lz -llog
 
 LOCAL_STATIC_LIBRARIES := opus_static
 

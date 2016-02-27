@@ -98,8 +98,6 @@ namespace HQRemote {
 
 		void platformConstruct();
 		void platformDestruct();
-
-		int platformGetLastSocketErr() const;
 		
 		virtual bool startImpl() override;
 		virtual void stopImpl() override;
@@ -129,7 +127,8 @@ namespace HQRemote {
 		virtual void addtionalRcvThreadCleanupImpl() = 0;
 		virtual void addtionalSocketCleanupImpl() = 0;
 		
-		
+		int platformGetLastSocketErr() const;
+
 		_ssize_t sendDataNoLock(socket_t socket, const sockaddr_in* pDstAddr, const void* data, size_t size);
 		
 		_ssize_t sendChunkUnreliableNoLock(socket_t socket, const sockaddr_in* pDstAddr, const MsgChunk& chunk);//connectionless only socket

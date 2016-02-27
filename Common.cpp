@@ -1,5 +1,8 @@
 #include "Common.h"
 
+#include <stdarg.h>
+#include <stdio.h>
+
 #ifdef WIN32
 #	include <windows.h>
 
@@ -18,6 +21,11 @@ typedef struct tagTHREADNAME_INFO
 
 #else//#ifdef WIN32
 #include <pthread.h>
+
+#	ifdef __ANDROID__
+#		include <android/log.h>
+#	endif
+
 #endif//#ifdef WIN32
 
 namespace HQRemote {
@@ -43,5 +51,33 @@ namespace HQRemote {
 #elif defined __APPLE__
 		pthread_setname_np(threadName);
 #endif//#ifdef WIN32
+	}
+
+	void Log(const char* format, ...)
+	{
+		va_list arg;
+		va_start(arg, format);
+#ifdef __ANDROID__
+		
+		__android_log_vprint(ANDROID_LOG_DEBUG, "HQRemote", format, arg);
+#else
+		vfprintf(stdout, format, arg);
+#endif
+
+		va_end(arg);
+	}
+
+	void LogErr(const char* format, ...)
+	{
+		va_list arg;
+		va_start(arg, format);
+#ifdef __ANDROID__
+
+		__android_log_vprint(ANDROID_LOG_ERROR, "HQRemote", format, arg);
+#else
+		vfprintf(stderr, format, arg);
+#endif
+
+		va_end(arg);
 	}
 }
