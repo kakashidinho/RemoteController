@@ -50,10 +50,10 @@ namespace HQRemote {
 	typedef ssize_t _ssize_t;
 #endif
 	
-	void SetCurrentThreadName(const char* threadName);
+	HQREMOTE_API void HQ_APICALL SetCurrentThreadName(const char* threadName);
 
-	void Log(const char* format, ...); 
-	void LogErr(const char* format, ...);
+	HQREMOTE_API void HQ_APICALL Log(const char* format, ...);
+	HQREMOTE_API void HQ_APICALL LogErr(const char* format, ...);
 }
 
 #endif

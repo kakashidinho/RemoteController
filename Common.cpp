@@ -30,7 +30,7 @@ typedef struct tagTHREADNAME_INFO
 
 namespace HQRemote {
 	/*-------helper ---------------*/
-	void SetCurrentThreadName(const char* threadName)
+	void HQ_APICALL SetCurrentThreadName(const char* threadName)
 	{
 #ifdef WIN32
 		DWORD dwThreadID = ::GetCurrentThreadId();
@@ -53,13 +53,19 @@ namespace HQRemote {
 #endif//#ifdef WIN32
 	}
 
-	void Log(const char* format, ...)
+	void HQ_APICALL Log(const char* format, ...)
 	{
 		va_list arg;
 		va_start(arg, format);
 #ifdef __ANDROID__
 		
 		__android_log_vprint(ANDROID_LOG_DEBUG, "HQRemote", format, arg);
+#elif defined WIN32
+
+		char buffer[1024];
+		vsnprintf(buffer, sizeof(buffer) - 1, format, arg);
+
+		OutputDebugStringA(buffer);
 #else
 		vfprintf(stdout, format, arg);
 #endif
@@ -67,7 +73,7 @@ namespace HQRemote {
 		va_end(arg);
 	}
 
-	void LogErr(const char* format, ...)
+	void HQ_APICALL LogErr(const char* format, ...)
 	{
 		va_list arg;
 		va_start(arg, format);
