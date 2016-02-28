@@ -783,6 +783,9 @@ namespace HQRemote {
 			if (m_serverSocket != INVALID_SOCKET) {
 				sa.sin_port = htons(m_port);
 
+				int true_val = 1;
+				setsockopt(m_serverSocket, SOL_SOCKET, SO_REUSEADDR, (const char*)&true_val, sizeof true_val);
+
 				re = ::bind(m_serverSocket, (sockaddr*)&sa, sizeof(sa));
 				if (re == SOCKET_ERROR) {
 					//failed
