@@ -9,6 +9,7 @@
 #include <sys/time.h>
 #include <mutex>
 #include <sstream>
+#include <assert.h>
 
 #include "../Timer.h"
 
@@ -22,18 +23,18 @@ namespace HQRemote {
 		}
 	};
 	
-	static Time& getStartTime() {
+	static inline Time& getStartTime() {
 		static Time start;
 		return start;
 	}
 	
 	static inline uint64_t _convertToTimeCheckPoint64(const time_checkpoint_t& time){
-		return (uint64_t)time.tv_sec * 1e9 + time.tv_nsec;
+		return (uint64_t)time.tv_sec * 1000000000ull + time.tv_nsec;
 	}
 	
 	static inline void _convertToTimeCheckPoint(time_checkpoint_t& checkPoint, uint64_t time64) {
-		checkPoint.tv_sec = time64 / 1e9;
-		checkPoint.tv_nsec = time64 - checkPoint.tv_sec;
+		checkPoint.tv_sec = (time_t) (time64 / 1000000000ull);
+		checkPoint.tv_nsec = (long)(time64 % 1000000000ull);
 	}
 	
 	///get time check point
@@ -60,6 +61,12 @@ namespace HQRemote {
 		
 		_convertToTimeCheckPoint(t1, point1);
 		_convertToTimeCheckPoint(t2, point2);
+
+#ifdef DEBUG
+		auto point1_test = convertToTimeCheckPoint64(t1);
+		auto point2_test = convertToTimeCheckPoint64(t2);
+		assert(point1 == point1_test && point2 == point2_test);
+#endif
 		
 		return getElapsedTime(t1, t2);
 	}
@@ -67,7 +74,9 @@ namespace HQRemote {
 	uint64_t getTimeCheckPoint64() {
 		time_checkpoint_t time;
 		getTimeCheckPoint(time);
-		return _convertToTimeCheckPoint64(time);
+		auto re = _convertToTimeCheckPoint64(time);
+
+		return re;
 	}
 	
 	uint64_t convertToTimeCheckPoint64(const time_checkpoint_t& time){

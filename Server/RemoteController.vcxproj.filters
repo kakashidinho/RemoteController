@@ -40,6 +40,9 @@
     <Filter Include="Source Files\Client">
       <UniqueIdentifier>{917dc2ab-3cfd-4f63-a176-0e5229e4eae9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Common\linux">
+      <UniqueIdentifier>{bbce5501-cf0d-4db5-b01e-9f1eae9d9c34}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\third-party\jpeg-9a\jaricom.c">
@@ -230,6 +233,12 @@
     </ClCompile>
     <ClCompile Include="AudioCapturer.cpp">
       <Filter>Source Files\Server</Filter>
+    </ClCompile>
+    <ClCompile Include="..\linux\ConnectionHandlerLinux.cpp">
+      <Filter>Source Files\Common\linux</Filter>
+    </ClCompile>
+    <ClCompile Include="..\linux\TimerLinux.cpp">
+      <Filter>Source Files\Common\linux</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

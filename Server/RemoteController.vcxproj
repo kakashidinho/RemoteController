@@ -184,6 +184,18 @@ call ../touch.bat "$(OutDir)$(TargetName).lib"</Command>
     <ClCompile Include="..\Common.cpp" />
     <ClCompile Include="..\ConnectionHandler.cpp" />
     <ClCompile Include="..\Event.cpp" />
+    <ClCompile Include="..\linux\ConnectionHandlerLinux.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\linux\TimerLinux.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\third-party\jpeg-9a\jcapimin.c" />
     <ClCompile Include="..\third-party\jpeg-9a\jcapistd.c" />
     <ClCompile Include="..\third-party\jpeg-9a\jcarith.c" />
