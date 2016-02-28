@@ -115,7 +115,7 @@ namespace HQRemote {
 
 			if (m_avgTimeLock)
 				m_avgTimeLock->lock();
-			m_avgTime = 0.8f * m_avgTime + elapsed;
+			m_avgTime = 0.8f * m_avgTime + 0.2f * elapsed;
 
 			m_totalWindowTime = m_totalWindowTime + elapsed;
 
