@@ -785,6 +785,9 @@ namespace HQRemote {
 
 				int true_val = 1;
 				setsockopt(m_serverSocket, SOL_SOCKET, SO_REUSEADDR, (const char*)&true_val, sizeof true_val);
+#ifdef SO_REUSEPORT
+				setsockopt(m_serverSocket, SOL_SOCKET, SO_REUSEPORT, (const char*)&true_val, sizeof true_val);
+#endif
 
 				re = ::bind(m_serverSocket, (sockaddr*)&sa, sizeof(sa));
 				if (re == SOCKET_ERROR) {
