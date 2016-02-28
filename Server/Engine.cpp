@@ -11,7 +11,8 @@
 #define DEBUG_CAPTURED_FRAMES 0
 #define MAX_PENDING_FRAMES 60
 
-#define DEFAULT_NUM_COMPRESS_THREADS 4
+#define MAX_NUM_COMPRESS_THREADS 4
+#define DEFAULT_NUM_COMPRESS_THREADS 2
 
 #define DEFAULT_FRAME_SEND_INTERVAL (1 / 30.0)
 
@@ -77,7 +78,7 @@ namespace HQRemote {
 				   size_t frameBundleSize)
 		: m_connHandler(connHandler), m_frameCapturer(frameCapturer), m_audioCapturer(audioCapturer), m_imgCompressor(imgCompressor),
 			m_processedCapturedFrames(0), m_lastSentFrameId(0), m_sendFrame(false),
-			m_frameBundleSize(frameBundleSize), m_lastCapturedFrameTime64(0),
+			m_frameBundleSize(frameBundleSize), m_firstCapturedFrameTime64(0), m_numCapturedFrames(0),
 			m_frameCaptureInterval(0), m_intendedFrameInterval(DEFAULT_FRAME_SEND_INTERVAL),
 			m_videoRecording(false), m_saveNextFrame(false)
 	{
@@ -118,6 +119,9 @@ namespace HQRemote {
 		m_audioRawPackets.clear();
 		m_sentAudioPackets = 0;
 
+		m_firstCapturedFrameTime64 = 0;
+		m_numCapturedFrames = 0;
+
 		m_running = true;
 		m_sendFrame = false;
 
@@ -128,6 +132,8 @@ namespace HQRemote {
 
 		//start background threads compress captured frames
 		auto numCompressThreads = max(std::thread::hardware_concurrency(), DEFAULT_NUM_COMPRESS_THREADS);
+		numCompressThreads = min(MAX_NUM_COMPRESS_THREADS, numCompressThreads);
+
 		m_frameCompressionThreads.reserve(numCompressThreads);
 		for (unsigned int i = 0; i < numCompressThreads; ++i) {
 			auto thread = std::unique_ptr<std::thread>(new std::thread([this] {
@@ -237,16 +243,20 @@ namespace HQRemote {
 		if (frameRef != nullptr) {
 			uint64_t time64 = getTimeCheckPoint64();
 			
-			if (m_lastCapturedFrameTime64 != 0)
+			if (m_firstCapturedFrameTime64 != 0)
 			{
-				auto curFrameInterval = getElapsedTime64(m_lastCapturedFrameTime64, time64);
-				if (curFrameInterval < m_intendedFrameInterval)//skip
+				auto intendedElapsedTime = m_numCapturedFrames * m_intendedFrameInterval;
+				auto elapsed = getElapsedTime64(m_firstCapturedFrameTime64, time64);
+				if (elapsed < intendedElapsedTime)//skip
 					return;
 			
-				m_frameCaptureInterval = 0.8 * m_frameCaptureInterval + 0.2 * curFrameInterval;
+				m_frameCaptureInterval = elapsed / (m_numCapturedFrames + 1);
 			}
-			m_lastCapturedFrameTime64 = time64;
+			else
+				m_firstCapturedFrameTime64 = time64;
 			
+			m_numCapturedFrames++;
+
 			//send to frame compression threads
 			{
 				std::lock_guard<std::mutex> lg(m_frameCompressLock);

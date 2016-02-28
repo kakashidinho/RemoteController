@@ -112,7 +112,8 @@ namespace HQRemote {
 		size_t m_frameBundleSize;
 		uint64_t m_processedCapturedFrames;
 		uint64_t m_lastSentFrameId;
-		uint64_t m_lastCapturedFrameTime64;
+		uint64_t m_numCapturedFrames;
+		uint64_t m_firstCapturedFrameTime64;
 		double m_frameCaptureInterval;
 		double m_intendedFrameInterval;
 		std::atomic<bool> m_sendFrame;
