@@ -245,7 +245,7 @@ namespace HQRemote {
 			
 			if (m_firstCapturedFrameTime64 != 0)
 			{
-				auto intendedElapsedTime = m_numCapturedFrames * m_intendedFrameInterval;
+				auto intendedElapsedTime = (m_numCapturedFrames - 0.05) * m_intendedFrameInterval;
 				auto elapsed = getElapsedTime64(m_firstCapturedFrameTime64, time64);
 				if (elapsed < intendedElapsedTime)//skip
 					return;

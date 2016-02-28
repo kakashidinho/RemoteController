@@ -221,7 +221,7 @@ namespace HQRemote {
 			if (m_lastRcvFrameTime64 != 0)
 			{
 				elapsed = getElapsedTime64(m_lastRcvFrameTime64, curTime64);
-				intentedElapsed = (frameId - m_lastRcvFrameId) * m_frameInterval;
+				intentedElapsed = (frameId - m_lastRcvFrameId - 0.05) * m_frameInterval;
 			}
 
 			//found renderable frame
