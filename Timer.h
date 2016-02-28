@@ -13,6 +13,7 @@
 #include "CString.h"
 
 #include <string>
+#include <mutex>
 
 #if defined WIN32/*---windows---*/
 
@@ -90,6 +91,53 @@ namespace HQRemote {
 		getTimeCheckPoint(time);
 		return generateIDFromTime(time);
 	}
+
+	/*------------- ScopedTimeProfiler ----------------*/
+	class ScopedTimeProfiler {
+	public:
+		ScopedTimeProfiler(const std::string& logPrefix, std::mutex& avgTimeLock, float& avgTime, float& totalWindowTime)
+			: m_logPrefix(logPrefix), m_avgTimeLock(&avgTimeLock), m_avgTime(avgTime), m_totalWindowTime(totalWindowTime)
+		{
+			m_startTime = HQRemote::getTimeCheckPoint64();
+		}
+
+		ScopedTimeProfiler(const std::string& logPrefix, float& avgTime, float& totalWindowTime)
+			: m_logPrefix(logPrefix), m_avgTimeLock(nullptr), m_avgTime(avgTime), m_totalWindowTime(totalWindowTime)
+		{
+			m_startTime = HQRemote::getTimeCheckPoint64();
+		}
+
+
+		~ScopedTimeProfiler()
+		{
+			auto endTime = HQRemote::getTimeCheckPoint64();
+			auto elapsed = (float)HQRemote::getElapsedTime64(m_startTime, endTime);
+
+			if (m_avgTimeLock)
+				m_avgTimeLock->lock();
+			m_avgTime = 0.8f * m_avgTime + elapsed;
+
+			m_totalWindowTime = m_totalWindowTime + elapsed;
+
+			if (m_totalWindowTime >= 0.5)
+			{
+				m_totalWindowTime = 0;
+				HQRemote::Log("%s: avg time %.2f (ms)\n", m_logPrefix.c_str(), m_avgTime * 1000.f);
+			}
+
+			if (m_avgTimeLock)
+				m_avgTimeLock->unlock();
+		}
+
+	private:
+		std::string m_logPrefix;
+
+		std::mutex* m_avgTimeLock;
+		float& m_avgTime;
+		float& m_totalWindowTime;
+
+		uint64_t m_startTime;
+	};
 }
 
 #endif /* Timer_h */
