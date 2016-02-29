@@ -64,6 +64,13 @@ namespace HQRemote {
 		stop();
 	}
 
+	void Client::setFrameInterval(float t) {
+		m_frameInterval = t; 
+
+		//restart frame receiving counter
+		m_numRcvFrames = 0;
+	}
+
 	void Client::sendEvent(const ConstEventRef& event) {
 		m_connHandler->sendData(*event);
 	}

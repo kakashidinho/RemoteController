@@ -423,6 +423,9 @@ namespace HQRemote {
 		case FRAME_INTERVAL:
 			//change frame interval
 			m_intendedFrameInterval = event->event.frameInterval;
+			//restart frame capturing timer
+			m_firstCapturedFrameTime64 = 0;
+			m_numCapturedFrames = 0;
 		default:
 			//forward the event for users to process themselves
 			return event;

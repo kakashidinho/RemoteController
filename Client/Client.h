@@ -32,7 +32,7 @@ namespace HQRemote {
 		void sendEvent(const ConstEventRef& event);
 		void sendEventUnreliable(const ConstEventRef& event);
 
-		void setFrameInterval(float t) { m_frameInterval = t; }
+		void setFrameInterval(float t);
 
 		bool connected() const {
 			return m_connHandler->connected();
