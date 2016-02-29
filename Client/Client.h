@@ -87,6 +87,7 @@ namespace HQRemote {
 		float m_frameInterval;
 		uint64_t m_lastRcvFrameTime64;
 		uint64_t m_lastRcvFrameId;
+		uint64_t m_numRcvFrames;
 
 		std::mutex m_audioEncodedPacketsLock;
 		std::mutex m_audioDecodedPacketsLock;

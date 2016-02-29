@@ -51,7 +51,7 @@ namespace HQRemote {
 
 	/*---------- Client ------------*/
 	Client::Client(std::shared_ptr<IConnectionHandler> connHandler, float frameInterval)
-		: m_connHandler(connHandler), m_running(false), m_frameInterval(frameInterval), m_lastRcvFrameTime64(0), m_lastRcvFrameId(0),
+		: m_connHandler(connHandler), m_running(false), m_frameInterval(frameInterval), m_lastRcvFrameTime64(0), m_lastRcvFrameId(0), m_numRcvFrames(0),
 		m_lastDecodedAudioPacketId(0), m_totalRecvAudioPackets(0)
 	{
 		if (!m_connHandler)
@@ -91,6 +91,7 @@ namespace HQRemote {
 
 		m_lastRcvFrameTime64 = 0;
 		m_lastRcvFrameId = 0;
+		m_numRcvFrames = 0;
 
 		m_lastDecodedAudioPacketId = 0;
 		m_totalRecvAudioPackets = 0;
@@ -218,23 +219,25 @@ namespace HQRemote {
 			auto curTime64 = getTimeCheckPoint64();
 			double elapsed = 0;
 			double intentedElapsed = 0;
-			if (m_lastRcvFrameTime64 != 0)
+			if (m_numRcvFrames != 0)
 			{
 				elapsed = getElapsedTime64(m_lastRcvFrameTime64, curTime64);
-				intentedElapsed = (frameId - m_lastRcvFrameId - 0.05) * m_frameInterval;
+				intentedElapsed = (m_numRcvFrames - 0.05) * m_frameInterval;
 			}
 
 			//found renderable frame
-			if (elapsed >= intentedElapsed)
+			if (elapsed >= intentedElapsed || m_numRcvFrames == 0)
 			{
-				if (m_lastRcvFrameTime64 == 0)
+				if (m_numRcvFrames == 0)
 				{
-					//cache first frame's id and time
+					//cache first frame's time
 					m_lastRcvFrameTime64 = curTime64;
-					m_lastRcvFrameId = frameId;
 				}
 
 				m_frameQueue.erase(frameIte);
+
+				m_lastRcvFrameId = frameId;
+				m_numRcvFrames++;
 
 				event = frame;
 			}
