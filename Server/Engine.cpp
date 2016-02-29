@@ -119,6 +119,7 @@ namespace HQRemote {
 		m_audioRawPackets.clear();
 		m_sentAudioPackets = 0;
 
+		m_frameCaptureInterval = m_intendedFrameInterval;
 		m_firstCapturedFrameTime64 = 0;
 		m_numCapturedFrames = 0;
 
@@ -250,12 +251,16 @@ namespace HQRemote {
 				if (elapsed < intendedElapsedTime)//skip
 					return;
 			
-				m_frameCaptureInterval = elapsed / (m_numCapturedFrames + 1);
+				m_frameCaptureInterval = 0.8 * m_frameCaptureInterval + 0.2 * elapsed / (m_numCapturedFrames + 1);
 			}
 			else
 				m_firstCapturedFrameTime64 = time64;
 			
 			m_numCapturedFrames++;
+
+#if defined DEBUG || defined _DEBUG
+			HQRemote::Log("captured fps: %.2f\n", 1.f / m_frameCaptureInterval);
+#endif
 
 			//send to frame compression threads
 			{
@@ -422,7 +427,7 @@ namespace HQRemote {
 			break;
 		case FRAME_INTERVAL:
 			//change frame interval
-			m_intendedFrameInterval = event->event.frameInterval;
+			m_frameCaptureInterval = m_intendedFrameInterval = event->event.frameInterval;
 			//restart frame capturing timer
 			m_firstCapturedFrameTime64 = 0;
 			m_numCapturedFrames = 0;
