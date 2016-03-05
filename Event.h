@@ -30,12 +30,14 @@ namespace HQRemote {
 		SCREENSHOT_CAPTURE,
 
 		HOST_INFO,
-		RENDERED_FRAME,
+		RENDERED_FRAME,//this uses renderedFrameData field in Event struct
+		REQUEST_CLIENT_INFO,
+		CLIENT_INFO,//this uses renderedFrameData field in Event struct
 		
 		FRAME_INTERVAL,
 		
 		AUDIO_STREAM_INFO,
-		AUDIO_ENCODED_PACKET,
+		AUDIO_ENCODED_PACKET,//this uses renderedFrameData field in Event struct
 		AUDIO_DECODED_PACKET,
 
 		COMPRESSED_EVENTS,
@@ -114,7 +116,7 @@ namespace HQRemote {
 	
 	struct HQREMOTE_API DataEvent : public PlainEvent {
 		DataEvent(EventType type);
-		DataEvent(uint32_t storageSize, EventType type);
+		DataEvent(uint32_t addtionalStorageSize, EventType type);
 		
 		virtual DataRef serialize() const override;
 		virtual void deserialize(const DataRef& data) override;
@@ -123,7 +125,7 @@ namespace HQRemote {
 	protected:
 		virtual void deserializeFromStorage() = 0;
 		
-		mutable DataRef storage;
+		mutable DataRef storage;//this storage will hold both generic event data and additional data
 	};
 	
 	struct HQREMOTE_API CompressedEvents : public DataEvent {

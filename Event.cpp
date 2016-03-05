@@ -43,8 +43,8 @@ namespace HQRemote {
 		: PlainEvent(type)
 	{}
 
-	DataEvent::DataEvent(uint32_t storageSize, EventType type)
-		: PlainEvent(type), storage(std::make_shared<CData>(storageSize))
+	DataEvent::DataEvent(uint32_t addtionalStorageSize, EventType type)
+		: PlainEvent(type), storage(std::make_shared<CData>(sizeof(event) + addtionalStorageSize))
 	{}
 
 	DataRef DataEvent::serialize() const {
@@ -53,7 +53,7 @@ namespace HQRemote {
 			return PlainEvent::serialize();
 		}
 		
-		//deserial generic event data
+		//serialize generic event data
 		//TODO: assume all sides use the same byte order for now
 		memcpy(this->storage->data(), &this->event, sizeof(this->event));
 		
@@ -201,7 +201,7 @@ namespace HQRemote {
 	}
 
 	FrameEvent::FrameEvent(uint32_t frameSize, uint64_t frameId, EventType type)
-		: DataEvent(sizeof(event) + frameSize, type)
+		: DataEvent(frameSize, type)
 	{
 		//frame data will use "this->storage" as its backing store
 		event.renderedFrameData.frameId = frameId;
@@ -245,7 +245,7 @@ namespace HQRemote {
 			plainEvent.deserialize(dataRefCopy);
 
 			switch (plainEvent.event.type) {
-			case RENDERED_FRAME: case AUDIO_ENCODED_PACKET:
+			case RENDERED_FRAME: case AUDIO_ENCODED_PACKET: case CLIENT_INFO:
 			{
 				//this is non-plain event
 				auto frameEvent = std::make_shared<FrameEvent>(plainEvent.event.type);

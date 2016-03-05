@@ -42,6 +42,10 @@ namespace HQRemote {
 			   size_t frameBundleSize = 1);
 		~Engine();
 
+		bool connected() const {
+			return m_connHandler->connected();
+		}
+
 		//capture current frame and send to remote controller
 		void captureAndSendFrame();
 		ConstEventRef getEvent();
