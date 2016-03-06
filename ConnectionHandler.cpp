@@ -25,6 +25,7 @@
 
 #	define _INADDR_ANY INADDR_ANY
 #	define MSGSIZE_ERROR WSAEMSGSIZE 
+#	define CONN_INPROGRESS WSAEWOULDBLOCK
 
 typedef int socklen_t;
 
@@ -36,6 +37,7 @@ typedef int socklen_t;
 #	define closesocket close
 #	define _INADDR_ANY htonl(INADDR_ANY)
 #	define MSGSIZE_ERROR EMSGSIZE 
+#	define CONN_INPROGRESS EINPROGRESS
 
 #endif//#ifdef WIN32
 
@@ -936,7 +938,10 @@ namespace HQRemote {
 	}
 	
 	void SocketClientHandler::initConnectionImpl() {
-		_ssize_t re;
+		_ssize_t re, re2;
+		int err;
+		fd_set sset, eset;
+		timeval tv;
 		
 		sockaddr_in sa;
 		memset(&sa, 0, sizeof sa);
@@ -953,13 +958,56 @@ namespace HQRemote {
 				sa.sin_addr.s_addr = inet_addr(m_remoteEndpoint.address.c_str());
 				sa.sin_port = htons(m_remoteEndpoint.port);
 				
+				platformSetSocketBlockingMode(m_connSocket, false);//disable blocking mode
+
 				socket_t l_connSocket = m_connSocket;
 				lk.unlock();
 				
 				re = ::connect(l_connSocket, (sockaddr*)&sa, sizeof(sa));
+
+				if (re == SOCKET_ERROR) {
+					err = platformGetLastSocketErr();
+					while (re == SOCKET_ERROR && err == CONN_INPROGRESS && m_running)
+					{
+						FD_ZERO(&sset);
+						FD_ZERO(&eset);
+						FD_SET(l_connSocket, &sset);
+						FD_SET(l_connSocket, &eset);
+						tv.tv_sec = 1;             /* 1 second timeout */
+						tv.tv_usec = 0;
+
+						if ((re2 = select(l_connSocket + 1, NULL, &sset, &eset, &tv)) > 0)
+						{
+							socklen_t errlen = sizeof(err);
+
+							if (FD_ISSET(l_connSocket, &eset))//error
+							{
+								getsockopt(l_connSocket, SOL_SOCKET, SO_ERROR, (char*)(&err), &errlen);
+							}
+							else if (FD_ISSET(l_connSocket, &sset))//socket available for write
+							{
+								//verify that there is no error
+								getsockopt(l_connSocket, SOL_SOCKET, SO_ERROR, (char*)(&err), &errlen);
+								if (err == 0)
+									re = 0;//succeeded
+							}
+						}
+						else if (re2 == SOCKET_ERROR)
+							err = platformGetLastSocketErr();
+					}//while (re == SOCKET_ERROR && err == CONN_INPROGRESS && m_running)
+
+				}//if (re == SOCKET_ERROR)
+
+				if (re != SOCKET_ERROR)
+				{
+					//enable blocking mode
+					if ((re = platformSetSocketBlockingMode(l_connSocket, true)) == SOCKET_ERROR)
+						err = platformGetLastSocketErr();
+				}
+
 				if (re == SOCKET_ERROR) {
 					//failed
-					LogErr("Failed to connect socket, error = %d\n", platformGetLastSocketErr());
+					LogErr("Failed to connect socket, error = %d\n", err);
 					
 					lk.lock();
 					if (m_connSocket != INVALID_SOCKET)

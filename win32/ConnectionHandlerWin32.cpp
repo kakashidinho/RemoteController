@@ -19,6 +19,12 @@ namespace HQRemote {
 		delete m_impl;
 	}
 
+	int SocketConnectionHandler::platformSetSocketBlockingMode(socket_t socket, bool blocking)
+	{
+		u_long noBlock = blocking ? 0 : 1;
+		return ioctlsocket(socket, FIONBIO, &noBlock);
+	}
+
 	int SocketConnectionHandler::platformGetLastSocketErr() const {
 		return WSAGetLastError();
 	}

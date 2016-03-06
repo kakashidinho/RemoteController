@@ -127,6 +127,7 @@ namespace HQRemote {
 		virtual void addtionalRcvThreadCleanupImpl() = 0;
 		virtual void addtionalSocketCleanupImpl() = 0;
 		
+		int platformSetSocketBlockingMode(socket_t socket, bool blocking);
 		int platformGetLastSocketErr() const;
 
 		_ssize_t sendDataNoLock(socket_t socket, const sockaddr_in* pDstAddr, const void* data, size_t size);

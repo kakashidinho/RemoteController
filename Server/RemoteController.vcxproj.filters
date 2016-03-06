@@ -240,6 +240,9 @@
     <ClCompile Include="..\linux\TimerLinux.cpp">
       <Filter>Source Files\Common\linux</Filter>
     </ClCompile>
+    <ClCompile Include="..\apple\ConnectionHandlerApple.cpp">
+      <Filter>Source Files\Common\mac</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\third-party\jpeg-9a\win32\jconfig.h">
