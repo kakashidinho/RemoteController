@@ -6,6 +6,7 @@
 #include <sstream>
 #include <limits>
 
+#define SIMULATED_MAX_UDP_PACKET_SIZE 0
 #define MAX_FRAGMEMT_SIZE (16 * 1024)
 #define MAX_PENDING_UNRELIABLE_BUF 20
 #define UNRELIABLE_PING_TIMEOUT 3
@@ -42,6 +43,11 @@ typedef int socklen_t;
 #endif//#ifdef WIN32
 
 namespace HQRemote {
+	enum ReliableBufferState {
+		READ_NEXT_MESSAGE_SIZE,
+		READ_MESSAGE
+	};
+	
 	enum MsgChunkType :uint32_t {
 		MSG_HEADER,
 		FRAGMENT_HEADER,
@@ -52,9 +58,9 @@ namespace HQRemote {
 	union MsgChunkHeader 
 	{
 		struct {
-			MsgChunkType type;
-			uint32_t size;//chunk total size (including this header)
 			uint64_t id;
+			MsgChunkType type;
+			uint32_t reserved;
 
 			union {
 				struct {
@@ -74,7 +80,7 @@ namespace HQRemote {
 		uint64_t unusedName[3];//this to make sure size of this header is multiple of 64 bit
 	};
 
-	struct SocketConnectionHandler::MsgChunk {
+	struct IConnectionHandler::MsgChunk {
 		MsgChunk() {
 			assert(offsetHeaderToPayload() == 0);
 		}
@@ -83,18 +89,26 @@ namespace HQRemote {
 		unsigned char payload[MAX_FRAGMEMT_SIZE];
 
 	private:
-		uint32_t offsetHeaderToPayload() const {
+		size_t offsetHeaderToPayload() const {
 			return (unsigned char*)&payload - (unsigned char*)this - sizeof(header);
 		}
 	};
 
 	/*--------------- IConnectionHandler -----------*/
 	IConnectionHandler::IConnectionHandler()
-	: m_running(false)
+	: m_running(false), m_recvRate(0)
 	{
 	}
 	
 	IConnectionHandler::~IConnectionHandler() {
+	}
+	
+	void IConnectionHandler::setInternalError(const char* msg)
+	{
+		if (msg == NULL)
+			m_internalError = nullptr;
+		else
+			m_internalError = std::make_shared<CString>(msg);
 	}
 	
 	bool IConnectionHandler::start() {
@@ -105,6 +119,13 @@ namespace HQRemote {
 		
 		m_running = true;
 		
+		m_internalError = nullptr;
+		
+		invalidateUnusedReliableData();
+		
+		m_numLastestDataReceived = 0;
+		m_recvRate = 0;
+		
 		getTimeCheckPoint(m_startTime);
 
 		return true;
@@ -112,6 +133,14 @@ namespace HQRemote {
 	
 	void IConnectionHandler::stop() {
 		stopImpl();
+		
+		//wake any user thread blocked when trying to retrieve data
+		{
+			m_dataLock.lock();
+			m_dataCv.notify_all();
+			m_dataLock.unlock();
+		}
+		
 		m_running = false;
 	}
 	
@@ -140,10 +169,306 @@ namespace HQRemote {
 			return;
 		sendDataUnreliable(data->data(), data->size());
 	}
+	
+	inline void IConnectionHandler::sendRawDataAtomic(const void* data, size_t size)
+	{
+		_ssize_t re;
+		
+		size_t offset = 0;
+		do {
+			re = sendRawDataImpl((const char*)data + offset, size - offset);
+			offset += re;
+		} while (re > 0 && offset < size);
+	}
+	
+	void IConnectionHandler::sendData(const void* data, size_t size)
+	{
+		assert(size <= 0xffffffff);
+		
+		//send size of message first
+		uint32_t sizeToSend = (uint32_t)size;
+		sendRawDataAtomic(&sizeToSend, sizeof(sizeToSend));
+		
+		
+		//send message itself
+		sendRawDataAtomic(data, size);
+		
+		flushRawDataImpl();
+	}
+	
+	void IConnectionHandler::sendDataUnreliable(const void* data, size_t size)
+	{
+		_ssize_t re = 0;
+		assert(size <= 0xffffffff);
+		
+		//TODO: assume all sides use the same byte order for now
+		uint32_t headerSize = sizeof(MsgChunkHeader);
+		
+		MsgChunkHeader header;
+		header.type = MSG_HEADER;
+		header.id = generateIDFromTime();
+		header.wholeMsgInfo.msg_size = (uint32_t)size;//whole message size
+		
+		MsgChunk chunk;
+		chunk.header = header;
+		
+		//send header
+		re = sendRawDataUnreliableImpl(&chunk, headerSize);
+		if (re < headerSize)
+			return;//failed
+		
+		//send data's fragments
+		uint32_t maxFragmentSize = sizeof(chunk.payload);
+		//TODO: assume all sides use the same byte order for now
+		chunk.header.type = FRAGMENT_HEADER;
+		chunk.header.fragmentInfo.offset = 0;
+		
+		uint32_t chunkPayloadSize;
+		
+		do {
+			auto remainSize = (uint32_t)size - chunk.header.fragmentInfo.offset;
+			chunkPayloadSize = min(maxFragmentSize, remainSize);
+			auto sizeToSend = headerSize + chunkPayloadSize;
+			
+			//fill chunk's data
+			memcpy(chunk.payload, (const char*)data + chunk.header.fragmentInfo.offset, chunkPayloadSize);
+			
+			//send chunk
+			re = sendRawDataUnreliableImpl(&chunk, sizeToSend);
+			
+			if (re > 0) {
+				if (re < headerSize)
+					re = -1;//not even able to send the header data. Treat as error
+				else {
+					uint32_t sentPayloadSize = (uint32_t)re - headerSize;
+					if (sentPayloadSize < chunkPayloadSize)//partially sent, reduce max payload size for next fragment
+						maxFragmentSize = sentPayloadSize;
+					chunk.header.fragmentInfo.offset += sentPayloadSize;//next fragment
+				}
+			}//if (re > 0)
+			
+		} while (re > 0 && chunk.header.fragmentInfo.offset < size);
+	}
+	
+	inline void IConnectionHandler::fillReliableBuffer(const void* &data, size_t& size)
+	{
+		assert(m_reliableBuffer.data != nullptr && m_reliableBuffer.filledSize <= m_reliableBuffer.data->size());
+		
+		auto remainSizeToFill = m_reliableBuffer.data->size() - m_reliableBuffer.filledSize;
+		auto sizeToFill = min(remainSizeToFill, size);
+		memcpy(m_reliableBuffer.data->data() + m_reliableBuffer.filledSize, data, sizeToFill);
+		m_reliableBuffer.filledSize += sizeToFill;
+		
+		//the remaining data will be used later
+		size -= sizeToFill;
+		data = (const unsigned char*)data + sizeToFill;
+	}
+	
+	void IConnectionHandler::onReceiveReliableData(const void* data, size_t size)
+	{
+		while (size > 0)
+		{
+			switch (m_reliableBufferState)
+			{
+				case READ_NEXT_MESSAGE_SIZE:
+				{
+					//we are expecting message size
+					if (m_reliableBuffer.data == nullptr)
+					{
+						m_reliableBuffer.data = std::make_shared<CData>(sizeof(uint32_t));
+						m_reliableBuffer.filledSize = 0;
+					}
+					
+					fillReliableBuffer(data, size);
+					
+					if (m_reliableBuffer.data->size() == m_reliableBuffer.filledSize)//full
+					{
+						uint32_t messageSize;
+						memcpy(&messageSize, m_reliableBuffer.data->data(), sizeof(messageSize));
+						
+						//initialize placeholder for message data
+						m_reliableBuffer.data = nullptr;
+						
+						try {
+							m_reliableBuffer.data = std::make_shared<CData>(messageSize);
+							m_reliableBuffer.filledSize = 0;
+							
+							m_reliableBufferState = READ_MESSAGE;
+						} catch (...)
+						{
+							//memory failed
+						}
+					}//if (m_reliableBuffer.data->size() == m_reliableBuffer.filledSize)
+				}
+					break;
+				case READ_MESSAGE:
+				{
+					//we are expecting message data
+					fillReliableBuffer(data, size);
+					
+					if (m_reliableBuffer.data->size() == m_reliableBuffer.filledSize)//full
+					{
+						//copy message's data to queue for user to read
+						pushDataToQueue(m_reliableBuffer.data, false);
+						
+						m_reliableBufferState = READ_NEXT_MESSAGE_SIZE;//waiting for next message
+						m_reliableBuffer.data = nullptr;
+					}
+				}
+					break;
+			}
+		}//while (size > 0)
+	}
+	
+	void IConnectionHandler::invalidateUnusedReliableData()
+	{
+		m_reliableBufferState = READ_NEXT_MESSAGE_SIZE;
+		m_reliableBuffer.data = nullptr;
+		m_reliableBuffer.filledSize = 0;
+	}
+	
+	void IConnectionHandler::onReceivedUnreliableDataFragment(const void* data, size_t size)
+	{
+		if (size < sizeof(MsgChunkHeader))
+			return;
+		const MsgChunk& chunk  = *(const MsgChunk*)data;
+		
+		try {
+			switch (chunk.header.type) {
+				case MSG_HEADER:
+				{
+					auto data = std::make_shared<CData>(chunk.header.wholeMsgInfo.msg_size);
+					//initialize a placeholder for upcoming message
+					if (m_unreliableBuffers.size() == MAX_PENDING_UNRELIABLE_BUF)//discard oldest pending message
+					{
+						auto first = m_unreliableBuffers.begin();
+						m_unreliableBuffers.erase(first);
+						
+	#if defined DEBUG || defined _DEBUG
+						fprintf(stderr, "discarded a message\n");
+	#endif
+					}
+					
+					MsgBuf newBuf;
+					newBuf.data = data;
+					newBuf.filledSize = 0;
+					
+					m_unreliableBuffers.insert(std::pair<uint64_t, MsgBuf>(chunk.header.id, newBuf));
+				}
+					break;
+				case FRAGMENT_HEADER:
+				{
+					//fill the pending message's buffer
+					auto pendingBufIte = m_unreliableBuffers.find(chunk.header.id);
+					if (pendingBufIte != m_unreliableBuffers.end()) {
+						auto& buffer = pendingBufIte->second;
+						
+						auto payloadSize = size - sizeof(chunk.header);
+						
+						memcpy(buffer.data->data() + chunk.header.fragmentInfo.offset, chunk.payload, payloadSize);
+						buffer.filledSize += payloadSize;
+						
+						//message is complete, push to data queue for comsuming
+						if (buffer.filledSize >= buffer.data->size()) {
+							pushDataToQueue(buffer.data, true);
+							
+							//remove from pending list
+							m_unreliableBuffers.erase(pendingBufIte);
+						}
+					}
+	#if defined DEBUG || defined _DEBUG
+					else {
+						fprintf(stderr, "discarded a fragment\n");
+					}
+	#endif
+				}
+					break;
+			}//switch (chunk.header.type)
+		} catch (...)
+		{
+			//TODO
+		}
+	}
+	
+
+	void IConnectionHandler::onConnected()
+	{
+		//reset internal buffer
+		invalidateUnusedReliableData();
+		
+		//reset data rate counter
+		getTimeCheckPoint(m_lastRecvTime);
+		m_numLastestDataReceived = 0;
+		m_recvRate = 0;
+	}
+	
+	//return data to user
+	DataRef IConnectionHandler::receiveData()
+	{
+		DataRef data = nullptr;
+		
+		if (m_dataLock.try_lock()){
+			if (m_dataQueue.size() > 0)
+			{
+				data = m_dataQueue.front();
+				m_dataQueue.pop_front();
+			}
+			
+			m_dataLock.unlock();
+		}
+		
+		return data;
+	}
+	
+	DataRef IConnectionHandler::receiveDataBlock() {
+		std::unique_lock<std::mutex> lk(m_dataLock);
+		
+		m_dataCv.wait(lk, [this] { return !m_running || m_dataQueue.size() > 0; });
+		
+		if (m_dataQueue.size())
+		{
+			auto re = m_dataQueue.front();
+			m_dataQueue.pop_front();
+			return re;
+		}
+		return nullptr;
+	}
+	
+	void IConnectionHandler::pushDataToQueue(DataRef data, bool discardIfFull) {
+		std::lock_guard<std::mutex> lg(m_dataLock);
+		
+		//calculate data rate
+		time_checkpoint_t curTime;
+		getTimeCheckPoint(curTime);
+		
+		m_numLastestDataReceived += data->size();
+		
+		auto elapsedTime = getElapsedTime(m_lastRecvTime, curTime);
+		if (elapsedTime >= RCV_RATE_UPDATE_INTERVAL)
+		{
+			m_recvRate = 0.8f * m_recvRate + 0.2f * m_numLastestDataReceived / (float)elapsedTime;
+			
+			m_lastRecvTime = curTime;
+			m_numLastestDataReceived = 0;
+		}
+		
+		//discard data if no more room
+		if (discardIfFull && m_dataQueue.size() > NUM_PENDING_MSGS_TO_START_DISCARD)
+		{
+#if defined DEBUG || defined _DEBUG
+			fprintf(stderr, "discarded a message due to too many in queue\n");
+#endif
+			return;//ignore
+		}
+		
+		m_dataQueue.push_back(data);
+		
+		m_dataCv.notify_all();
+	}
 
 	/*----------------SocketConnectionHandler ----------------*/
 	SocketConnectionHandler::SocketConnectionHandler()
-		:m_connLessSocket(INVALID_SOCKET), m_connSocket(INVALID_SOCKET), m_enableReconnect(true), m_recvRate(0)
+		:m_connLessSocket(INVALID_SOCKET), m_connSocket(INVALID_SOCKET), m_enableReconnect(true)
 	{
 		platformConstruct();
 	}
@@ -193,13 +518,6 @@ namespace HQRemote {
 
 		m_socketLock.unlock();
 
-		//wake any thread blocked when trying to retrieve data
-		{
-			m_dataLock.lock();
-			m_dataCv.notify_all();
-			m_dataLock.unlock();
-		}
-
 		//join with all threads
 		if (m_recvThread != nullptr && m_recvThread->joinable())
 		{
@@ -213,172 +531,96 @@ namespace HQRemote {
 		return m_connSocket != INVALID_SOCKET || (m_connLessSocket != INVALID_SOCKET && m_connLessSocketDestAddr != nullptr);
 	}
 
-	//obtain data received through background thread
-	DataRef SocketConnectionHandler::receiveData()
+	_ssize_t SocketConnectionHandler::sendRawDataImpl(const void* data, size_t size)
 	{
-		DataRef data = nullptr;
-
-		if (m_dataLock.try_lock()){
-			if (m_dataQueue.size() > 0)
-			{
-				data = m_dataQueue.front();
-				m_dataQueue.pop_front();
-			}
-			
-			m_dataLock.unlock();
-		}
-
-		return data;
-	}
-
-	DataRef SocketConnectionHandler::receiveDataBlock() {
-		std::unique_lock<std::mutex> lk(m_dataLock);
-
-		m_dataCv.wait(lk, [this] { return !m_running || m_dataQueue.size() > 0; });
-
-		if (m_dataQueue.size())
-		{
-			auto re = m_dataQueue.front();
-			m_dataQueue.pop_front();
-			return re;
-		}
-		return nullptr;
-	}
-
-	void SocketConnectionHandler::pushDataToQueue(DataRef data, bool discardIfFull) {
-		std::lock_guard<std::mutex> lg(m_dataLock);
-
-		//calculate data rate
-		time_checkpoint_t curTime;
-		getTimeCheckPoint(curTime);
-
-		m_numLastestDataReceived += data->size();
+		_ssize_t re = 0;
 		
-		auto elapsedTime = getElapsedTime(m_lastRecvTime, curTime);
-		if (elapsedTime >= RCV_RATE_UPDATE_INTERVAL)
-		{
-			m_recvRate = 0.8f * m_recvRate + 0.2f * m_numLastestDataReceived / (float)elapsedTime;
-			
-			m_lastRecvTime = curTime;
-			m_numLastestDataReceived = 0;
-		}
-
-		//discard data if no more room
-		if (discardIfFull && m_dataQueue.size() > NUM_PENDING_MSGS_TO_START_DISCARD)
-		{
-#if defined DEBUG || defined _DEBUG
-			fprintf(stderr, "discarded a message due to too many in queue\n");
-#endif
-			return;//ignore
-		}
-		
-		m_dataQueue.push_back(data);
-
-		m_dataCv.notify_all();
-	}
-
-	void SocketConnectionHandler::sendData(const void* data, size_t size)
-	{
-		std::lock_guard<std::mutex> lg(m_socketLock);
-
+		m_socketLock.lock();
 		if (m_connSocket == INVALID_SOCKET)//fallback to unreliable socket
-			sendDataUnreliableNoLock(data, size);
+		{
+			m_socketLock.unlock();
+			sendDataUnreliable(data, size);
+			
+			re = size;
+		}
 		else
-			sendDataNoLock(data, size);
+		{
+			re = sendRawDataNoLock(m_connSocket, data, size);
+			
+			m_socketLock.unlock();
+		}
+		
+		return re;
+	}
+	
+	void SocketConnectionHandler::flushRawDataImpl() {
+		//DO NOTHING: we don't use buffering
+		
 	}
 
-	void SocketConnectionHandler::sendDataNoLock(const void* data, size_t size)
+	_ssize_t SocketConnectionHandler::sendRawDataUnreliableImpl(const void* data, size_t size)
 	{
-		sendDataNoLock(m_connSocket, NULL, data, size);
-	}
-
-	void SocketConnectionHandler::sendDataUnreliable(const void* data, size_t size)
-	{
-		std::lock_guard<std::mutex> lg(m_socketLock);
+		_ssize_t re = 0;
+		
+		m_socketLock.lock();
 
 		if (m_connLessSocket == INVALID_SOCKET || m_connLessSocketDestAddr == nullptr)//fallback to reliable socket
 		{
 			if (m_connSocket != INVALID_SOCKET)
-				sendDataNoLock(data, size);
+				re = sendRawDataNoLock(m_connSocket, data, size);
 		}
 		else
-			sendDataUnreliableNoLock(data, size);
-	}
-
-	void SocketConnectionHandler::sendDataUnreliableNoLock(const void* data, size_t size)
-	{
-		sendDataNoLock(m_connLessSocket, m_connLessSocketDestAddr.get(), data, size);
-	}
-
-	_ssize_t SocketConnectionHandler::sendDataNoLock(socket_t socket, const sockaddr_in* pDstAddr, const void* data, size_t size) {
-		_ssize_t re = 0;
-		assert(size <= 0xffffffff);
-			
-		//TODO: assume all sides use the same byte order for now
-		MsgChunkHeader header;
-		header.type = MSG_HEADER;
-		header.id = generateIDFromTime();
-		header.size = sizeof(header);//chunk size
-		header.wholeMsgInfo.msg_size = (uint32_t)size;//whole message size
-
-		if (pDstAddr == NULL)//TCP
-		{
-			//send header
-			re = sendDataAtomicNoLock(socket, &header, sizeof(header));
-			if (re == SOCKET_ERROR)
-				return re;
-
-			//send whole data
-			re = sendDataAtomicNoLock(socket, data, size);
-
-		}//if (socket == m_connSocket)
-		else if (socket == m_connLessSocket) {
-			MsgChunk chunk;
-			chunk.header = header;
-
-			//send header
-			re = sendChunkUnreliableNoLock(socket, pDstAddr, chunk);
-
-			//send data's fragments
-			_ssize_t maxFragmentSize = sizeof(chunk.payload);
-			//TODO: assume all sides use the same byte order for now
-			chunk.header.type = FRAGMENT_HEADER;
-			chunk.header.fragmentInfo.offset = 0;
-
-			uint32_t chunkPayloadSize;
-
-			do {
-				_ssize_t remainSize = (_ssize_t)size - (_ssize_t)chunk.header.fragmentInfo.offset;
-				chunkPayloadSize = min(maxFragmentSize, remainSize);
-				chunk.header.size = sizeof(chunk.header) + chunkPayloadSize;
-
-				//fill chunk's data
-				memcpy(chunk.payload, (const char*)data + chunk.header.fragmentInfo.offset, chunkPayloadSize);
-
-				//send chunk
-				re = sendChunkUnreliableNoLock(socket, pDstAddr, chunk);
-						
-				if (re == SOCKET_ERROR)
-				{
-					//exceed max message size, try to reduce it
-					if (platformGetLastSocketErr() == MSGSIZE_ERROR && maxFragmentSize > 1) {
-						maxFragmentSize >>= 1;
-
-						re = 0;//restart in next iteration
-					}
-				}
-				else {
-					chunk.header.fragmentInfo.offset += chunkPayloadSize;//next fragment
-				}
-			} while (re != SOCKET_ERROR && chunk.header.fragmentInfo.offset < size);
-		}//else if (socket == m_connLessSocket)
+			re = sendRawDataUnreliableNoLock(m_connLessSocket, m_connLessSocketDestAddr.get(), data, size);
+		
+		m_socketLock.unlock();
+		
 		return re;
 	}
 
-	_ssize_t SocketConnectionHandler::sendChunkUnreliableNoLock(socket_t socket, const sockaddr_in* pDstAddr, const MsgChunk& chunk) {
+	_ssize_t SocketConnectionHandler::sendRawDataNoLock(socket_t socket, const void* data, size_t size) {
+		return send(socket, (const char*)data, size, 0);
+	}
+	
+	_ssize_t SocketConnectionHandler::sendRawDataUnreliableNoLock(socket_t socket, const sockaddr_in* pDstAddr, const void* data, size_t size) {
+		
+#if SIMULATED_MAX_UDP_PACKET_SIZE
+		auto maxSentSize = min(SIMULATED_MAX_UDP_PACKET_SIZE, size);
+		auto re = sendto(socket, data, maxSentSize, 0, (const sockaddr*)pDstAddr, sizeof(sockaddr_in));
+		return re;
+		
+#else//SIMULATED_MAX_UDP_PACKET_SIZE
+		_ssize_t re = 0;
+		bool restart = false;
+			
+		//send data's fragment
+
+		do {
+			re = sendto(socket, data, size, 0, (const sockaddr*)pDstAddr, sizeof(sockaddr_in));
+					
+			if (re == SOCKET_ERROR)
+			{
+				//exceed max message size, try to reduce it
+				if (platformGetLastSocketErr() == MSGSIZE_ERROR && size > 1) {
+					size >>= 1;
+
+					restart = true;//restart in next iteration
+				}
+			}
+			else {
+				restart = false;
+			}
+		} while (restart);
+		
+		return re;
+#endif//SIMULATED_MAX_UDP_PACKET_SIZE
+	}
+	
+	_ssize_t SocketConnectionHandler::sendChunkUnreliableNoLock(socket_t socket, const sockaddr_in* pDstAddr, const MsgChunk& chunk, size_t size) {
+		assert(size >= sizeof(chunk.header));
+		
 		if (pDstAddr == NULL)//we must have info of remote size's address
 			return 0;
-		return sendto(socket, (char*)&chunk, chunk.header.size, 0, (const sockaddr*)pDstAddr, sizeof(sockaddr_in));
+		return sendto(socket, (char*)&chunk, size, 0, (const sockaddr*)pDstAddr, sizeof(sockaddr_in));
 	}
 
 	_ssize_t SocketConnectionHandler::recvChunkUnreliableNoLock(socket_t socket, MsgChunk& chunk) {
@@ -398,53 +640,16 @@ namespace HQRemote {
 		}
 	}
 
-	_ssize_t SocketConnectionHandler::sendDataAtomicNoLock(socket_t socket, const void* data, size_t size) {
+	_ssize_t SocketConnectionHandler::recvRawDataNoLock(socket_t socket) {
+		unsigned char buffer[1024];
 		_ssize_t re;
 
-		size_t offset = 0;
-		do {
-			re = send(socket, (const char*)data + offset, size - offset, 0);
-			offset += re;
-		} while (re != SOCKET_ERROR && re != 0 && offset < size);
-
-		return (re == SOCKET_ERROR || re == 0 ) ? SOCKET_ERROR : size;
-	}
-
-	_ssize_t SocketConnectionHandler::recvDataAtomicNoLock(socket_t socket, void* data, size_t expectedSize) {
-		_ssize_t re;
-		size_t offset = 0;
-		char* ptr = (char*)data;
-		do {
-			re = recv(socket, ptr + offset, expectedSize - offset, 0);
-			offset += re;
-		} while (re != SOCKET_ERROR && re != 0 && offset < expectedSize);
-
-		if (re == SOCKET_ERROR || re == 0)
-			return SOCKET_ERROR;
-
-		return expectedSize;
-	}
-
-	_ssize_t SocketConnectionHandler::recvDataNoLock(socket_t socket) {
-		MsgChunkHeader header;
-		_ssize_t re;
-
-		re = recvDataAtomicNoLock(socket, &header, sizeof(header));
-		if (re == SOCKET_ERROR)
-			return re;
-
-		switch (header.type) {
-		case MSG_HEADER:
+		re = recv(socket, buffer, sizeof(buffer), 0);
+		if (re > 0)
 		{
-			auto data = std::make_shared<CData>(header.wholeMsgInfo.msg_size);
-			//read data immediately
-			re = recvDataAtomicNoLock(socket, data->data(), data->size());
-			if (re != SOCKET_ERROR)
-				pushDataToQueue(data, false);
+			onReceiveReliableData(buffer, re);
 		}
-			break;
-		}//switch (header.type)
-
+		
 		return re;
 	}
 
@@ -458,59 +663,11 @@ namespace HQRemote {
 			return re;
 
 		switch (chunk.header.type) {
-		case MSG_HEADER:
-		{
-			auto data = std::make_shared<CData>(chunk.header.wholeMsgInfo.msg_size);
-			//initialize a placeholder for upcoming message
-			if (m_connLessBuffers.size() == MAX_PENDING_UNRELIABLE_BUF)//discard oldest pending message
-			{
-				auto first = m_connLessBuffers.begin();
-				m_connLessBuffers.erase(first);
-				
-#if defined DEBUG || defined _DEBUG
-				fprintf(stderr, "discarded a message\n");
-#endif
-			}
-
-			MsgBuf newBuf;
-			newBuf.data = data;
-			newBuf.filledSize = 0;
-
-			m_connLessBuffers.insert(std::pair<uint64_t, MsgBuf>(chunk.header.id, newBuf));
-		}
-			break;
-		case FRAGMENT_HEADER:
-		{
-			//fill the pending message's buffer
-			auto pendingBufIte = m_connLessBuffers.find(chunk.header.id);
-			if (pendingBufIte != m_connLessBuffers.end()) {
-				auto& buffer = pendingBufIte->second;
-
-				auto payloadSize = chunk.header.size - sizeof(chunk.header);
-
-				memcpy(buffer.data->data() + chunk.header.fragmentInfo.offset, chunk.payload, payloadSize);
-				buffer.filledSize += payloadSize;
-
-				//message is complete, push to data queue for comsuming
-				if (buffer.filledSize >= buffer.data->size()) {
-					pushDataToQueue(buffer.data, true);
-					
-					//remove from pending list
-					m_connLessBuffers.erase(pendingBufIte);
-				}
-			}
-#if defined DEBUG || defined _DEBUG
-			else {
-				fprintf(stderr, "discarded a fragment\n");
-			}
-#endif
-		}
-			break;
 		case PING_MSG_CHUNK:
 		{
 			//reply
 			chunk.header.type = PING_REPLY_MSG_CHUNK;
-			sendChunkUnreliableNoLock(m_connLessSocket, m_connLessSocketDestAddr.get(), chunk);
+			sendChunkUnreliableNoLock(m_connLessSocket, m_connLessSocketDestAddr.get(), chunk, re);
 		}
 			break;
 		case PING_REPLY_MSG_CHUNK:
@@ -531,6 +688,10 @@ namespace HQRemote {
 			}
 		}
 			break;
+		default:
+			//call parent's handler
+			onReceivedUnreliableDataFragment(&chunk, re);
+			break;
 		}//switch (chunk.header.type)
 
 		return re;
@@ -540,12 +701,11 @@ namespace HQRemote {
 		//ping remote host
 		MsgChunk pingChunk;
 		pingChunk.header.type = PING_MSG_CHUNK;
-		pingChunk.header.size = sizeof(pingChunk.header);
 		pingChunk.header.id = generateIDFromTime(sendTime);
 		
 		pingChunk.header.pingInfo.sendTime = convertToTimeCheckPoint64(sendTime);
 		
-		return sendChunkUnreliableNoLock(m_connLessSocket, m_connLessSocketDestAddr.get(), pingChunk);
+		return sendChunkUnreliableNoLock(m_connLessSocket, m_connLessSocketDestAddr.get(), pingChunk, sizeof(pingChunk.header));
 	}
 	
 	bool SocketConnectionHandler::testUnreliableRemoteEndpointNoLock() {
@@ -614,10 +774,6 @@ namespace HQRemote {
 			if (l_connected) {
 				if (!connectedBefore)
 				{
-					getTimeCheckPoint(m_lastRecvTime);
-					m_numLastestDataReceived = 0;
-					m_recvRate = 0;
-
 					connectedBefore = true;
 				}
 
@@ -652,9 +808,9 @@ namespace HQRemote {
 
 					if (select(l_connSocket + 1, &sset, NULL, NULL, &timeout) == 1 && FD_ISSET(l_connSocket, &sset))
 					{
-						re = recvDataNoLock(l_connSocket);
+						re = recvRawDataNoLock(l_connSocket);
 
-						if (re == SOCKET_ERROR) {
+						if (re == SOCKET_ERROR || re == 0) {
 							std::lock_guard<std::mutex> lg(m_socketLock);
 							//close socket
 							closesocket(m_connSocket);
@@ -673,6 +829,9 @@ namespace HQRemote {
 				m_connLessSocketDestAddr = nullptr;
 				
 				initConnectionImpl();
+				
+				if (connected())
+					onConnected();
 			}//else of if (l_connSocket != INVALID_SOCKET)
 		}//while (m_running)
 

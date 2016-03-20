@@ -19,6 +19,7 @@
 #include <string>
 #include <map>
 #include <list>
+#include <vector>
 #include <functional>
 #include <mutex>
 #include <thread>
@@ -59,22 +60,74 @@ namespace HQRemote {
 		double timeSinceStart() const;
 		virtual bool connected() const = 0;
 
-		virtual DataRef receiveData() = 0;
-		virtual DataRef receiveDataBlock() = 0;//this function will block until there is some data available
+		//return obtained data to user
+		DataRef receiveData();
+		DataRef receiveDataBlock();//this function will block until there is some data available
 
-		virtual void sendData(ConstDataRef data);
-		virtual void sendDataUnreliable(ConstDataRef data);
-		virtual void sendData(const void* data, size_t size) = 0;
-		virtual void sendDataUnreliable(const void* data, size_t size) = 0;
-		virtual float getReceiveRate() const = 0;
+		void sendData(ConstDataRef data);
+		void sendDataUnreliable(ConstDataRef data);
+		void sendData(const void* data, size_t size);
+		void sendDataUnreliable(const void* data, size_t size);
+		
+		float getReceiveRate() const {
+			return m_recvRate;
+		}
 
+		std::shared_ptr<const CString> getInternalErrorMsg() const
+		{
+			return m_internalError;
+		}
+		
 	protected:
 		IConnectionHandler();
 		
 		virtual bool startImpl() = 0;
 		virtual void stopImpl() = 0;
 		
+		//these functions may send only a portion of the data, number of bytes send must be returned. Return negative value on error.
+		virtual _ssize_t sendRawDataImpl(const void* data, size_t size) = 0;
+		virtual void flushRawDataImpl() = 0;
+		virtual _ssize_t sendRawDataUnreliableImpl(const void* data, size_t size) = 0;
+		
+		struct MsgChunk;
+		
+		struct MsgBuf {
+			DataRef data;
+			uint32_t filledSize;
+		};
+		
+		
+		//this should be called when data is received from reliable channel
+		void onReceiveReliableData(const void* data, size_t size);
+		//this should be called when data is received from unreliable channel
+		void onReceivedUnreliableDataFragment(const void* data, size_t size);
+		//this should be called when endpoints connected successfully
+		void onConnected();
+		
+		void setInternalError(const char* msg);
+		
 		std::atomic<bool> m_running;
+		
+	private:
+		void sendRawDataAtomic(const void* data, size_t size);
+		void fillReliableBuffer(const void* &data, size_t& size);
+		void invalidateUnusedReliableData();
+		
+		void pushDataToQueue(DataRef data, bool discardIfFull);
+		
+		std::shared_ptr<CString> m_internalError;
+		
+		int m_reliableBufferState;
+		MsgBuf m_reliableBuffer;
+		std::map<uint64_t, MsgBuf> m_unreliableBuffers;
+		std::list<DataRef> m_dataQueue;
+		std::mutex m_dataLock;
+		std::condition_variable m_dataCv;
+		
+		time_checkpoint_t m_lastRecvTime;
+		size_t m_numLastestDataReceived;
+		std::atomic<float> m_recvRate;
+		
 		time_checkpoint_t m_startTime;
 	};
 
@@ -84,38 +137,25 @@ namespace HQRemote {
 		~SocketConnectionHandler();
 
 		virtual bool connected() const override;
-
-		virtual DataRef receiveData() override;
-		virtual DataRef receiveDataBlock() override;
-		virtual void sendData(const void* data, size_t size) override;
-		virtual void sendDataUnreliable(const void* data, size_t size) override;
-
-		virtual float getReceiveRate() const override {
-			return m_recvRate;
-		}
 	private:
-		struct MsgChunk;
 
 		void platformConstruct();
 		void platformDestruct();
 		
 		virtual bool startImpl() override;
 		virtual void stopImpl() override;
-
-		void sendDataNoLock(const void* data, size_t size);
-		void sendDataUnreliableNoLock(const void* data, size_t size);
 		
+		
+		virtual _ssize_t sendRawDataImpl(const void* data, size_t size) override;
+		virtual void flushRawDataImpl() override;
+		virtual _ssize_t sendRawDataUnreliableImpl(const void* data, size_t size) override;
+
 		_ssize_t pingUnreliableNoLock(time_checkpoint_t sendTime);
 		
 		void recvProc();
 		
 	protected:
 		SocketConnectionHandler();
-		
-		struct MsgBuf {
-			DataRef data;
-			size_t filledSize;
-		};
 		
 		struct UnreliablePingInfo {
 			uint64_t sendTime;
@@ -130,26 +170,19 @@ namespace HQRemote {
 		int platformSetSocketBlockingMode(socket_t socket, bool blocking);
 		int platformGetLastSocketErr() const;
 
-		_ssize_t sendDataNoLock(socket_t socket, const sockaddr_in* pDstAddr, const void* data, size_t size);
+		_ssize_t sendRawDataUnreliableNoLock(socket_t socket, const sockaddr_in* pDstAddr, const void* data, size_t size);//connectionless socket only
+		_ssize_t sendRawDataNoLock(socket_t socket, const void* data, size_t size);//connection oriented socket only
 		
-		_ssize_t sendChunkUnreliableNoLock(socket_t socket, const sockaddr_in* pDstAddr, const MsgChunk& chunk);//connectionless only socket
+		_ssize_t sendChunkUnreliableNoLock(socket_t socket, const sockaddr_in* pDstAddr, const MsgChunk& chunk, size_t size);//connectionless only socket
 		_ssize_t recvChunkUnreliableNoLock(socket_t socket, MsgChunk& chunk);//connectionless only socket
 		_ssize_t recvDataUnreliableNoLock(socket_t socket);
-		_ssize_t sendDataAtomicNoLock(socket_t socket, const void* data, size_t expectedSize);//connection oriented only socket
-		_ssize_t recvDataAtomicNoLock(socket_t socket, void* data, size_t expectedSize);
-		_ssize_t recvDataNoLock(socket_t socket);
+		_ssize_t recvRawDataNoLock(socket_t socket);
 		
 		//check if we're able to connect to the remote endpoint on an unreliable channel
 		bool testUnreliableRemoteEndpointNoLock();
 		
-		void pushDataToQueue(DataRef data, bool discardIfFull);
-
 		std::mutex m_socketLock;
 		//receiving thread
-		std::map<uint64_t, MsgBuf> m_connLessBuffers;
-		std::list<DataRef> m_dataQueue;
-		std::mutex m_dataLock;
-		std::condition_variable m_dataCv;
 		std::unique_ptr<std::thread> m_recvThread;
 
 		std::atomic<socket_t> m_connSocket;
@@ -157,10 +190,6 @@ namespace HQRemote {
 		std::unique_ptr<sockaddr_in> m_connLessSocketDestAddr;//destination endpoint of connectionless socket
 		
 		UnreliablePingInfo m_lastConnLessPing;
-
-		time_checkpoint_t m_lastRecvTime;
-		size_t m_numLastestDataReceived;
-		std::atomic<float> m_recvRate;
 
 		bool m_enableReconnect;
 		

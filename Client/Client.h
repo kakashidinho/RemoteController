@@ -37,6 +37,10 @@ namespace HQRemote {
 		bool connected() const {
 			return m_connHandler->connected();
 		}
+		
+		std::shared_ptr<const CString> getConnectionInternalError() const{
+			return m_connHandler->getInternalErrorMsg();
+		}
 
 		double timeSinceStart() const {
 			return m_connHandler->timeSinceStart();

@@ -45,6 +45,9 @@ namespace HQRemote {
 		bool connected() const {
 			return m_connHandler->connected();
 		}
+		std::shared_ptr<const CString> getConnectionInternalError() const{
+			return m_connHandler->getInternalErrorMsg();
+		}
 
 		//capture current frame and send to remote controller
 		void captureAndSendFrame();
