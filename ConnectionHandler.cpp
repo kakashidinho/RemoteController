@@ -108,7 +108,12 @@ namespace HQRemote {
 		if (msg == NULL)
 			m_internalError = nullptr;
 		else
+		{
+#ifdef DEBUG
+			HQRemote::Log("setInternalError('%s')\n", msg);
+#endif
 			m_internalError = std::make_shared<CString>(msg);
+		}
 	}
 	
 	bool IConnectionHandler::start() {
@@ -132,6 +137,8 @@ namespace HQRemote {
 	}
 	
 	void IConnectionHandler::stop() {
+		m_running = false;
+		
 		stopImpl();
 		
 		//wake any user thread blocked when trying to retrieve data
@@ -141,7 +148,9 @@ namespace HQRemote {
 			m_dataLock.unlock();
 		}
 		
-		m_running = false;
+#ifdef DEBUG
+		Log("IConnectionHandler::stop() finished\n");
+#endif
 	}
 	
 	bool IConnectionHandler::running() const {
@@ -500,8 +509,6 @@ namespace HQRemote {
 
 	void SocketConnectionHandler::stopImpl()
 	{
-		m_running = false;
-
 		m_socketLock.lock();
 
 		if (m_connSocket != INVALID_SOCKET)

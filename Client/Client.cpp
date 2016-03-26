@@ -169,9 +169,16 @@ namespace HQRemote {
 			m_audioThread->join();
 		m_audioThread = nullptr;
 
+#ifdef DEBUG
+		Log("Client::stop() waiting for data polling thread\n");
+#endif
 		if (m_dataPollingThread && m_dataPollingThread->joinable())
 			m_dataPollingThread->join();
 		m_dataPollingThread = nullptr;
+		
+#ifdef DEBUG
+		Log("Client::stop() finished\n");
+#endif
 	}
 
 	void Client::tryRecvEvent(EventType eventToDiscard, bool consumeAllAvailableData) {
@@ -215,6 +222,10 @@ namespace HQRemote {
 		while ((frameIte = m_frameQueue.begin()) != m_frameQueue.end() && frameIte->first <= m_lastRcvFrameId)
 		{
 			m_frameQueue.erase(frameIte);
+			
+#ifdef DEBUG
+			Log("discarded frame %lld\n", frameIte->first);
+#endif
 		}
 
 		//check if any frame can be rendered immediately
@@ -247,6 +258,10 @@ namespace HQRemote {
 				m_numRcvFrames++;
 
 				event = frame;
+				
+#ifdef DEBUG
+				Log("retrieved frame %lld\n", frameId);
+#endif
 			}
 		}//if (m_frameQueue.size() > 0)
 
