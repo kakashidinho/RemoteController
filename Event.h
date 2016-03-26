@@ -31,8 +31,7 @@ namespace HQRemote {
 
 		HOST_INFO,
 		RENDERED_FRAME,//this uses renderedFrameData field in Event struct
-		REQUEST_CLIENT_INFO,
-		CLIENT_INFO,//this uses renderedFrameData field in Event struct
+		ENDPOINT_NAME,//this uses renderedFrameData field in Event struct
 		
 		FRAME_INTERVAL,
 		

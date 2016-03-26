@@ -236,6 +236,10 @@ namespace HQRemote {
 		if (m_audioThread && m_audioThread->joinable())
 			m_audioThread->join();
 		m_audioThread = nullptr;
+		
+#ifdef DEBUG
+		Log("Engine::stop() finished\n");
+#endif
 	}
 
 	//capture current frame and send to remote controller
@@ -259,7 +263,7 @@ namespace HQRemote {
 			m_numCapturedFrames++;
 
 #if defined DEBUG || defined _DEBUG
-			HQRemote::Log("captured fps: %.2f\n", 1.f / m_frameCaptureInterval);
+			//HQRemote::Log("captured fps: %.2f\n", 1.f / m_frameCaptureInterval);
 #endif
 
 			//send to frame compression threads

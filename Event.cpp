@@ -245,7 +245,7 @@ namespace HQRemote {
 			plainEvent.deserialize(dataRefCopy);
 
 			switch (plainEvent.event.type) {
-			case RENDERED_FRAME: case AUDIO_ENCODED_PACKET: case CLIENT_INFO:
+			case RENDERED_FRAME: case AUDIO_ENCODED_PACKET: case ENDPOINT_NAME:
 			{
 				//this is non-plain event
 				auto frameEvent = std::make_shared<FrameEvent>(plainEvent.event.type);
