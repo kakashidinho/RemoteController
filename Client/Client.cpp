@@ -6,12 +6,13 @@
 
 #include <future>
 
-#define MAX_PENDING_FRAMES 10
+#define MAX_PENDING_FRAMES 4
 #define MAX_PENDING_AUDIO_PACKETS 6
 
 #define MAX_ADDITIONAL_PACKETS_BEFORE_PROCEED 3
 
 #define DEFAULT_AUDIO_BUFFER_SIZE_MS 100 //ms
+#define FRAME_COUNTER_INTERVAL 2.0//s
 
 namespace HQRemote {
 	/*----- Engine::AudioEncoder ----*/
@@ -246,6 +247,11 @@ namespace HQRemote {
 			//found renderable frame
 			if (elapsed >= intentedElapsed || m_numRcvFrames == 0)
 			{
+				if (elapsed >= FRAME_COUNTER_INTERVAL || elapsed - intentedElapsed > m_frameInterval + 0.00001)//frame arrived too late, reset frame counter
+				{
+					m_numRcvFrames = 0;
+				}
+				
 				if (m_numRcvFrames == 0)
 				{
 					//cache first frame's time

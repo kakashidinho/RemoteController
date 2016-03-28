@@ -9,7 +9,8 @@
 #include <sstream>
 
 #define DEBUG_CAPTURED_FRAMES 0
-#define MAX_PENDING_FRAMES 60
+#define MAX_PENDING_FRAMES 4
+#define FRAME_COUNTER_INTERVAL 2.0//s
 
 #define MAX_NUM_COMPRESS_THREADS 4
 #define DEFAULT_NUM_COMPRESS_THREADS 2
@@ -24,6 +25,7 @@
 #	define min(a,b) ((a) < (b) ? (a) : (b))
 #endif
 
+#define MAX_PENDING_AUDIO_PACKETS 30
 #define DEFAULT_AUDIO_FRAME_SIZE_MS 20
 #define DEFAULT_AUDIO_FRAME_BUNDLE 3
 
@@ -256,6 +258,12 @@ namespace HQRemote {
 					return;
 			
 				m_frameCaptureInterval = 0.8 * m_frameCaptureInterval + 0.2 * elapsed / (m_numCapturedFrames + 1);
+				
+				if (elapsed >= FRAME_COUNTER_INTERVAL || elapsed - intendedElapsedTime > m_intendedFrameInterval + 0.00001)//frame arrived too late, reset frame counter
+				{
+					m_firstCapturedFrameTime64 = time64;
+					m_numCapturedFrames = 0;
+				}
 			}
 			else
 				m_firstCapturedFrameTime64 = time64;
@@ -353,7 +361,7 @@ namespace HQRemote {
 		std::lock_guard<std::mutex> lg(m_audioLock);
 
 		try {
-			if (m_audioRawPackets.size() >= MAX_PENDING_FRAMES)
+			if (m_audioRawPackets.size() >= MAX_PENDING_AUDIO_PACKETS)
 				m_audioRawPackets.pop_front();
 
 			m_audioRawPackets.push_back(pcmData);
@@ -588,7 +596,7 @@ namespace HQRemote {
 	
 	void Engine::pushCompressedFrameForBundling(const FrameEventRef& frame) {
 		const auto bundleId = (frame->event.renderedFrameData.frameId - 1) / m_frameBundleSize + 1;
-		const auto maxBundles = MAX_PENDING_FRAMES / m_frameBundleSize;
+		const auto maxBundles = max(MAX_PENDING_FRAMES / m_frameBundleSize, 1);
 		
 		m_frameBundleLock.lock();
 		auto bundleIte = m_incompleteFrameBundles.find(bundleId);
