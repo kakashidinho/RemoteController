@@ -602,7 +602,7 @@ namespace HQRemote {
 		//send data's fragment
 
 		do {
-			re = sendto(socket, data, size, 0, (const sockaddr*)pDstAddr, sizeof(sockaddr_in));
+			re = sendto(socket, (const char*)data, size, 0, (const sockaddr*)pDstAddr, sizeof(sockaddr_in));
 					
 			if (re == SOCKET_ERROR)
 			{
@@ -648,7 +648,7 @@ namespace HQRemote {
 	}
 
 	_ssize_t SocketConnectionHandler::recvRawDataNoLock(socket_t socket) {
-		unsigned char buffer[1024];
+		char buffer[1024];
 		_ssize_t re;
 
 		re = recv(socket, buffer, sizeof(buffer), 0);
