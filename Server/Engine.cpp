@@ -285,7 +285,7 @@ namespace HQRemote {
 				m_frameCompressCv.notify_all();
 			}
 			
-			if (m_saveNextFrame)
+			if (m_saveNextFrame.load(std::memory_order_relaxed))
 			{
 				std::lock_guard<std::mutex> lg(m_screenshotLock);
 				m_capturedFramesForSave.push_back(frameRef);
@@ -533,7 +533,7 @@ namespace HQRemote {
 				m_frameBundles.erase(bundleIte);
 				lk.unlock();
 				
-				if (m_sendFrame) {
+				if (m_sendFrame.load(std::memory_order_relaxed)) {
 					auto bundleEvent = std::make_shared<CompressedEvents>(0, *bundle);
 					if (bundleEvent->event.type == COMPRESSED_EVENTS)
 					{
@@ -570,7 +570,7 @@ namespace HQRemote {
 
 				if (frameId > m_lastSentFrameId)//ignore lower id frame (it may be because the compression thead was too slow to produce the frame)
 				{
-					if (m_sendFrame)
+					if (m_sendFrame.load(std::memory_order_relaxed))
 					{
 						if (m_frameBundleSize > 1)
 						{

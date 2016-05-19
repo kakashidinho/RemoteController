@@ -154,11 +154,11 @@ namespace HQRemote {
 	}
 	
 	bool IConnectionHandler::running() const {
-		return m_running;
+		return m_running.load(std::memory_order_relaxed);
 	}
 	
 	double IConnectionHandler::timeSinceStart() const {
-		if (!m_running)
+		if (!m_running.load(std::memory_order_relaxed))
 			return 0;
 		
 		time_checkpoint_t curTime;
@@ -455,7 +455,9 @@ namespace HQRemote {
 		auto elapsedTime = getElapsedTime(m_lastRecvTime, curTime);
 		if (elapsedTime >= RCV_RATE_UPDATE_INTERVAL)
 		{
-			m_recvRate = 0.8f * m_recvRate + 0.2f * m_numLastestDataReceived / (float)elapsedTime;
+			auto oldRcvRate = m_recvRate.load(std::memory_order_relaxed);
+			auto newRcvRate = 0.8f * oldRcvRate + 0.2f * m_numLastestDataReceived / (float)elapsedTime;
+			m_recvRate.store(newRcvRate, std::memory_order_relaxed);
 			
 			m_lastRecvTime = curTime;
 			m_numLastestDataReceived = 0;
@@ -535,7 +537,8 @@ namespace HQRemote {
 	}
 
 	bool SocketConnectionHandler::connected() const {
-		return m_connSocket != INVALID_SOCKET || (m_connLessSocket != INVALID_SOCKET && m_connLessSocketDestAddr != nullptr);
+		return m_connSocket.load(std::memory_order_relaxed) != INVALID_SOCKET || 
+			(m_connLessSocket.load(std::memory_order_relaxed) != INVALID_SOCKET && m_connLessSocketDestAddr != nullptr);
 	}
 
 	_ssize_t SocketConnectionHandler::sendRawDataImpl(const void* data, size_t size)
@@ -926,7 +929,7 @@ namespace HQRemote {
 	}
 
 	bool SocketServerHandler::connected() const {
-		return (m_connLessPort == 0 || m_connLessSocket != INVALID_SOCKET)
+		return (m_connLessPort == 0 || m_connLessSocket.load(std::memory_order_relaxed) != INVALID_SOCKET)
 				&& m_connSocket != INVALID_SOCKET;
 	}
 	
@@ -1039,7 +1042,7 @@ namespace HQRemote {
 	}
 	
 	bool UnreliableSocketClientHandler::connected() const {
-		return m_connLessRemoteReachable;
+		return m_connLessRemoteReachable.load(std::memory_order_relaxed);
 	}
 	
 	void UnreliableSocketClientHandler::initConnectionImpl() {
@@ -1100,7 +1103,7 @@ namespace HQRemote {
 	
 	bool SocketClientHandler::connected() const {
 		return (m_connLessRemoteEndpoint.port == 0 || UnreliableSocketClientHandler::connected())
-				&& m_connSocket != INVALID_SOCKET;
+				&& m_connSocket.load(std::memory_order_relaxed) != INVALID_SOCKET;
 	}
 	
 	void SocketClientHandler::initConnectionImpl() {

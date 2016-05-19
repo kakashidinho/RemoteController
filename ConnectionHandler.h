@@ -70,7 +70,7 @@ namespace HQRemote {
 		void sendDataUnreliable(const void* data, size_t size);
 		
 		float getReceiveRate() const {
-			return m_recvRate;
+			return m_recvRate.load(std::memory_order_relaxed);
 		}
 
 		std::shared_ptr<const CString> getInternalErrorMsg() const
