@@ -61,12 +61,13 @@ JPEG_SRC_FILES := 	third-party/jpeg-9a/jcapimin.c \
 
 LOCAL_SRC_FILES := 	ZlibUtils.cpp \
 					Common.cpp \
+					AudioCapturer.cpp \
+					BaseEngine.cpp \
 					ConnectionHandler.cpp \
 					Event.cpp \
 					linux/ConnectionHandlerLinux.cpp \
 					linux/TimerLinux.cpp \
 					Client/Client.cpp \
-					Server/AudioCapturer.cpp \
 					Server/Engine.cpp \
 					Server/ImgCompressor.cpp \
 					Server/JpegCompressor.cpp \

@@ -66,12 +66,16 @@
 		0A4A843E1C7A1C2D00556B01 /* Client.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0A4A843B1C7A1C2D00556B01 /* Client.cpp */; };
 		0A4A843F1C7A1C2D00556B01 /* Client.h in Headers */ = {isa = PBXBuildFile; fileRef = 0A4A843C1C7A1C2D00556B01 /* Client.h */; };
 		0A4A84401C7A1C2D00556B01 /* Client.h in Headers */ = {isa = PBXBuildFile; fileRef = 0A4A843C1C7A1C2D00556B01 /* Client.h */; };
-		0A4A84431C7A1C5600556B01 /* AudioCapturer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0A4A84411C7A1C5600556B01 /* AudioCapturer.cpp */; };
-		0A4A84441C7A1C5600556B01 /* AudioCapturer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0A4A84411C7A1C5600556B01 /* AudioCapturer.cpp */; };
-		0A4A84451C7A1C5600556B01 /* AudioCapturer.h in Headers */ = {isa = PBXBuildFile; fileRef = 0A4A84421C7A1C5600556B01 /* AudioCapturer.h */; };
-		0A4A84461C7A1C5600556B01 /* AudioCapturer.h in Headers */ = {isa = PBXBuildFile; fileRef = 0A4A84421C7A1C5600556B01 /* AudioCapturer.h */; };
 		0A4A84481C7A1C7B00556B01 /* CString.h in Headers */ = {isa = PBXBuildFile; fileRef = 0A4A84471C7A1C7B00556B01 /* CString.h */; };
 		0A4A84491C7A1C7B00556B01 /* CString.h in Headers */ = {isa = PBXBuildFile; fileRef = 0A4A84471C7A1C7B00556B01 /* CString.h */; };
+		0A4D15701CEFB3CC00F63A9B /* AudioCapturer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0A4D156C1CEFB3CC00F63A9B /* AudioCapturer.cpp */; };
+		0A4D15711CEFB3CC00F63A9B /* AudioCapturer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0A4D156C1CEFB3CC00F63A9B /* AudioCapturer.cpp */; };
+		0A4D15721CEFB3CC00F63A9B /* AudioCapturer.h in Headers */ = {isa = PBXBuildFile; fileRef = 0A4D156D1CEFB3CC00F63A9B /* AudioCapturer.h */; };
+		0A4D15731CEFB3CC00F63A9B /* AudioCapturer.h in Headers */ = {isa = PBXBuildFile; fileRef = 0A4D156D1CEFB3CC00F63A9B /* AudioCapturer.h */; };
+		0A4D15741CEFB3CC00F63A9B /* BaseEngine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0A4D156E1CEFB3CC00F63A9B /* BaseEngine.cpp */; };
+		0A4D15751CEFB3CC00F63A9B /* BaseEngine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0A4D156E1CEFB3CC00F63A9B /* BaseEngine.cpp */; };
+		0A4D15761CEFB3CC00F63A9B /* BaseEngine.h in Headers */ = {isa = PBXBuildFile; fileRef = 0A4D156F1CEFB3CC00F63A9B /* BaseEngine.h */; };
+		0A4D15771CEFB3CC00F63A9B /* BaseEngine.h in Headers */ = {isa = PBXBuildFile; fileRef = 0A4D156F1CEFB3CC00F63A9B /* BaseEngine.h */; };
 		0A5298581C522A9F0008A9FA /* ImgCompressorApple.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0AE5B0DD1C44D95500155DB8 /* ImgCompressorApple.cpp */; };
 		0A5298591C522A9F0008A9FA /* ConnectionHandler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0A29738C1C51FFB900A2F8F0 /* ConnectionHandler.cpp */; };
 		0A52985B1C522A9F0008A9FA /* ConnectionHandlerApple.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0A29739D1C5205EA00A2F8F0 /* ConnectionHandlerApple.cpp */; };
@@ -157,9 +161,11 @@
 		0A44AC331C58BCC0007809DA /* ZlibUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ZlibUtils.h; sourceTree = "<group>"; };
 		0A4A843B1C7A1C2D00556B01 /* Client.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Client.cpp; path = Client/Client.cpp; sourceTree = "<group>"; };
 		0A4A843C1C7A1C2D00556B01 /* Client.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Client.h; path = Client/Client.h; sourceTree = "<group>"; };
-		0A4A84411C7A1C5600556B01 /* AudioCapturer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AudioCapturer.cpp; path = Server/AudioCapturer.cpp; sourceTree = "<group>"; };
-		0A4A84421C7A1C5600556B01 /* AudioCapturer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AudioCapturer.h; path = Server/AudioCapturer.h; sourceTree = "<group>"; };
 		0A4A84471C7A1C7B00556B01 /* CString.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CString.h; sourceTree = "<group>"; };
+		0A4D156C1CEFB3CC00F63A9B /* AudioCapturer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AudioCapturer.cpp; sourceTree = "<group>"; };
+		0A4D156D1CEFB3CC00F63A9B /* AudioCapturer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AudioCapturer.h; sourceTree = "<group>"; };
+		0A4D156E1CEFB3CC00F63A9B /* BaseEngine.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = BaseEngine.cpp; sourceTree = "<group>"; };
+		0A4D156F1CEFB3CC00F63A9B /* BaseEngine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BaseEngine.h; sourceTree = "<group>"; };
 		0A5298711C522A9F0008A9FA /* libRemoteControllerIOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libRemoteControllerIOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		0A5298721C522ACC0008A9FA /* OpenGLES.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGLES.framework; path = System/Library/Frameworks/OpenGLES.framework; sourceTree = SDKROOT; };
 		0A5716901C43520900AE78E7 /* libRemoteController.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libRemoteController.a; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -221,6 +227,10 @@
 		0A2973891C51FF8600A2F8F0 /* Common */ = {
 			isa = PBXGroup;
 			children = (
+				0A4D156C1CEFB3CC00F63A9B /* AudioCapturer.cpp */,
+				0A4D156D1CEFB3CC00F63A9B /* AudioCapturer.h */,
+				0A4D156E1CEFB3CC00F63A9B /* BaseEngine.cpp */,
+				0A4D156F1CEFB3CC00F63A9B /* BaseEngine.h */,
 				0A4A84471C7A1C7B00556B01 /* CString.h */,
 				0A44AC321C58BCC0007809DA /* ZlibUtils.cpp */,
 				0A44AC331C58BCC0007809DA /* ZlibUtils.h */,
@@ -310,8 +320,6 @@
 		0AE5B0D61C44D92800155DB8 /* Server */ = {
 			isa = PBXGroup;
 			children = (
-				0A4A84411C7A1C5600556B01 /* AudioCapturer.cpp */,
-				0A4A84421C7A1C5600556B01 /* AudioCapturer.h */,
 				0AE5B0D71C44D95500155DB8 /* Engine.cpp */,
 				0AE5B0D81C44D95500155DB8 /* Engine.h */,
 				0AE5B0DA1C44D95500155DB8 /* ImgCompressor.cpp */,
@@ -390,8 +398,9 @@
 				0A52986B1C522A9F0008A9FA /* ImgCompressor.h in Headers */,
 				0A4A84491C7A1C7B00556B01 /* CString.h in Headers */,
 				0A52986C1C522A9F0008A9FA /* FrameCapturer.h in Headers */,
-				0A4A84461C7A1C5600556B01 /* AudioCapturer.h in Headers */,
 				0A52986D1C522A9F0008A9FA /* Event.h in Headers */,
+				0A4D15771CEFB3CC00F63A9B /* BaseEngine.h in Headers */,
+				0A4D15731CEFB3CC00F63A9B /* AudioCapturer.h in Headers */,
 				0A44AC371C58BCC0007809DA /* ZlibUtils.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -410,8 +419,9 @@
 				0AE5B0F11C44D95500155DB8 /* ImgCompressor.h in Headers */,
 				0A4A84481C7A1C7B00556B01 /* CString.h in Headers */,
 				0AE5B0EE1C44D95500155DB8 /* FrameCapturer.h in Headers */,
-				0A4A84451C7A1C5600556B01 /* AudioCapturer.h in Headers */,
 				0A2973981C51FFB900A2F8F0 /* Event.h in Headers */,
+				0A4D15761CEFB3CC00F63A9B /* BaseEngine.h in Headers */,
+				0A4D15721CEFB3CC00F63A9B /* AudioCapturer.h in Headers */,
 				0A44AC361C58BCC0007809DA /* ZlibUtils.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -583,6 +593,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0A4D15751CEFB3CC00F63A9B /* BaseEngine.cpp in Sources */,
 				0A5298581C522A9F0008A9FA /* ImgCompressorApple.cpp in Sources */,
 				0A5298591C522A9F0008A9FA /* ConnectionHandler.cpp in Sources */,
 				0A4A843E1C7A1C2D00556B01 /* Client.cpp in Sources */,
@@ -590,7 +601,7 @@
 				0A52985C1C522A9F0008A9FA /* TimerApple.cpp in Sources */,
 				0A294E2B1C58734400D4CC23 /* ImgCompressor.cpp in Sources */,
 				0A52985D1C522A9F0008A9FA /* Common.cpp in Sources */,
-				0A4A84441C7A1C5600556B01 /* AudioCapturer.cpp in Sources */,
+				0A4D15711CEFB3CC00F63A9B /* AudioCapturer.cpp in Sources */,
 				0A52985E1C522A9F0008A9FA /* Event.cpp in Sources */,
 				0A44AC351C58BCC0007809DA /* ZlibUtils.cpp in Sources */,
 				0A52985F1C522A9F0008A9FA /* FrameCapturer.cpp in Sources */,
@@ -603,7 +614,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0A4A84431C7A1C5600556B01 /* AudioCapturer.cpp in Sources */,
+				0A4D15701CEFB3CC00F63A9B /* AudioCapturer.cpp in Sources */,
 				0AE5B0EB1C44D95500155DB8 /* ImgCompressorApple.cpp in Sources */,
 				0A2973941C51FFB900A2F8F0 /* ConnectionHandler.cpp in Sources */,
 				0AE5B0EF1C44D95500155DB8 /* FrameCapturerGL.cpp in Sources */,
@@ -616,6 +627,7 @@
 				0A44AC341C58BCC0007809DA /* ZlibUtils.cpp in Sources */,
 				0A294E2A1C58734300D4CC23 /* ImgCompressor.cpp in Sources */,
 				0AE5B0E61C44D95500155DB8 /* Engine.cpp in Sources */,
+				0A4D15741CEFB3CC00F63A9B /* BaseEngine.cpp in Sources */,
 				0AE5B0EA1C44D95500155DB8 /* EngineApple.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

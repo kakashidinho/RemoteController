@@ -253,8 +253,6 @@ namespace HQRemote {
 	}
 
 	bool Engine::handleEventInternalImpl(const EventRef& event) {
-		bool handled = false;
-
 		//process internal event
 		switch (event->event.type) {
 		case START_SEND_FRAME:
