@@ -1,24 +1,14 @@
 #ifndef REMOTE_ENGINE_H
 #define REMOTE_ENGINE_H
 
-#include "../ConnectionHandler.h"//winsock2.h should be included before windows.h
+#include "../BaseEngine.h"//winsock2.h should be included before windows.h
 #include "../Common.h"
 #include "../Event.h"
 #include "../Timer.h"
 #include "FrameCapturer.h"
-#include "AudioCapturer.h"
 #include "ImgCompressor.h"
 
 #include <stdint.h>
-#include <functional>
-#include <list>
-#include <map>
-#include <mutex>
-#include <thread>
-#include <atomic>
-#include <memory>
-#include <string>
-#include <condition_variable>
 
 
 #if defined WIN32 || defined _MSC_VER
@@ -27,7 +17,7 @@
 #endif
 
 namespace HQRemote {
-	class HQREMOTE_API Engine {
+	class HQREMOTE_API Engine: public BaseEngine {
 	public:
 
 		Engine(int port,
@@ -42,31 +32,12 @@ namespace HQRemote {
 			   size_t frameBundleSize = 1);
 		~Engine();
 
-		bool connected() const {
-			return m_connHandler->connected();
-		}
-		std::shared_ptr<const CString> getConnectionInternalError() const{
-			return m_connHandler->getInternalErrorMsg();
-		}
-
 		//capture current frame and send to remote controller
 		void captureAndSendFrame();
-		ConstEventRef getEvent();
 
-		void sendEvent(const PlainEvent& event);
-		void sendEventUnreliable(const PlainEvent& event);
-		void sendEvent(const ConstEventRef& event);
-		void sendEventUnreliable(const ConstEventRef& event);
-
-		bool start();
-		void stop();
-
-		//audio streaming
-		//TODO: only support 16 bit PCM, and sample rate (8000, 12000, 16000, 24000, or 48000) for now
-		void captureAndSendAudio();
+		virtual bool start(bool preprocessEventAsync = false) override;
+		virtual void stop() override;
 	private:
-		class AudioEncoder;
-
 		void platformConstruct();
 		void platformDestruct();
 		std::string platformGetWritableFolder();
@@ -77,18 +48,14 @@ namespace HQRemote {
 		void platformRecordFrame(double t, ConstDataRef frame);
 		void platformEndRecording();
 
-		EventRef handleEventInternal(const EventRef& event);
+		virtual bool handleEventInternalImpl(const EventRef& event) override;
 		void sendHostInfo();
-		void sendAudioInfo();
 
 		void frameCompressionProc();
 		void frameBundleProc();
 		void frameSendingProc();
 		void videoRecordingProc();
 		void frameSavingProc();
-		void audioSendingProc();
-		
-		void updateAudioSettingsIfNeeded();
 		
 		void pushCompressedFrameForBundling(const FrameEventRef& frame);
 		void pushFrameDataForSending(uint64_t id, const DataRef& data);
@@ -96,9 +63,7 @@ namespace HQRemote {
 		void debugFrame(uint64_t id, const void* data, size_t size);
 
 		std::shared_ptr<IFrameCapturer> m_frameCapturer;
-		std::shared_ptr<IAudioCapturer> m_audioCapturer;
 		std::shared_ptr<IImgCompressor> m_imgCompressor;
-		std::shared_ptr<IConnectionHandler> m_connHandler;
 
 		//frame compression & sending thread
 		typedef std::shared_ptr<CompressedEvents::EventList> FrameBundleRef;
@@ -124,15 +89,6 @@ namespace HQRemote {
 		double m_frameCaptureInterval;
 		double m_intendedFrameInterval;
 		std::atomic<bool> m_sendFrame;
-		
-		//audio thread
-		std::mutex m_audioLock;
-		std::condition_variable m_audioCv;
-		std::unique_ptr<std::thread> m_audioThread;
-		std::shared_ptr<AudioEncoder> m_audioEncoder;
-		std::list<ConstDataRef> m_audioRawPackets;
-
-		uint64_t m_sentAudioPackets;
 
 		//video recording thread
 		std::map<time_checkpoint_t, ConstDataRef, TimeCompare> m_capturedFramesForVideo;
@@ -149,8 +105,6 @@ namespace HQRemote {
 		
 		//
 		std::atomic<bool> m_saveNextFrame;
-		
-		std::atomic<bool> m_running;
 
 		//platform dependent
 		struct Impl;

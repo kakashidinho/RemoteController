@@ -231,9 +231,6 @@
     <ClCompile Include="..\Client\Client.cpp">
       <Filter>Source Files\Client</Filter>
     </ClCompile>
-    <ClCompile Include="AudioCapturer.cpp">
-      <Filter>Source Files\Server</Filter>
-    </ClCompile>
     <ClCompile Include="..\linux\ConnectionHandlerLinux.cpp">
       <Filter>Source Files\Common\linux</Filter>
     </ClCompile>
@@ -242,6 +239,12 @@
     </ClCompile>
     <ClCompile Include="..\apple\ConnectionHandlerApple.cpp">
       <Filter>Source Files\Common\mac</Filter>
+    </ClCompile>
+    <ClCompile Include="..\BaseEngine.cpp">
+      <Filter>Source Files\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\AudioCapturer.cpp">
+      <Filter>Source Files\Common</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -317,8 +320,11 @@
     <ClInclude Include="..\Client\Client.h">
       <Filter>Source Files\Client</Filter>
     </ClInclude>
-    <ClInclude Include="AudioCapturer.h">
-      <Filter>Source Files\Server</Filter>
+    <ClInclude Include="..\BaseEngine.h">
+      <Filter>Source Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\AudioCapturer.h">
+      <Filter>Source Files\Common</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

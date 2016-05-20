@@ -186,6 +186,8 @@ call ../touch.bat "$(OutDir)$(TargetName).lib"</Command>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\AudioCapturer.cpp" />
+    <ClCompile Include="..\BaseEngine.cpp" />
     <ClCompile Include="..\Client\Client.cpp" />
     <ClCompile Include="..\Common.cpp" />
     <ClCompile Include="..\ConnectionHandler.cpp" />
@@ -219,7 +221,6 @@ call ../touch.bat "$(OutDir)$(TargetName).lib"</Command>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="AudioCapturer.cpp" />
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="FrameCapturer.cpp" />
     <ClCompile Include="FrameCapturerGL.cpp" />
@@ -267,6 +268,8 @@ call ../touch.bat "$(OutDir)$(TargetName).lib"</Command>
     <ClCompile Include="..\third-party\jpeg-9a\jchuff.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\AudioCapturer.h" />
+    <ClInclude Include="..\BaseEngine.h" />
     <ClInclude Include="..\Client\Client.h" />
     <ClInclude Include="..\Common.h" />
     <ClInclude Include="..\ConnectionHandler.h" />
@@ -287,7 +290,6 @@ call ../touch.bat "$(OutDir)$(TargetName).lib"</Command>
     <ClInclude Include="..\third-party\jpeg-9a\jversion.h" />
     <ClInclude Include="..\Timer.h" />
     <ClInclude Include="..\ZlibUtils.h" />
-    <ClInclude Include="AudioCapturer.h" />
     <ClInclude Include="Engine.h" />
     <ClInclude Include="FrameCapturer.h" />
     <ClInclude Include="FrameCapturerGL.h" />

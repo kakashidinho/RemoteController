@@ -1,8 +1,8 @@
 #ifndef REMOTE_AUDIO_CAPTURER_H
 #define REMOTE_AUDIO_CAPTURER_H
 
-#include "../Common.h"
-#include "../Data.h"
+#include "Common.h"
+#include "Data.h"
 
 #include <stdint.h>
 #include <memory>

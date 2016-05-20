@@ -21,8 +21,8 @@ namespace HQRemote {
 		TOUCH_ENDED,
 		TOUCH_CANCELLED,
 	
-		START_SEND_FRAME,
-		STOP_SEND_FRAME,
+		START_SEND_FRAME,//Tell host to start sending its captured frame & audio. Or tell client to start sending its captured audio
+		STOP_SEND_FRAME,//Tell host to stop sending its captured frame & audio. Or tell client to stop sending its captured audio
 		
 		RECORD_START,
 		RECORD_END,

@@ -25,44 +25,7 @@
 #	define min(a,b) ((a) < (b) ? (a) : (b))
 #endif
 
-#define MAX_PENDING_AUDIO_PACKETS 30
-#define DEFAULT_AUDIO_FRAME_SIZE_MS 20
-#define DEFAULT_AUDIO_FRAME_BUNDLE 3
-
 namespace HQRemote {
-	/*----- Engine::AudioEncoder ----*/
-	class Engine::AudioEncoder {
-	public:
-		AudioEncoder(int32_t sampleRate, int numChannels)
-			:m_sampleRate(sampleRate), m_numChannels(numChannels)
-		{
-			int error;
-
-			m_enc = opus_encoder_create(sampleRate, numChannels, OPUS_APPLICATION_AUDIO, &error);
-
-			if (error != OPUS_OK)
-			{
-				auto errorStr = opus_strerror(error);
-				throw std::runtime_error(errorStr);
-			}
-		}
-
-		~AudioEncoder() {
-			opus_encoder_destroy(m_enc);
-		}
-
-		operator OpusEncoder* () { return m_enc; }
-
-		int32_t getSampleRate() const { return m_sampleRate; }
-		int getNumChannels() const { return m_numChannels; }
-	private:
-		OpusEncoder* m_enc;
-
-		int32_t m_sampleRate;
-		int m_numChannels;
-	};
-
-
 	/*------------Engine -----------*/
 	Engine::Engine(int port,
 				   std::shared_ptr<IFrameCapturer> frameCapturer,
@@ -78,7 +41,7 @@ namespace HQRemote {
 				   std::shared_ptr<IAudioCapturer> audioCapturer,
 				   std::shared_ptr<IImgCompressor> imgCompressor,
 				   size_t frameBundleSize)
-		: m_connHandler(connHandler), m_frameCapturer(frameCapturer), m_audioCapturer(audioCapturer), m_imgCompressor(imgCompressor),
+		: BaseEngine(connHandler, audioCapturer), m_frameCapturer(frameCapturer), m_imgCompressor(imgCompressor),
 			m_processedCapturedFrames(0), m_lastSentFrameId(0), m_sendFrame(false),
 			m_frameBundleSize(frameBundleSize), m_firstCapturedFrameTime64(0), m_numCapturedFrames(0),
 			m_frameCaptureInterval(0), m_intendedFrameInterval(DEFAULT_FRAME_SEND_INTERVAL),
@@ -86,10 +49,6 @@ namespace HQRemote {
 	{
 		if (m_frameCapturer == nullptr) {
 			throw std::runtime_error("Null frame capturer is not allowed");
-		}
-		if (m_connHandler == nullptr)
-		{
-			throw std::runtime_error("Null connection handler is not allowed");
 		}
 
 		if (m_imgCompressor == nullptr)
@@ -105,11 +64,9 @@ namespace HQRemote {
 		platformDestruct();
 	}
 
-	bool Engine::start()
+	bool Engine::start(bool preprocessEventAsync)
 	{
-		stop();
-
-		if (!m_connHandler->start())
+		if (!BaseEngine::start(preprocessEventAsync))
 			return false;
 
 		m_capturedFramesForCompress.clear();
@@ -118,14 +75,11 @@ namespace HQRemote {
 		m_incompleteFrameBundles.clear();
 		m_frameBundles.clear();
 		m_sendingFrames.clear();
-		m_audioRawPackets.clear();
-		m_sentAudioPackets = 0;
 
 		m_frameCaptureInterval = m_intendedFrameInterval;
 		m_firstCapturedFrameTime64 = 0;
 		m_numCapturedFrames = 0;
 
-		m_running = true;
 		m_sendFrame = false;
 
 		//start background thread to send compressed frame to remote side
@@ -170,19 +124,12 @@ namespace HQRemote {
 			frameSavingProc();
 		}));
 
-		//start background thread to process audio and send to remote side
-		m_audioThread = std::unique_ptr<std::thread>(new std::thread([this] {
-			audioSendingProc();
-		}));
-
 		return true;
 	}
 
 	void Engine::stop()
 	{
-		m_running = false;
-
-		m_connHandler->stop();
+		BaseEngine::stop();
 
 		//wake up all threads
 		{
@@ -204,10 +151,6 @@ namespace HQRemote {
 		{
 			std::lock_guard<std::mutex> lg(m_screenshotLock);
 			m_screenshotCv.notify_all();
-		}
-		{
-			std::lock_guard<std::mutex> lg(m_audioLock);
-			m_audioCv.notify_all();
 		}
 
 		//join with all threads
@@ -234,10 +177,6 @@ namespace HQRemote {
 		if (m_screenshotThread && m_screenshotThread->joinable())
 			m_screenshotThread->join();
 		m_screenshotThread = nullptr;
-
-		if (m_audioThread && m_audioThread->joinable())
-			m_audioThread->join();
-		m_audioThread = nullptr;
 		
 #ifdef DEBUG
 		Log("Engine::stop() finished\n");
@@ -313,103 +252,16 @@ namespace HQRemote {
 		}
 	}
 
-	void Engine::updateAudioSettingsIfNeeded() {
-		auto sampleRate = m_audioCapturer->getAudioSampleRate();
-		auto numChannels = m_audioCapturer->getNumAudioChannels();
+	bool Engine::handleEventInternalImpl(const EventRef& event) {
+		bool handled = false;
 
-		if (m_audioEncoder && m_audioEncoder->getSampleRate() == sampleRate && m_audioEncoder->getNumChannels() == numChannels)
-			return ;
-
-		try {
-			//make sure we processed all pending audio data
-			std::lock_guard<std::mutex> lg(m_audioLock);
-
-			try {
-				m_audioRawPackets.clear();
-
-				m_audioCv.notify_all();
-			}
-			catch (...) {
-			}
-
-			//recreate new encoder
-			m_audioEncoder = std::make_shared<AudioEncoder>(sampleRate, numChannels);
-		}
-		catch (...) {
-			//TODO: print message
-			return;
-		}
-
-
-		//notify remote side about the audio settings
-		sendAudioInfo();
-	}
-
-	void Engine::captureAndSendAudio() {
-		if (!m_running || !m_audioCapturer)
-			return;
-
-		updateAudioSettingsIfNeeded();
-
-		if (!m_audioEncoder)
-			return;
-
-		auto pcmData = m_audioCapturer->beginCaptureAudio();
-		if (pcmData == nullptr)
-			return;
-
-		std::lock_guard<std::mutex> lg(m_audioLock);
-
-		try {
-			if (m_audioRawPackets.size() >= MAX_PENDING_AUDIO_PACKETS)
-				m_audioRawPackets.pop_front();
-
-			m_audioRawPackets.push_back(pcmData);
-
-			m_audioCv.notify_all();
-		}
-		catch (...) {
-		}
-	}
-
-	ConstEventRef Engine::getEvent() {
-		auto data = m_connHandler->receiveData();
-		if (data == nullptr)
-			return nullptr;
-
-		auto event = deserializeEvent(std::move(data));
-		if (event != nullptr) {
-			return handleEventInternal(event);
-		}
-
-		return event;
-	}
-
-	void Engine::sendEvent(const ConstEventRef& event) {
-		m_connHandler->sendData(*event);
-	}
-
-	void Engine::sendEventUnreliable(const ConstEventRef& event) {
-		m_connHandler->sendDataUnreliable(*event);
-	}
-
-	void Engine::sendEvent(const PlainEvent& event) {
-		m_connHandler->sendData(event);
-	}
-
-	void Engine::sendEventUnreliable(const PlainEvent& event)
-	{
-		m_connHandler->sendDataUnreliable(event);
-	}
-
-	EventRef Engine::handleEventInternal(const EventRef& event) {
 		//process internal event
 		switch (event->event.type) {
 		case START_SEND_FRAME:
-			m_sendFrame = true;
+			m_sendFrame = m_sendAudio = true;
 			break;
 		case STOP_SEND_FRAME:
-			m_sendFrame = false;
+			m_sendFrame = m_sendAudio = false;
 			break;
 		case RECORD_START:
 		{
@@ -444,37 +296,20 @@ namespace HQRemote {
 			m_firstCapturedFrameTime64 = 0;
 			m_numCapturedFrames = 0;
 		default:
-			//forward the event for users to process themselves
-			return event;
+			//forward the event to base class
+			return false;
 		}
-		return nullptr;
+		return true;
 	}
 
 	void Engine::sendHostInfo() {
-		sendAudioInfo();
+		sendCapturedAudioInfo();
 
-		auto event = std::make_shared<PlainEvent>(HOST_INFO);
-		event->event.hostInfo.width = m_frameCapturer->getFrameWidth();
-		event->event.hostInfo.height = m_frameCapturer->getFrameHeight();
+		PlainEvent eventWrapper(HOST_INFO);
+		eventWrapper.event.hostInfo.width = m_frameCapturer->getFrameWidth();
+		eventWrapper.event.hostInfo.height = m_frameCapturer->getFrameHeight();
 
-		m_connHandler->sendData(*event);
-	}
-
-	void Engine::sendAudioInfo() {
-		if (!m_audioCapturer)
-			return;
-
-		auto sampleRate = m_audioCapturer->getAudioSampleRate();
-		auto numChannels = m_audioCapturer->getNumAudioChannels();
-
-		//notify remote side about the audio settings
-		PlainEvent event(AUDIO_STREAM_INFO);
-		event.event.audioStreamInfo.sampleRate = sampleRate;
-		event.event.audioStreamInfo.numChannels = numChannels;
-		event.event.audioStreamInfo.framesBundleSize = DEFAULT_AUDIO_FRAME_BUNDLE;
-		event.event.audioStreamInfo.frameSizeMs = DEFAULT_AUDIO_FRAME_SIZE_MS;
-
-		sendEvent(event);
+		sendEvent(eventWrapper);
 	}
 
 	void Engine::frameCompressionProc() {
@@ -577,10 +412,10 @@ namespace HQRemote {
 							//send frame interval
 							PlainEvent frameIntervalEvent(FRAME_INTERVAL);
 							frameIntervalEvent.event.frameInterval = m_frameCaptureInterval;
-							m_connHandler->sendDataUnreliable(frameIntervalEvent);
+							sendEventUnreliable(frameIntervalEvent);
 						}
 						
-						m_connHandler->sendDataUnreliable(frame);
+						getConnHandler()->sendDataUnreliable(frame);
 
 						m_lastSentFrameId = frameId;
 					}//if (m_sendFrame)
@@ -789,123 +624,5 @@ namespace HQRemote {
 				}//if (compressedFrame != nullptr)
 			}//if (m_capturedFramesForSave() > 0)
 		}//while (m_running)
-	}
-
-	void Engine::audioSendingProc() {
-		//TODO: we support only 16 bit PCM for now
-		SetCurrentThreadName("audioSendingProc");
-
-		//TODO: some frame size may not work in opus_encode
-		size_t batchIdealSamplesPerChannel = 480 * 2;
-		size_t batchIdealSize = 0;
-		std::vector<opus_int16> batchBuffers[2];
-		int nextBatchBufferIdx = 0;
-		auto batchEncodeBuffer = std::make_shared<GrowableData>(batchIdealSamplesPerChannel * 2);
-		batchBuffers[0].reserve(batchIdealSamplesPerChannel * 2);
-		batchBuffers[1].reserve(batchIdealSamplesPerChannel * 2);
-
-#if DEFAULT_AUDIO_FRAME_BUNDLE > 1
-		std::list<EventRef> packetsBundle;
-#endif
-
-		while (m_running) {
-			std::unique_lock<std::mutex> lk(m_audioLock);
-
-			//wait until we have at least one captured frame
-			m_audioCv.wait(lk, [this] {return !(m_running && m_audioRawPackets.size() == 0); });
-
-			if (m_audioRawPackets.size() > 0) {
-				auto audioEncoder = m_audioEncoder;
-				auto rawPacket = m_audioRawPackets.front();
-				m_audioRawPackets.pop_front();
-				lk.unlock();
-
-				if (audioEncoder != nullptr && m_sendFrame) {
-					auto &batchBuffer = batchBuffers[nextBatchBufferIdx];
-					auto totalRawSamples = rawPacket->size() / sizeof(opus_int16);
-					auto numRawSamplesPerChannel = totalRawSamples / audioEncoder->getNumChannels();
-					size_t currentBatchSamplesPerChannel = batchBuffer.size() / audioEncoder->getNumChannels();
-					auto raw_samples = (opus_int16*)rawPacket->data();
-
-					//frame size ideally should be 20ms
-					batchIdealSamplesPerChannel = audioEncoder->getSampleRate() * DEFAULT_AUDIO_FRAME_SIZE_MS / 1000;
-					batchIdealSize = batchIdealSamplesPerChannel * sizeof(opus_int16) * audioEncoder->getNumChannels();
-
-					if (batchIdealSize > batchEncodeBuffer->size())
-					{
-						batchEncodeBuffer->expand(batchIdealSize - batchEncodeBuffer->size());
-					}
-
-					try {
-						batchBuffer.insert(batchBuffer.end(), raw_samples, raw_samples + totalRawSamples);
-
-						currentBatchSamplesPerChannel += numRawSamplesPerChannel;
-					}
-					catch (...) {
-						//TODO
-					}
-
-					size_t batchBufferOffset = 0;
-					int packet_len = 0;
-
-					while (currentBatchSamplesPerChannel >= batchIdealSamplesPerChannel && packet_len >= 0) {
-						auto input = batchBuffer.data() + batchBufferOffset;
-						auto output = batchEncodeBuffer->data();
-						auto outputMaxSize = batchEncodeBuffer->size();
-
-						packet_len = opus_encode(*audioEncoder,
-											input, batchIdealSamplesPerChannel,
-											output, outputMaxSize);
-
-						if (packet_len > 0) {
-							//send to client
-							ConstDataRef packet = std::make_shared<DataSegment>(batchEncodeBuffer, 0, packet_len);
-							auto packetId = m_sentAudioPackets++;
-#if DEFAULT_AUDIO_FRAME_BUNDLE > 1
-							auto audioPacketEvent = std::make_shared<FrameEvent>(packet, packetId, AUDIO_ENCODED_PACKET);
-							packetsBundle.push_back(audioPacketEvent);
-							if (packetsBundle.size() == DEFAULT_AUDIO_FRAME_BUNDLE)
-							{
-								CompressedEvents bundleEvent(-1, packetsBundle);
-								sendEventUnreliable(bundleEvent);
-
-								packetsBundle.clear();
-							}
-#else//DEFAULT_AUDIO_FRAME_BUNDLE > 1
-							FrameEvent audioPacketEvent(packet, packetId, AUDIO_ENCODED_PACKET);
-							sendEventUnreliable(audioPacketEvent);
-#endif//DEFAULT_AUDIO_FRAME_BUNDLE > 1
-
-							//store the remaining unencoded samples
-							size_t encoded_samples_per_channel = opus_packet_get_samples_per_frame(output, audioEncoder->getSampleRate()) * opus_packet_get_nb_frames(output, packet_len);
-
-							if (encoded_samples_per_channel <= currentBatchSamplesPerChannel)
-								currentBatchSamplesPerChannel -= encoded_samples_per_channel;
-							else
-								currentBatchSamplesPerChannel = 0;
-
-							batchBufferOffset += encoded_samples_per_channel * audioEncoder->getNumChannels();
-
-#if 0
-							char buf[1024];
-							sprintf(buf, "sent packet id=%llu\n", packetId);
-							OutputDebugStringA(buf);
-#endif
-						}//if (packet_len > 0)
-					}//while (currentBatchSamplesPerChannel >= batchIdealSamplesPerChannel)
-
-					if (currentBatchSamplesPerChannel > 0)
-					{
-						nextBatchBufferIdx = (nextBatchBufferIdx + 1) % 2;
-						auto& nextBatchBuffer = batchBuffers[nextBatchBufferIdx];
-						nextBatchBuffer.clear();
-						nextBatchBuffer.insert(nextBatchBuffer.begin(), batchBuffer.begin() + batchBufferOffset, batchBuffer.end());
-					}
-
-					batchBuffer.clear();
-				}//if (m_audioEncoder != nullptr)
-			}//if (m_audioRawPackets.size() > 0)
-		}//while (m_running)
-
 	}
 }
