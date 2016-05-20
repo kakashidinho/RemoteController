@@ -483,20 +483,28 @@ namespace HQRemote {
 			auto sampleRate = event.audioStreamInfo.sampleRate;
 			auto numChannels = event.audioStreamInfo.numChannels;
 			auto frameSizeMs = event.audioStreamInfo.frameSizeMs;
+			auto frameSizeSeconds = frameSizeMs / 1000.f;
 			auto framesBundleSize = event.audioStreamInfo.framesBundleSize;
 
 			try {
-				//make sure we processed all pending audio data
-				std::lock_guard<std::mutex> lg2(m_audioDecodedPacketsLock);//lock decoded packets queue
+				if (m_audioDecoder == nullptr ||
+					m_audioDecoder->getSampleRate() != sampleRate ||
+					m_audioDecoder->getNumChannels() != numChannels ||
+					m_audioDecoder->remoteFrameSizeSeconds != frameSizeSeconds ||
+					m_audioDecoder->remoteFramesBundleSize != framesBundleSize)
+				{
+					//make sure we processed all pending audio data
+					std::lock_guard<std::mutex> lg2(m_audioDecodedPacketsLock);//lock decoded packets queue
 
-				m_audioDecodedPackets.clear();
+					m_audioDecodedPackets.clear();
 
-				flushEncodedAudioPackets();
+					flushEncodedAudioPackets();
 
-				//recreate new encoder
-				m_audioDecoder = std::make_shared<AudioDecoder>(sampleRate, numChannels);
-				m_audioDecoder->remoteFrameSizeSeconds = frameSizeMs / 1000.f;
-				m_audioDecoder->remoteFramesBundleSize = framesBundleSize;
+					//recreate new encoder
+					m_audioDecoder = std::make_shared<AudioDecoder>(sampleRate, numChannels);
+					m_audioDecoder->remoteFrameSizeSeconds = frameSizeSeconds;
+					m_audioDecoder->remoteFramesBundleSize = framesBundleSize;
+				}
 			}
 			catch (...) {
 				//TODO: print error message
