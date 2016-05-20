@@ -346,7 +346,7 @@ namespace HQRemote {
 
 	void BaseEngine::flushEncodedAudioPackets() {
 		//clear all pending packets for decoding and pending packets from network
-		std::lock_guard<std::mutex> lg(m_audioEncodedPacketsLock);
+		std::unique_lock<std::mutex> packet_lg(m_audioEncodedPacketsLock);
 
 		if (m_audioEncodedPackets.size()) {
 			TimedDataQueue::iterator ite = m_audioEncodedPackets.end();
@@ -361,7 +361,9 @@ namespace HQRemote {
 		}
 
 		//prevent data polling thread from polling further data
-		bool locked = m_dataPollingLock.try_lock();
+		bool locked = m_dataPollingLock.try_lock();//TODO: use guaranteed lock instead of try_lock. perhap using connHandler to wake up the polling thread
+		packet_lg.unlock();
+		
 		tryRecvEvent(AUDIO_ENCODED_PACKET, true);
 		if (locked)
 			m_dataPollingLock.unlock();
