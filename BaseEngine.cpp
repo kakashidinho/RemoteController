@@ -496,10 +496,12 @@ namespace HQRemote {
 					m_audioDecoder->remoteFramesBundleSize != framesBundleSize)
 				{
 					//make sure we processed all pending audio data
-					std::lock_guard<std::mutex> lg2(m_audioDecodedPacketsLock);//lock decoded packets queue
+					{
+						std::lock_guard<std::mutex> lg2(m_audioDecodedPacketsLock);//lock decoded packets queue
 
-					m_audioDecodedPackets.clear();
-
+						m_audioDecodedPackets.clear();
+					}
+					
 					flushEncodedAudioPackets();
 
 					//recreate new encoder
