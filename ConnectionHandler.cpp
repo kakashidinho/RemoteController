@@ -409,8 +409,24 @@ namespace HQRemote {
 		getTimeCheckPoint(m_lastRecvTime);
 		m_numLastestDataReceived = 0;
 		m_recvRate = 0;
+
+		//invoke callback> TODO: don't allow unregisterConnectedCallback() to be called inside callback
+		for (auto& callback : m_delegates) {
+			callback->onConnected();
+		}
 	}
 	
+	void IConnectionHandler::registerDelegate(Delegate* d) {
+		if (d)
+			m_delegates.insert(d);
+	}
+
+	void IConnectionHandler::unregisterDelegate(Delegate* d) {
+		auto ite = m_delegates.find(d);
+		if (ite != m_delegates.end())
+			m_delegates.erase(ite);
+	}
+
 	//return data to user
 	DataRef IConnectionHandler::receiveData()
 	{

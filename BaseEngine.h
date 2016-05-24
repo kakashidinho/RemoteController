@@ -18,7 +18,7 @@
 #endif
 
 namespace HQRemote {
-	class HQREMOTE_API BaseEngine {
+	class HQREMOTE_API BaseEngine: public IConnectionHandler::Delegate {
 	public:
 		BaseEngine(std::shared_ptr<IConnectionHandler> connHandler, std::shared_ptr<IAudioCapturer> audioCapturer = nullptr);
 		virtual ~BaseEngine();
@@ -80,6 +80,8 @@ namespace HQRemote {
 		class AudioDecoder;
 		class AudioEncoder;
 
+		virtual void onConnected() override;
+
 		void handleAsyncTaskProc();
 		void audioProcessingProc();
 		void dataPollingProc();
@@ -91,6 +93,14 @@ namespace HQRemote {
 		void updateCapturedAudioSettingsIfNeeded();
 
 		typedef std::list<ConstFrameEventRef> AudioQueue;
+		struct RawAudioData {
+			RawAudioData(uint64_t _id, const ConstDataRef& _data)
+				: id(_id), data(_data) 
+			{}
+
+			uint64_t id;
+			ConstDataRef data;
+		};
 
 		std::shared_ptr<IConnectionHandler> m_connHandler;
 		std::shared_ptr<IAudioCapturer> m_audioCapturer;
@@ -129,9 +139,9 @@ namespace HQRemote {
 		std::condition_variable m_audioSndCv;
 		std::unique_ptr<std::thread> m_audioSndThread;
 		std::shared_ptr<AudioEncoder> m_audioEncoder;
-		std::list<ConstDataRef> m_audioRawPackets;
+		std::list<RawAudioData> m_audioRawPackets;
 
-		uint64_t m_sentAudioPackets;
+		uint64_t m_totalSentAudioPackets;
 	};
 }
 

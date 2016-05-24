@@ -18,6 +18,7 @@
 
 #include <string>
 #include <map>
+#include <set>
 #include <list>
 #include <vector>
 #include <functional>
@@ -27,16 +28,16 @@
 #include <memory>
 #include <condition_variable>
 
+#if defined WIN32 || defined _MSC_VER
+#	pragma warning(push)
+#	pragma warning(disable:4251)
+#endif
+
 namespace HQRemote {
 #ifdef WIN32
 	typedef SOCKET socket_t;
 #else
 	typedef int socket_t;
-#endif
-
-#if defined WIN32 || defined _MSC_VER
-#	pragma warning(push)
-#	pragma warning(disable:4251)
 #endif
 
 	struct HQREMOTE_API ConnectionEndpoint {
@@ -47,10 +48,15 @@ namespace HQRemote {
 		CString address;
 		int port;
 	};
-	
+
 	//interface
 	class HQREMOTE_API IConnectionHandler {
 	public:
+		class Delegate {
+		public:
+			virtual void onConnected() = 0;
+		};
+
 		virtual ~IConnectionHandler();
 
 		bool start();
@@ -77,6 +83,9 @@ namespace HQRemote {
 		{
 			return m_internalError;
 		}
+
+		void registerDelegate(Delegate* delegate);
+		void unregisterDelegate(Delegate* delegate);
 		
 	protected:
 		IConnectionHandler();
@@ -127,6 +136,8 @@ namespace HQRemote {
 		time_checkpoint_t m_lastRecvTime;
 		size_t m_numLastestDataReceived;
 		std::atomic<float> m_recvRate;
+
+		std::set<Delegate*> m_delegates;
 		
 		time_checkpoint_t m_startTime;
 	};
@@ -264,10 +275,10 @@ namespace HQRemote {
 		
 		ConnectionEndpoint m_remoteEndpoint;//reliable endpoint
 	};
+}
 
 #if defined WIN32 || defined _MSC_VER
 #	pragma warning(pop)
 #endif
-}
 
 #endif

@@ -118,9 +118,12 @@ namespace HQRemote {
 		{
 			throw std::runtime_error("Null connection handler is not allowed");
 		}
+
+		m_connHandler->registerDelegate(this);
 	}
 
 	BaseEngine::~BaseEngine() {
+		m_connHandler->unregisterDelegate(this);
 	}
 
 	void BaseEngine::sendEvent(const ConstEventRef& event) {
@@ -143,25 +146,21 @@ namespace HQRemote {
 	bool BaseEngine::start(bool preprocessEventAsync) {
 		stop();
 
-		if (!m_connHandler->start())
-			return false;
-
 		m_running = true;
 		m_sendAudio = false;
-
-		m_lastDecodedAudioPacketId = 0;
-		m_totalRecvAudioPackets = 0;
-		m_audioDecodedBufferInitSize = 0;
-		m_lastQueriedAudioTime64 = 0;
-		m_lastQueriedAudioPacketId = 0;
 
 		m_eventQueue.clear();
 		m_audioEncodedPackets.clear();
 		m_audioDecodedPackets.clear();
 
-		m_audioRawPackets.clear();
-		m_sentAudioPackets = 0;
+		m_audioDecodedBufferInitSize = 0;
+		m_lastQueriedAudioTime64 = 0;
+		m_lastQueriedAudioPacketId = 0;
 
+		m_audioRawPackets.clear();
+
+		if (!m_connHandler->start())
+			return false;
 
 		if (preprocessEventAsync)
 		{
@@ -243,6 +242,17 @@ namespace HQRemote {
 #ifdef DEBUG
 		Log("BaseEngine::stop() finished\n");
 #endif
+	}
+
+	void BaseEngine::onConnected() {
+		//reset counters
+		std::unique_lock<std::mutex> packet_lg(m_audioEncodedPacketsLock);//guard m_totalRecvAudioPackets && m_totalRecvAudioPackets
+
+		m_lastDecodedAudioPacketId = 0;
+
+		m_totalRecvAudioPackets = 0;
+
+		m_totalSentAudioPackets = 0;
 	}
 
 	void BaseEngine::tryRecvEvent(EventType eventToDiscard, bool consumeAllAvailableData) {
@@ -451,7 +461,9 @@ namespace HQRemote {
 			if (m_audioRawPackets.size() >= MAX_PENDING_SND_AUDIO_PACKETS)
 				m_audioRawPackets.pop_front();
 
-			m_audioRawPackets.push_back(pcmData);
+			auto packetId = m_totalSentAudioPackets++;
+
+			m_audioRawPackets.push_back(RawAudioData(packetId, pcmData));
 
 			m_audioSndCv.notify_all();
 		}
@@ -504,7 +516,7 @@ namespace HQRemote {
 					
 					flushEncodedAudioPackets();
 
-					//recreate new encoder
+					//recreate new decoder
 					m_audioDecoder = std::make_shared<AudioDecoder>(sampleRate, numChannels);
 					m_audioDecoder->remoteFrameSizeSeconds = frameSizeSeconds;
 					m_audioDecoder->remoteFramesBundleSize = framesBundleSize;
@@ -736,7 +748,9 @@ namespace HQRemote {
 
 			if (m_audioRawPackets.size() > 0) {
 				auto audioEncoder = m_audioEncoder;
-				auto rawPacket = m_audioRawPackets.front();
+				auto& rawData = m_audioRawPackets.front();
+				auto packetId = rawData.id;
+				auto rawPacket = rawData.data;
 				m_audioRawPackets.pop_front();
 				lk.unlock();
 
@@ -780,7 +794,6 @@ namespace HQRemote {
 						if (packet_len > 0) {
 							//send to client
 							ConstDataRef packet = std::make_shared<DataSegment>(batchEncodeBuffer, 0, packet_len);
-							auto packetId = m_sentAudioPackets++;
 #if DEFAULT_SND_AUDIO_FRAME_BUNDLE > 1
 							auto audioPacketEvent = std::make_shared<FrameEvent>(packet, packetId, AUDIO_ENCODED_PACKET);
 							packetsBundle.push_back(audioPacketEvent);
