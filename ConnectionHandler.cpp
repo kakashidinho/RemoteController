@@ -459,7 +459,7 @@ namespace HQRemote {
 			auto &dataEntry = m_dataQueue.front();
 
 			auto re = dataEntry.data;
-			isReliable = isReliable;
+			isReliable = dataEntry.isReliable;
 
 			m_dataQueue.pop_front();
 			return re;
