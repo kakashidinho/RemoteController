@@ -129,8 +129,6 @@ namespace HQRemote {
 		}
 			break;
 		case START_SEND_FRAME:
-			sendCapturedAudioInfo();//send our captured audio info to host (format, channels, etc)
-
 			//start sending captured audio
 			m_sendAudio = true;
 

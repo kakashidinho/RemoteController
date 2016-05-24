@@ -58,6 +58,7 @@ namespace HQRemote {
 		//audio streaming
 		//TODO: only support 16 bit PCM, and sample rate (8000, 12000, 16000, 24000, or 48000) for now
 		void captureAndSendAudio();
+		void sendCapturedAudioInfo();//send captured audio info (i.e. sample rate, channels, etc) to remote side
 
 	protected:
 		typedef std::map<uint64_t, ConstFrameEventRef> TimedDataQueue;
@@ -65,12 +66,12 @@ namespace HQRemote {
 		IConnectionHandler* getConnHandler() { return m_connHandler.get(); }
 		const std::thread* getDataPollingThread() { return m_dataPollingThread.get(); }
 
-		void sendCapturedAudioInfo();
-
 		void tryRecvEvent(EventType eventToDiscard = NO_EVENT, bool consumeAllAvailableData = false);//try to parse & process the received data if available 
-		void handleEventInternal(const DataRef& data, EventType eventToDiscard);
+		void handleEventInternal(const DataRef& data, bool isReliable, EventType eventToDiscard);
 		void handleEventInternal(const EventRef& event);
 		virtual bool handleEventInternalImpl(const EventRef& event) = 0;//subclass should implement this, return false to let base class handle the event itself
+
+		void pushEvent(const EventRef& eventRef);
 
 		void runAsync(std::function<void()> task);
 

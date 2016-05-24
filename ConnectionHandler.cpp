@@ -318,7 +318,7 @@ namespace HQRemote {
 					if (m_reliableBuffer.data->size() == m_reliableBuffer.filledSize)//full
 					{
 						//copy message's data to queue for user to read
-						pushDataToQueue(m_reliableBuffer.data, false);
+						pushDataToQueue(m_reliableBuffer.data, true, false);
 						
 						m_reliableBufferState = READ_NEXT_MESSAGE_SIZE;//waiting for next message
 						m_reliableBuffer.data = nullptr;
@@ -379,7 +379,7 @@ namespace HQRemote {
 						
 						//message is complete, push to data queue for comsuming
 						if (buffer.filledSize >= buffer.data->size()) {
-							pushDataToQueue(buffer.data, true);
+							pushDataToQueue(buffer.data, false, true);
 							
 							//remove from pending list
 							m_unreliableBuffers.erase(pendingBufIte);
@@ -428,14 +428,18 @@ namespace HQRemote {
 	}
 
 	//return data to user
-	DataRef IConnectionHandler::receiveData()
+	DataRef IConnectionHandler::receiveData(bool &isReliable)
 	{
 		DataRef data = nullptr;
 		
 		if (m_dataLock.try_lock()){
 			if (m_dataQueue.size() > 0)
 			{
-				data = m_dataQueue.front();
+				auto &dataEntry = m_dataQueue.front();
+				
+				data = dataEntry.data;
+				isReliable = dataEntry.isReliable;
+
 				m_dataQueue.pop_front();
 			}
 			
@@ -445,21 +449,25 @@ namespace HQRemote {
 		return data;
 	}
 	
-	DataRef IConnectionHandler::receiveDataBlock() {
+	DataRef IConnectionHandler::receiveDataBlock(bool &isReliable) {
 		std::unique_lock<std::mutex> lk(m_dataLock);
 		
 		m_dataCv.wait(lk, [this] { return !m_running || m_dataQueue.size() > 0; });
 		
 		if (m_dataQueue.size())
 		{
-			auto re = m_dataQueue.front();
+			auto &dataEntry = m_dataQueue.front();
+
+			auto re = dataEntry.data;
+			isReliable = isReliable;
+
 			m_dataQueue.pop_front();
 			return re;
 		}
 		return nullptr;
 	}
 	
-	void IConnectionHandler::pushDataToQueue(DataRef data, bool discardIfFull) {
+	void IConnectionHandler::pushDataToQueue(DataRef data, bool reliable, bool discardIfFull) {
 		std::lock_guard<std::mutex> lg(m_dataLock);
 		
 		//calculate data rate
@@ -488,7 +496,7 @@ namespace HQRemote {
 			return;//ignore
 		}
 		
-		m_dataQueue.push_back(data);
+		m_dataQueue.push_back(ReceivedData(data, reliable));
 		
 		m_dataCv.notify_all();
 	}

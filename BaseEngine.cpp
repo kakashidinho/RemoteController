@@ -257,12 +257,12 @@ namespace HQRemote {
 
 	void BaseEngine::tryRecvEvent(EventType eventToDiscard, bool consumeAllAvailableData) {
 		DataRef data = nullptr;
-
+		bool isReliable;
 		do {
-			data = m_connHandler->receiveData();
+			data = m_connHandler->receiveData(isReliable);
 			if (data != nullptr)
 			{
-				handleEventInternal(data, eventToDiscard);
+				handleEventInternal(data, isReliable, eventToDiscard);
 			}//if (data != nullptr)
 		} while (consumeAllAvailableData && data != nullptr);
 	}
@@ -471,17 +471,23 @@ namespace HQRemote {
 		}
 	}
 
-	void BaseEngine::handleEventInternal(const DataRef& data, EventType eventToDiscard) {
+	void BaseEngine::handleEventInternal(const DataRef& data, bool isReliable, EventType eventToDiscard) {
 		auto eventType = peekEventType(data);
 
 		if (eventToDiscard != eventType) {
-			runAsync([=] {
+			auto handler = [=] {
 				auto _data = data;
 				auto event = deserializeEvent(std::move(_data));
 				if (event != nullptr) {
 					handleEventInternal(event);
 				}
-			});
+			};
+
+			//if this is reliable event, we should handle it immediately to retain the order of arrival
+			if (isReliable)
+				handler();
+			else
+				runAsync(handler);
 		}//if (eventToDiscard != eventType)
 	}
 
@@ -525,6 +531,9 @@ namespace HQRemote {
 			catch (...) {
 				//TODO: print error message
 			}
+
+			//forward the event to user
+			pushEvent(eventRef);
 		}
 		break;//AUDIO_STREAM_INFO
 		case AUDIO_ENCODED_PACKET:
@@ -566,16 +575,22 @@ namespace HQRemote {
 		default:
 		{
 			//generic envent is forwarded to user
-			std::lock_guard<std::mutex> lg(m_eventLock);
-			try {
-				m_eventQueue.push_back(eventRef);
-			}
-			catch (...) {
-				//TODO
-			}
+			pushEvent(eventRef);
 		}
 		break;
 		}//switch (event.type)
+	}
+
+	void BaseEngine::pushEvent(const EventRef& eventRef)
+	{
+		//envent is forwarded to user
+		std::lock_guard<std::mutex> lg(m_eventLock);
+		try {
+			m_eventQueue.push_back(eventRef);
+		}
+		catch (...) {
+			//TODO
+		}
 	}
 
 	void BaseEngine::runAsync(std::function<void()> task) {
@@ -716,10 +731,11 @@ namespace HQRemote {
 
 		while (m_running) {
 			m_dataPollingLock.lock();
-			auto data = m_connHandler->receiveDataBlock();
+			bool isReliable;
+			auto data = m_connHandler->receiveDataBlock(isReliable);
 			m_dataPollingLock.unlock();
 			if (data)
-				handleEventInternal(data, NO_EVENT);
+				handleEventInternal(data, isReliable, NO_EVENT);
 		}//while (m_running)
 	}
 

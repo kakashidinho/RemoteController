@@ -67,8 +67,8 @@ namespace HQRemote {
 		virtual bool connected() const = 0;
 
 		//return obtained data to user
-		DataRef receiveData();
-		DataRef receiveDataBlock();//this function will block until there is some data available
+		DataRef receiveData(bool &isReliable);
+		DataRef receiveDataBlock(bool &isReliable);//this function will block until there is some data available
 
 		void sendData(ConstDataRef data);
 		void sendDataUnreliable(ConstDataRef data);
@@ -118,18 +118,27 @@ namespace HQRemote {
 		std::atomic<bool> m_running;
 		
 	private:
+		struct ReceivedData {
+			ReceivedData(const DataRef& _data, bool reliable)
+				:data(_data), isReliable(reliable)
+			{}
+
+			DataRef data;
+			bool isReliable;
+		};
+
 		void sendRawDataAtomic(const void* data, size_t size);
 		void fillReliableBuffer(const void* &data, size_t& size);
 		void invalidateUnusedReliableData();
 		
-		void pushDataToQueue(DataRef data, bool discardIfFull);
+		void pushDataToQueue(DataRef data, bool reliable, bool discardIfFull);
 		
 		std::shared_ptr<CString> m_internalError;
 		
 		int m_reliableBufferState;
 		MsgBuf m_reliableBuffer;
 		std::map<uint64_t, MsgBuf> m_unreliableBuffers;
-		std::list<DataRef> m_dataQueue;
+		std::list<ReceivedData> m_dataQueue;
 		std::mutex m_dataLock;
 		std::condition_variable m_dataCv;
 		
