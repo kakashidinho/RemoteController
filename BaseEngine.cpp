@@ -246,13 +246,14 @@ namespace HQRemote {
 
 	void BaseEngine::onConnected() {
 		//reset counters
-		std::unique_lock<std::mutex> packet_lg(m_audioEncodedPacketsLock);//guard m_totalRecvAudioPackets && m_totalRecvAudioPackets
+		std::unique_lock<std::mutex> rcv_packet_lg(m_audioEncodedPacketsLock);//guard m_totalRecvAudioPackets && m_totalRecvAudioPackets 
+		std::unique_lock<std::mutex> snd_packet_lg(m_audioSndLock);//guard m_totalSentAudioPacketsCounterReset
 
 		m_lastDecodedAudioPacketId = 0;
 
 		m_totalRecvAudioPackets = 0;
 
-		m_totalSentAudioPackets = 0;
+		m_totalSentAudioPacketsCounterReset = true;
 	}
 
 	void BaseEngine::tryRecvEvent(EventType eventToDiscard, bool consumeAllAvailableData) {
@@ -461,9 +462,7 @@ namespace HQRemote {
 			if (m_audioRawPackets.size() >= MAX_PENDING_SND_AUDIO_PACKETS)
 				m_audioRawPackets.pop_front();
 
-			auto packetId = m_totalSentAudioPackets++;
-
-			m_audioRawPackets.push_back(RawAudioData(packetId, pcmData));
+			m_audioRawPackets.push_back(pcmData);
 
 			m_audioSndCv.notify_all();
 		}
@@ -765,9 +764,16 @@ namespace HQRemote {
 			if (m_audioRawPackets.size() > 0) {
 				auto audioEncoder = m_audioEncoder;
 				auto& rawData = m_audioRawPackets.front();
-				auto packetId = rawData.id;
-				auto rawPacket = rawData.data;
+				auto rawPacket = rawData;
 				m_audioRawPackets.pop_front();
+
+				//reset total sent packets counter if requested
+				if (m_totalSentAudioPacketsCounterReset)
+				{
+					m_totalSentAudioPackets = 0;
+					m_totalSentAudioPacketsCounterReset = false;
+				}
+
 				lk.unlock();
 
 				if (audioEncoder != nullptr && m_sendAudio.load(std::memory_order_relaxed)) {
@@ -809,6 +815,7 @@ namespace HQRemote {
 
 						if (packet_len > 0) {
 							//send to client
+							auto packetId = m_totalSentAudioPackets++;
 							ConstDataRef packet = std::make_shared<DataSegment>(batchEncodeBuffer, 0, packet_len);
 #if DEFAULT_SND_AUDIO_FRAME_BUNDLE > 1
 							auto audioPacketEvent = std::make_shared<FrameEvent>(packet, packetId, AUDIO_ENCODED_PACKET);
