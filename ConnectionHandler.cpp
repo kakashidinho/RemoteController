@@ -811,7 +811,7 @@ namespace HQRemote {
 					connectedBefore = true;
 				}
 
-				//wat for at most 1ms
+				//wait for at most 1ms
 				timeval timeout;
 				timeout.tv_sec = 0;
 				timeout.tv_usec = 1000;
