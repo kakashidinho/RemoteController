@@ -157,6 +157,9 @@ namespace HQRemote {
 		~SocketConnectionHandler();
 
 		virtual bool connected() const override;
+		
+		static int platformSetSocketBlockingMode(socket_t socket, bool blocking);
+		static int platformGetLastSocketErr();
 	private:
 
 		void platformConstruct();
@@ -186,9 +189,6 @@ namespace HQRemote {
 		virtual void initConnectionImpl() = 0;
 		virtual void addtionalRcvThreadCleanupImpl() = 0;
 		virtual void addtionalSocketCleanupImpl() = 0;
-		
-		int platformSetSocketBlockingMode(socket_t socket, bool blocking);
-		int platformGetLastSocketErr() const;
 
 		_ssize_t sendRawDataUnreliableNoLock(socket_t socket, const sockaddr_in* pDstAddr, const void* data, size_t size);//connectionless socket only
 		_ssize_t sendRawDataNoLock(socket_t socket, const void* data, size_t size);//connection oriented socket only

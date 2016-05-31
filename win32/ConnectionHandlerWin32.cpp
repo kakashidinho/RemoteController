@@ -25,7 +25,7 @@ namespace HQRemote {
 		return ioctlsocket(socket, FIONBIO, &noBlock);
 	}
 
-	int SocketConnectionHandler::platformGetLastSocketErr() const {
+	int SocketConnectionHandler::platformGetLastSocketErr() {
 		return WSAGetLastError();
 	}
 }

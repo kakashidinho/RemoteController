@@ -34,7 +34,7 @@ namespace HQRemote {
 		return fcntl(socket, F_SETFL, arg);
 	}
 
-	int SocketConnectionHandler::platformGetLastSocketErr() const {
+	int SocketConnectionHandler::platformGetLastSocketErr() {
 		return errno;
 	}
 }
