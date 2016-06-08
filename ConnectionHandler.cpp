@@ -83,6 +83,7 @@ namespace HQRemote {
 	struct IConnectionHandler::MsgChunk {
 		MsgChunk() {
 			assert(offsetHeaderToPayload() == 0);
+			assert((void*)this == (void*)&header);
 		}
 
 		MsgChunkHeader header;
@@ -336,17 +337,18 @@ namespace HQRemote {
 		m_reliableBuffer.filledSize = 0;
 	}
 	
-	void IConnectionHandler::onReceivedUnreliableDataFragment(const void* data, size_t size)
+	void IConnectionHandler::onReceivedUnreliableDataFragment(const void* recv_data, size_t recv_size)
 	{
-		if (size < sizeof(MsgChunkHeader))
+		if (recv_size < sizeof(MsgChunkHeader))
 			return;
-		const MsgChunk& chunk  = *(const MsgChunk*)data;
+		MsgChunkHeader chunkHeader;
+		memcpy(&chunkHeader, recv_data, sizeof(chunkHeader));
 		
 		try {
-			switch (chunk.header.type) {
+			switch (chunkHeader.type) {
 				case MSG_HEADER:
 				{
-					auto data = std::make_shared<CData>(chunk.header.wholeMsgInfo.msg_size);
+					auto data = std::make_shared<CData>(chunkHeader.wholeMsgInfo.msg_size);
 					//initialize a placeholder for upcoming message
 					if (m_unreliableBuffers.size() == MAX_PENDING_UNRELIABLE_BUF)//discard oldest pending message
 					{
@@ -362,19 +364,20 @@ namespace HQRemote {
 					newBuf.data = data;
 					newBuf.filledSize = 0;
 					
-					m_unreliableBuffers.insert(std::pair<uint64_t, MsgBuf>(chunk.header.id, newBuf));
+					m_unreliableBuffers.insert(std::pair<uint64_t, MsgBuf>(chunkHeader.id, newBuf));
 				}
 					break;
 				case FRAGMENT_HEADER:
 				{
 					//fill the pending message's buffer
-					auto pendingBufIte = m_unreliableBuffers.find(chunk.header.id);
+					auto pendingBufIte = m_unreliableBuffers.find(chunkHeader.id);
 					if (pendingBufIte != m_unreliableBuffers.end()) {
 						auto& buffer = pendingBufIte->second;
 						
-						auto payloadSize = size - sizeof(chunk.header);
+						auto payload = (unsigned char*)recv_data + sizeof(chunkHeader);
+						auto payloadSize = recv_size - sizeof(chunkHeader);
 						
-						memcpy(buffer.data->data() + chunk.header.fragmentInfo.offset, chunk.payload, payloadSize);
+						memcpy(buffer.data->data() + chunkHeader.fragmentInfo.offset, payload, payloadSize);
 						buffer.filledSize += payloadSize;
 						
 						//message is complete, push to data queue for comsuming
@@ -392,7 +395,7 @@ namespace HQRemote {
 	#endif
 				}
 					break;
-			}//switch (chunk.header.type)
+			}//switch (chunkHeader.type)
 		} catch (...)
 		{
 			//TODO
