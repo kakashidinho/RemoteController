@@ -169,11 +169,6 @@ namespace HQRemote {
 		
 		virtual bool startImpl() override;
 		virtual void stopImpl() override;
-		
-		
-		virtual _ssize_t sendRawDataImpl(const void* data, size_t size) override;
-		virtual void flushRawDataImpl() override;
-		virtual _ssize_t sendRawDataUnreliableImpl(const void* data, size_t size) override;
 
 		_ssize_t recvDataUnreliableNoLock(socket_t socket);
 
@@ -189,6 +184,12 @@ namespace HQRemote {
 			double rtt;
 		};
 
+		//implement IConnectionHandler
+		virtual _ssize_t sendRawDataImpl(const void* data, size_t size) override;
+		virtual void flushRawDataImpl() override;
+		virtual _ssize_t sendRawDataUnreliableImpl(const void* data, size_t size) override;
+
+		//required
 		virtual bool socketInitImpl() = 0;
 		virtual void initConnectionImpl() = 0;
 		virtual void addtionalRcvThreadCleanupImpl() = 0;
@@ -315,6 +316,7 @@ namespace HQRemote {
 
 		void setDiscoveryDelegate(DiscoveryDelegate* delegate);
 	private:
+		virtual bool socketInitImpl() override;
 		virtual _ssize_t handleUnwantedDataFromImpl(const sockaddr_in& srcAddr, const void* data, size_t size) override;
 
 		std::mutex m_discoveryDelegateLock;

@@ -1081,9 +1081,11 @@ namespace HQRemote {
 					HQRemote::Log("Multicast setsockopt(IP_ADD_MEMBERSHIP) returned %d\n", re);
 
 					//disable loopback
+#if 0
 					char loopback = 0;
 					re = setsockopt(m_multicastSocket, IPPROTO_IP, IP_MULTICAST_LOOP, (const char*)&loopback, sizeof(loopback));
 					HQRemote::Log("Multicast setsockopt(IP_MULTICAST_LOOP) returned %d\n", re);
+#endif
 				}
 			}
 		}//if (m_multicastSocket == INVALID_SOCKET)
@@ -1146,7 +1148,14 @@ namespace HQRemote {
 			int re = (int)recvfrom(m_multicastSocket, (char*)msg, sizeof(msg), 0, (sockaddr*)&from_addr, &from_addr_len);
 			if (re > 0)
 			{
-				
+				//debug
+				int src_port = ntohs(from_addr.sin_port);
+				char src_addr_buffer[20];
+				if (inet_ntop(AF_INET, (void*)&from_addr.sin_addr, src_addr_buffer, sizeof(src_addr_buffer)) != NULL) {
+					HQRemote::Log("Received multicast data from %s:%d\n", src_addr_buffer, src_port);
+				}
+
+				//
 				switch (msg[0])
 				{
 				case PING_MSG_CHUNK:
@@ -1404,9 +1413,22 @@ namespace HQRemote {
 		m_discoveryDelegate = delegate; 
 	}
 
-	void SocketServerDiscoverClientHandler::findOtherServers(uint64_t request_id) {
-		std::lock_guard<std::mutex> lg(m_socketLock);
+	bool SocketServerDiscoverClientHandler::socketInitImpl()
+	{
+		if (!BaseUnreliableSocketHandler::socketInitImpl())
+			return false;
 
+		//destination address is the multicast group
+		m_connLessSocketDestAddr = std::unique_ptr<sockaddr_in>(new sockaddr_in());
+
+		memset(m_connLessSocketDestAddr.get(), 0, sizeof(sockaddr_in));
+
+		m_connLessSocketDestAddr->sin_family = AF_INET;
+		m_connLessSocketDestAddr->sin_addr.s_addr = inet_addr(MULTICAST_ADDRESS);
+		m_connLessSocketDestAddr->sin_port = htons(MULTICAST_PORT);
+	}
+
+	void SocketServerDiscoverClientHandler::findOtherServers(uint64_t request_id) {
 		//msg = | PING_MSG_CHUNK | magic string | request_id |
 		unsigned char ping_msg[sizeof(MULTICAST_MAGIC_STRING) + sizeof(uint64_t)];
 
@@ -1416,16 +1438,7 @@ namespace HQRemote {
 		memcpy(ping_msg + sizeof(MULTICAST_MAGIC_STRING), &request_id, sizeof(request_id));//TODO: assume all platforms use the same endianess
 
 		//send to multicast group
-		sockaddr_in sa;
-		memset(&sa, 0, sizeof sa);
-
-		sa.sin_family = AF_INET;
-		sa.sin_addr.s_addr = inet_addr(MULTICAST_ADDRESS);
-		sa.sin_port = htons(MULTICAST_PORT);
-
-		int re = (int)sendRawDataUnreliableNoLock(m_connLessSocket, &sa, ping_msg, sizeof(ping_msg));
-
-		HQRemote::Log("send multicast ping message returned %d\n", re);
+		sendRawDataUnreliableImpl(ping_msg, sizeof(ping_msg));
 	}
 	
 	_ssize_t SocketServerDiscoverClientHandler::handleUnwantedDataFromImpl(const sockaddr_in& srcAddr, const void* data, size_t size) {
