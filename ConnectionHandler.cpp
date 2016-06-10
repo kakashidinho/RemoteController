@@ -1426,6 +1426,8 @@ namespace HQRemote {
 		m_connLessSocketDestAddr->sin_family = AF_INET;
 		m_connLessSocketDestAddr->sin_addr.s_addr = inet_addr(MULTICAST_ADDRESS);
 		m_connLessSocketDestAddr->sin_port = htons(MULTICAST_PORT);
+		
+		return true;
 	}
 
 	void SocketServerDiscoverClientHandler::findOtherServers(uint64_t request_id) {
