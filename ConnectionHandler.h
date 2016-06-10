@@ -305,7 +305,7 @@ namespace HQRemote {
 	public:
 		class DiscoveryDelegate {
 		public:
-			virtual void onNewServerDiscovered(SocketServerDiscoverClientHandler* handler, uint64_t request_id, const char* addr, int reliablePort, int unreliablePort);
+			virtual void onNewServerDiscovered(SocketServerDiscoverClientHandler* handler, uint64_t request_id, const char* addr, int reliablePort, int unreliablePort) = 0;
 		};
 
 		SocketServerDiscoverClientHandler(DiscoveryDelegate* delegate);
