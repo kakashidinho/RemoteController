@@ -23,10 +23,14 @@
 
 #ifdef WIN32
 #	include <windows.h>
+#	include <Ws2tcpip.h>
 
+#	define accept(sock, addrp, lenp) WSAAccept(sock, addrp, lenp, NULL, NULL)
 #	define _INADDR_ANY INADDR_ANY
 #	define MSGSIZE_ERROR WSAEMSGSIZE 
 #	define CONN_INPROGRESS WSAEWOULDBLOCK
+#	define _EWOULDBLOCK WSAEWOULDBLOCK
+#	define _EAGAIN WSAEWOULDBLOCK
 
 typedef int socklen_t;
 
@@ -39,10 +43,17 @@ typedef int socklen_t;
 #	define _INADDR_ANY htonl(INADDR_ANY)
 #	define MSGSIZE_ERROR EMSGSIZE 
 #	define CONN_INPROGRESS EINPROGRESS
+#	define _EWOULDBLOCK EWOULDBLOCK
+#	define _EAGAIN EAGAIN
 
 #endif//#ifdef WIN32
 
 namespace HQRemote {
+	static const char MULTICAST_ADDRESS[] = "226.1.1.2";
+	static const unsigned short MULTICAST_PORT = 60289;
+	static const unsigned int MULTICAST_MAX_MSG_SIZE = 512;
+	static const char MULTICAST_MAGIC_STRING[] = "fd8acc40-d758-4d2c-a6a9-91387845e1ca";
+
 	enum ReliableBufferState {
 		READ_NEXT_MESSAGE_SIZE,
 		READ_MESSAGE
@@ -224,7 +235,7 @@ namespace HQRemote {
 		
 		//send header
 		re = sendRawDataUnreliableImpl(&chunk, headerSize);
-		if (re < headerSize)
+		if (re < (_ssize_t)headerSize)
 			return;//failed
 		
 		//send data's fragments
@@ -247,7 +258,7 @@ namespace HQRemote {
 			re = sendRawDataUnreliableImpl(&chunk, sizeToSend);
 			
 			if (re > 0) {
-				if (re < headerSize)
+				if ((uint32_t)re < headerSize)
 					re = -1;//not even able to send the header data. Treat as error
 				else {
 					uint32_t sentPayloadSize = (uint32_t)re - headerSize;
@@ -505,6 +516,8 @@ namespace HQRemote {
 	}
 
 	/*----------------SocketConnectionHandler ----------------*/
+	const int SocketConnectionHandler::RANDOM_PORT = 0xffff;
+
 	SocketConnectionHandler::SocketConnectionHandler()
 		:m_connLessSocket(INVALID_SOCKET), m_connSocket(INVALID_SOCKET), m_enableReconnect(true)
 	{
@@ -660,21 +673,12 @@ namespace HQRemote {
 		return sendto(socket, (char*)&chunk, size, 0, (const sockaddr*)pDstAddr, sizeof(sockaddr_in));
 	}
 
-	_ssize_t SocketConnectionHandler::recvChunkUnreliableNoLock(socket_t socket, MsgChunk& chunk) {
-		if (m_connLessSocketDestAddr != nullptr)
-		{
-			return recvfrom(socket, (char*)&chunk, sizeof(chunk), 0, NULL, NULL);
-		}
-		else {
-			//obtain remote size's address
-			socklen_t len = sizeof(sockaddr_in);
+	_ssize_t SocketConnectionHandler::recvChunkUnreliableNoLock(socket_t socket, MsgChunk& chunk, sockaddr_in& srcAddr) {
+		socklen_t len = sizeof(sockaddr_in);
 
-			m_connLessSocketDestAddr = std::unique_ptr<sockaddr_in>(new sockaddr_in());
+		auto re = recvfrom(socket, (char*)&chunk, sizeof(chunk), 0, (sockaddr*)&srcAddr, &len);
 
-			auto re = recvfrom(socket, (char*)&chunk, sizeof(chunk), 0, (sockaddr*)m_connLessSocketDestAddr.get(), &len);
-
-			return re;
-		}
+		return re;
 	}
 
 	_ssize_t SocketConnectionHandler::recvRawDataNoLock(socket_t socket) {
@@ -692,12 +696,28 @@ namespace HQRemote {
 
 	_ssize_t SocketConnectionHandler::recvDataUnreliableNoLock(socket_t socket) {
 		MsgChunk chunk;
+		sockaddr_in srcAddr;
 		_ssize_t re;
 
 		//read chunk data
-		re = recvChunkUnreliableNoLock(socket, chunk);
+		re = recvChunkUnreliableNoLock(socket, chunk, srcAddr);
 		if (re == SOCKET_ERROR)
 			return re;
+
+		//first unreliable data
+		if (m_connLessSocketDestAddr == nullptr)
+		{
+			//obtain remote size's address and use it as primary destination for sendUnreliable*() functions
+			m_connLessSocketDestAddr = std::unique_ptr<sockaddr_in>(new sockaddr_in());
+			memcpy(m_connLessSocketDestAddr.get(), &srcAddr, sizeof(sockaddr_in));
+		}
+
+		if (srcAddr.sin_addr.s_addr != m_connLessSocketDestAddr->sin_addr.s_addr ||
+			srcAddr.sin_port != m_connLessSocketDestAddr->sin_port)
+		{
+			//we have received an data from unexpected source address
+			return handleUnwantedDataFromImpl(srcAddr, &chunk, re);
+		}
 
 		switch (chunk.header.type) {
 		case PING_MSG_CHUNK:
@@ -856,6 +876,8 @@ namespace HQRemote {
 					}//if (select(l_connSocket + 1, &sset, NULL, NULL, &timeout) == 1 && FD_ISSET(l_connSocket, &sset))
 				} //if (l_connSocket != INVALID_SOCKET)
 
+				addtionalRcvThreadHandlerImpl();
+
 			}//if (l_connected)
 			else if (connectedBefore && !m_enableReconnect) {
 				//stop
@@ -873,6 +895,7 @@ namespace HQRemote {
 		}//while (m_running)
 
 		m_socketLock.lock();
+
 		if (m_connSocket != INVALID_SOCKET)
 		{
 			closesocket(m_connSocket);
@@ -901,7 +924,8 @@ namespace HQRemote {
 
 	}
 
-	bool BaseUnreliableSocketHandler::socketInitImpl() {
+	socket_t BaseUnreliableSocketHandler::createUnreliableSocket(int port, bool reuseAddr) {
+		socket_t new_socket;
 		_ssize_t re;
 
 		sockaddr_in sa;
@@ -910,26 +934,48 @@ namespace HQRemote {
 		sa.sin_family = AF_INET;
 		sa.sin_addr.s_addr = _INADDR_ANY;
 
+		new_socket = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
+		if (new_socket != INVALID_SOCKET) {
+			if (reuseAddr)
+			{
+				int true_val = 1;
+				setsockopt(new_socket, SOL_SOCKET, SO_REUSEADDR, (const char*)&true_val, sizeof true_val);
+#ifdef SO_REUSEPORT
+				setsockopt(m_serverSocket, SOL_SOCKET, SO_REUSEPORT, (const char*)&true_val, sizeof true_val);
+#endif
+			}//if (reuseAddr)
+
+			sa.sin_port = port >= RANDOM_PORT? 0 : htons(port);
+
+			re = ::bind(new_socket, (sockaddr*)&sa, sizeof(sa));
+			if (re == SOCKET_ERROR) {
+				//failed
+				LogErr("Failed to bind connectionless socket (port=%d), error = %d\n", port, platformGetLastSocketErr());
+
+				closesocket(new_socket);
+				new_socket = INVALID_SOCKET;
+			}
+		}//if (m_connLessSocket != INVALID_SOCKET)
+		else
+			LogErr("Failed to create connectionless socket, error = %d\n", platformGetLastSocketErr());
+
+		return new_socket;
+	}
+
+	bool BaseUnreliableSocketHandler::socketInitImpl() {
 		std::lock_guard<std::mutex> lg(m_socketLock);
 		//create connection less socket
 		if (m_connLessSocket == INVALID_SOCKET && m_connLessPort != 0) {
 			m_connLessSocketDestAddr = nullptr;
 
-			m_connLessSocket = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
-			if (m_connLessSocket != INVALID_SOCKET) {
-				sa.sin_port = htons(m_connLessPort);
+			m_connLessSocket = createUnreliableSocket(m_connLessPort);
 
-				re = ::bind(m_connLessSocket, (sockaddr*)&sa, sizeof(sa));
-				if (re == SOCKET_ERROR) {
-					//failed
-					LogErr("Failed to bind connectionless socket, error = %d\n", platformGetLastSocketErr());
-
-					closesocket(m_connLessSocket);
-					m_connLessSocket = INVALID_SOCKET;
-				}
-			}//if (m_connLessSocket != INVALID_SOCKET)
-			else
-				LogErr("Failed to create connectionless socket, error = %d\n", platformGetLastSocketErr());
+			//get true port number 
+			sockaddr_in sa;
+			socklen_t addrlen = sizeof(sa);
+			if (m_connLessPort >= RANDOM_PORT && getsockname(m_connLessSocket, (sockaddr*)&sa, &addrlen) != SOCKET_ERROR) {
+				m_connLessPort = ntohs(sa.sin_port);
+			}
 		}//if (m_connLessSocket == INVALID_SOCKET && m_connLessPort != 0)
 
 		return m_connLessSocket != INVALID_SOCKET;
@@ -947,7 +993,7 @@ namespace HQRemote {
 
 	/*-------------  SocketServerHandler  ---------------------------*/
 	SocketServerHandler::SocketServerHandler(int listeningPort, int connLessListeningPort)
-	: BaseUnreliableSocketHandler(connLessListeningPort),  m_serverSocket(INVALID_SOCKET), m_port(listeningPort)
+	: BaseUnreliableSocketHandler(connLessListeningPort),  m_serverSocket(INVALID_SOCKET), m_port(listeningPort), m_multicastSocket(INVALID_SOCKET)
 	{
 	}
 
@@ -973,13 +1019,12 @@ namespace HQRemote {
 		sa.sin_family = AF_INET;
 		sa.sin_addr.s_addr = _INADDR_ANY;
 
+		std::lock_guard<std::mutex> lg(m_socketLock);
 		//create server socket
 		if (m_serverSocket == INVALID_SOCKET && m_port != 0) {
-			std::lock_guard<std::mutex> lg(m_socketLock);
-
 			m_serverSocket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 			if (m_serverSocket != INVALID_SOCKET) {
-				sa.sin_port = htons(m_port);
+				sa.sin_port = m_port >= RANDOM_PORT ? 0 : htons(m_port);
 
 				int true_val = 1;
 				setsockopt(m_serverSocket, SOL_SOCKET, SO_REUSEADDR, (const char*)&true_val, sizeof true_val);
@@ -996,6 +1041,15 @@ namespace HQRemote {
 					m_serverSocket = INVALID_SOCKET;
 				}
 				else {
+					platformSetSocketBlockingMode(m_serverSocket, false);
+
+					//get true port number 
+					socklen_t addrlen = sizeof(sa);
+					if (m_port >= RANDOM_PORT && getsockname(m_serverSocket, (sockaddr*)&sa, &addrlen) != SOCKET_ERROR) {
+						m_port = ntohs(sa.sin_port);
+					}
+
+					//start accepting incoming connections
 					re = listen(m_serverSocket, 1);
 
 					if (re == SOCKET_ERROR) {
@@ -1010,13 +1064,50 @@ namespace HQRemote {
 
 		}//if (m_serverSocket == INVALID_SOCKET)
 
+		//create multicast socket
+		if (m_multicastSocket == INVALID_SOCKET) {
+			if (MULTICAST_PORT != m_connLessPort)//TODO: if user picks our multicast port, we cannot do much besides disabling the multicast socket
+			{
+				m_multicastSocket = createUnreliableSocket(MULTICAST_PORT);
+
+				if (m_multicastSocket != INVALID_SOCKET)
+				{
+					//join multicast group
+					struct ip_mreq mreq;
+					mreq.imr_multiaddr.s_addr = inet_addr(MULTICAST_ADDRESS);
+					mreq.imr_interface.s_addr = _INADDR_ANY;
+
+					re = setsockopt(m_multicastSocket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (const char*)&mreq, sizeof(mreq));
+					HQRemote::Log("Multicast setsockopt(IP_ADD_MEMBERSHIP) returned %d\n", re);
+
+					//disable loopback
+					char loopback = 0;
+					re = setsockopt(m_multicastSocket, IPPROTO_IP, IP_MULTICAST_LOOP, (const char*)&loopback, sizeof(loopback));
+					HQRemote::Log("Multicast setsockopt(IP_MULTICAST_LOOP) returned %d\n", re);
+				}
+			}
+		}//if (m_multicastSocket == INVALID_SOCKET)
+
 		return (m_serverSocket != INVALID_SOCKET);
 	}
 
 	void SocketServerHandler::initConnectionImpl() {
 		if (m_serverSocket != INVALID_SOCKET) {
 			//accepting incoming remote connection
-			socket_t connSocket = accept(m_serverSocket, NULL, NULL);
+			socket_t connSocket;
+			int err;
+
+			do {
+				{
+					std::lock_guard<std::mutex> lg(m_socketLock);
+					//receive data from multicast
+					pollingMulticastData();
+
+					//check if there is any incoming connection
+					connSocket = accept(m_serverSocket, NULL, NULL);
+				}
+				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			} while (connSocket == INVALID_SOCKET && ((err = platformGetLastSocketErr()) == _EWOULDBLOCK || err == _EAGAIN));
 
 			if (connSocket != INVALID_SOCKET)
 			{
@@ -1032,8 +1123,68 @@ namespace HQRemote {
 		}//if (m_serverSocket != INVALID_SOCKET && m_port != 0)
 	}
 
+	void SocketServerHandler::pollingMulticastData() {
+		if (m_multicastSocket == INVALID_SOCKET)
+			return;
+
+		timeval timeout;
+		timeout.tv_sec = 0;
+		timeout.tv_usec = 1000;
+
+		fd_set sset;
+
+		FD_ZERO(&sset);
+		FD_SET(m_multicastSocket, &sset);
+
+		if (select(m_multicastSocket + 1, &sset, NULL, NULL, &timeout) == 1 && FD_ISSET(m_multicastSocket, &sset))
+		{
+			unsigned char msg[MULTICAST_MAX_MSG_SIZE];
+
+			socklen_t from_addr_len = sizeof(sockaddr_in);
+			sockaddr_in from_addr;
+
+			int re = (int)recvfrom(m_multicastSocket, (char*)msg, sizeof(msg), 0, (sockaddr*)&from_addr, &from_addr_len);
+			if (re > 0)
+			{
+				
+				switch (msg[0])
+				{
+				case PING_MSG_CHUNK:
+					//multicast message = PING_MSG_CHUNK | magic string | request_id
+					if (re >= sizeof(MULTICAST_MAGIC_STRING) + sizeof(uint64_t) &&
+						memcmp(msg + 1, MULTICAST_MAGIC_STRING, sizeof(MULTICAST_MAGIC_STRING) - 1) == 0)
+					{
+						//reply with our sockets' ports:
+						//reply message = | PING_REPLY_MSG_CHUNK | magic string | request_id | reliable port | unreliable port
+						unsigned char* msg_ptr = msg;
+
+						*msg_ptr = (unsigned char)PING_REPLY_MSG_CHUNK;
+						msg_ptr += sizeof(MULTICAST_MAGIC_STRING) + sizeof(uint64_t);
+
+						memcpy(msg_ptr, &m_port, sizeof(m_port));//TODO: assume all platforms use the same endianess
+						memcpy(msg_ptr + sizeof(m_port), &m_connLessPort, sizeof(m_connLessPort));//TODO: assume all platforms use the same endianess
+						msg_ptr += sizeof(m_port) + sizeof(m_connLessPort);
+
+						sendRawDataUnreliableNoLock(m_connLessSocket, &from_addr, msg, msg_ptr - msg);
+					}
+					break;
+				}
+			}//if (re > 0)
+		}//if (select ...)
+	}
+
+	void SocketServerHandler::addtionalRcvThreadHandlerImpl() {
+		//TODO
+	}
+
 	void SocketServerHandler::addtionalRcvThreadCleanupImpl() {
 		m_socketLock.lock();
+		if (m_multicastSocket != INVALID_SOCKET)
+		{
+			closesocket(m_multicastSocket);
+			m_multicastSocket = INVALID_SOCKET;
+		}
+
 		if (m_serverSocket != INVALID_SOCKET)
 		{
 			closesocket(m_serverSocket);
@@ -1046,6 +1197,11 @@ namespace HQRemote {
 	}
 
 	void SocketServerHandler::addtionalSocketCleanupImpl() {
+		if (m_multicastSocket != INVALID_SOCKET)
+		{
+			shutdown(m_multicastSocket, SD_BOTH);
+		}
+
 		if (m_serverSocket != INVALID_SOCKET)
 		{
 			shutdown(m_serverSocket, SD_BOTH);
@@ -1231,5 +1387,80 @@ namespace HQRemote {
 		
 		//super
 		UnreliableSocketClientHandler::addtionalSocketCleanupImpl();
+	}
+
+	/*--------- SocketServerDiscoverClientHandler ----------*/
+	SocketServerDiscoverClientHandler::SocketServerDiscoverClientHandler(DiscoveryDelegate* delegate)
+		:BaseUnreliableSocketHandler(RANDOM_PORT), m_discoveryDelegate(delegate)
+	{
+	}
+	SocketServerDiscoverClientHandler::~SocketServerDiscoverClientHandler() {
+	}
+
+	void SocketServerDiscoverClientHandler::setDiscoveryDelegate(DiscoveryDelegate* delegate)
+	{ 
+		std::lock_guard<std::mutex> lg(m_discoveryDelegateLock);
+
+		m_discoveryDelegate = delegate; 
+	}
+
+	void SocketServerDiscoverClientHandler::findOtherServers(uint64_t request_id) {
+		std::lock_guard<std::mutex> lg(m_socketLock);
+
+		//msg = | PING_MSG_CHUNK | magic string | request_id |
+		unsigned char ping_msg[sizeof(MULTICAST_MAGIC_STRING) + sizeof(uint64_t)];
+
+		unsigned char type = PING_MSG_CHUNK;
+		memcpy(ping_msg, &type, sizeof(type));
+		memcpy(ping_msg + 1, MULTICAST_MAGIC_STRING, sizeof(MULTICAST_MAGIC_STRING) - 1);
+		memcpy(ping_msg + sizeof(MULTICAST_MAGIC_STRING), &request_id, sizeof(request_id));//TODO: assume all platforms use the same endianess
+
+		//send to multicast group
+		sockaddr_in sa;
+		memset(&sa, 0, sizeof sa);
+
+		sa.sin_family = AF_INET;
+		sa.sin_addr.s_addr = inet_addr(MULTICAST_ADDRESS);
+		sa.sin_port = htons(MULTICAST_PORT);
+
+		int re = (int)sendRawDataUnreliableNoLock(m_connLessSocket, &sa, ping_msg, sizeof(ping_msg));
+
+		HQRemote::Log("send multicast ping message returned %d\n", re);
+	}
+	
+	_ssize_t SocketServerDiscoverClientHandler::handleUnwantedDataFromImpl(const sockaddr_in& srcAddr, const void* data, size_t size) {
+		auto msg = (const unsigned char*)data;
+		switch (msg[0])
+		{
+		case PING_REPLY_MSG_CHUNK:
+			if (size >= sizeof(MULTICAST_MAGIC_STRING) + sizeof(uint64_t) + 2 * sizeof(int) &&
+				memcmp(msg + 1, MULTICAST_MAGIC_STRING, sizeof(MULTICAST_MAGIC_STRING) - 1) == 0)
+			{
+				//msg = | PING_REPLY_MSG_CHUNK | magic string | request_id | reliable port | unreliable port
+				int unreliable_port = ntohs(srcAddr.sin_port);
+				int reliable_port_in_msg, unreliable_port_in_msg;
+				uint64_t request_id;
+
+				auto msg_ptr = msg + sizeof(MULTICAST_MAGIC_STRING);
+
+				//TODO: assume all platforms use the same endianess
+				memcpy(&request_id, msg_ptr, sizeof(request_id));
+				memcpy(&reliable_port_in_msg, msg_ptr + sizeof(request_id), sizeof(reliable_port_in_msg));
+				memcpy(&unreliable_port_in_msg, msg_ptr + sizeof(request_id) + sizeof(int), sizeof(unreliable_port_in_msg));
+
+				std::lock_guard<std::mutex> lg(m_discoveryDelegateLock);
+				char addr_buffer[20];
+				if (inet_ntop(AF_INET, (void*)&srcAddr.sin_addr, addr_buffer, sizeof(addr_buffer)) != NULL &&
+					unreliable_port_in_msg == unreliable_port &&
+					m_discoveryDelegate != NULL) {
+
+					//invoke delegate
+					m_discoveryDelegate->onNewServerDiscovered(this, request_id, addr_buffer, reliable_port_in_msg, unreliable_port_in_msg);
+				}
+			}
+			break;
+		}//switch (msg[0])
+
+		return size;
 	}
 }

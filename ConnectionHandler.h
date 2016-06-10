@@ -154,6 +154,8 @@ namespace HQRemote {
 	//socket based handler
 	class HQREMOTE_API SocketConnectionHandler : public IConnectionHandler {
 	public:
+		static const int RANDOM_PORT;//use this to specify random port for sockets
+
 		~SocketConnectionHandler();
 
 		virtual bool connected() const override;
@@ -173,6 +175,8 @@ namespace HQRemote {
 		virtual void flushRawDataImpl() override;
 		virtual _ssize_t sendRawDataUnreliableImpl(const void* data, size_t size) override;
 
+		_ssize_t recvDataUnreliableNoLock(socket_t socket);
+
 		_ssize_t pingUnreliableNoLock(time_checkpoint_t sendTime);
 		
 		void recvProc();
@@ -190,12 +194,15 @@ namespace HQRemote {
 		virtual void addtionalRcvThreadCleanupImpl() = 0;
 		virtual void addtionalSocketCleanupImpl() = 0;
 
+		//optional
+		virtual void addtionalRcvThreadHandlerImpl() {}
+		virtual _ssize_t handleUnwantedDataFromImpl(const sockaddr_in& srcAddr, const void* data, size_t size) { return size; }
+
 		_ssize_t sendRawDataUnreliableNoLock(socket_t socket, const sockaddr_in* pDstAddr, const void* data, size_t size);//connectionless socket only
 		_ssize_t sendRawDataNoLock(socket_t socket, const void* data, size_t size);//connection oriented socket only
 		
 		_ssize_t sendChunkUnreliableNoLock(socket_t socket, const sockaddr_in* pDstAddr, const MsgChunk& chunk, size_t size);//connectionless only socket
-		_ssize_t recvChunkUnreliableNoLock(socket_t socket, MsgChunk& chunk);//connectionless only socket
-		_ssize_t recvDataUnreliableNoLock(socket_t socket);
+		_ssize_t recvChunkUnreliableNoLock(socket_t socket, MsgChunk& chunk, sockaddr_in& srcAddr);//connectionless only socket
 		_ssize_t recvRawDataNoLock(socket_t socket);
 		
 		//check if we're able to connect to the remote endpoint on an unreliable channel
@@ -231,6 +238,8 @@ namespace HQRemote {
 		virtual void addtionalRcvThreadCleanupImpl() override;
 		virtual void addtionalSocketCleanupImpl() override;
 
+		static socket_t createUnreliableSocket(int port, bool reuseAddr = true);
+
 		int m_connLessPort;
 	};
 
@@ -248,8 +257,14 @@ namespace HQRemote {
 		virtual void addtionalRcvThreadCleanupImpl() override;
 		virtual void addtionalSocketCleanupImpl() override;
 
+		virtual void addtionalRcvThreadHandlerImpl() override;
+
+		void pollingMulticastData();
+
 		int m_port;
 		std::atomic<socket_t> m_serverSocket;
+
+		std::atomic<socket_t> m_multicastSocket;//multicast socket
 	};
 	
 	//socket based ureliable client handler
@@ -283,6 +298,27 @@ namespace HQRemote {
 		virtual void addtionalSocketCleanupImpl() override;
 		
 		ConnectionEndpoint m_remoteEndpoint;//reliable endpoint
+	};
+
+	//socket based server discovery client
+	class HQREMOTE_API SocketServerDiscoverClientHandler : public BaseUnreliableSocketHandler {
+	public:
+		class DiscoveryDelegate {
+		public:
+			virtual void onNewServerDiscovered(SocketServerDiscoverClientHandler* handler, uint64_t request_id, const char* addr, int reliablePort, int unreliablePort);
+		};
+
+		SocketServerDiscoverClientHandler(DiscoveryDelegate* delegate);
+		~SocketServerDiscoverClientHandler();
+
+		void findOtherServers(uint64_t request_id);
+
+		void setDiscoveryDelegate(DiscoveryDelegate* delegate);
+	private:
+		virtual _ssize_t handleUnwantedDataFromImpl(const sockaddr_in& srcAddr, const void* data, size_t size) override;
+
+		std::mutex m_discoveryDelegateLock;
+		DiscoveryDelegate* m_discoveryDelegate;
 	};
 }
 
