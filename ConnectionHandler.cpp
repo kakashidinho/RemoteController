@@ -941,7 +941,7 @@ namespace HQRemote {
 				int true_val = 1;
 				setsockopt(new_socket, SOL_SOCKET, SO_REUSEADDR, (const char*)&true_val, sizeof true_val);
 #ifdef SO_REUSEPORT
-				setsockopt(m_serverSocket, SOL_SOCKET, SO_REUSEPORT, (const char*)&true_val, sizeof true_val);
+				setsockopt(new_socket, SOL_SOCKET, SO_REUSEPORT, (const char*)&true_val, sizeof true_val);
 #endif
 			}//if (reuseAddr)
 
