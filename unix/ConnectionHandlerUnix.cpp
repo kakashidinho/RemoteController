@@ -24,8 +24,8 @@ namespace HQRemote {
 		//default address
 		addresses.clear();
 
-		struct in_addr default;
-		default.s_addr = htonl(INADDR_ANY);
-		addresses.push_back(default);
+		struct in_addr _default;
+		_default.s_addr = htonl(INADDR_ANY);
+		addresses.push_back(_default);
 	}
 }

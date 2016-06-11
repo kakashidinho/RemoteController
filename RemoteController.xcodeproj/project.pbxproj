@@ -97,6 +97,8 @@
 		0A5298731C522ACC0008A9FA /* OpenGLES.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0A5298721C522ACC0008A9FA /* OpenGLES.framework */; };
 		0A5298891C522C8C0008A9FA /* libRemoteControllerIOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0A5298711C522A9F0008A9FA /* libRemoteControllerIOS.a */; };
 		0A5716B61C4353C000AE78E7 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0A5716B51C4353C000AE78E7 /* OpenGL.framework */; };
+		0AB449BC1D0C808200B8D991 /* ConnectionHandlerUnix.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0AB449BB1D0C808200B8D991 /* ConnectionHandlerUnix.cpp */; };
+		0AB449BD1D0C808200B8D991 /* ConnectionHandlerUnix.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0AB449BB1D0C808200B8D991 /* ConnectionHandlerUnix.cpp */; };
 		0AE5B0E61C44D95500155DB8 /* Engine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0AE5B0D71C44D95500155DB8 /* Engine.cpp */; };
 		0AE5B0E71C44D95500155DB8 /* Engine.h in Headers */ = {isa = PBXBuildFile; fileRef = 0AE5B0D81C44D95500155DB8 /* Engine.h */; };
 		0AE5B0EA1C44D95500155DB8 /* EngineApple.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0AE5B0DC1C44D95500155DB8 /* EngineApple.mm */; };
@@ -170,6 +172,7 @@
 		0A5298721C522ACC0008A9FA /* OpenGLES.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGLES.framework; path = System/Library/Frameworks/OpenGLES.framework; sourceTree = SDKROOT; };
 		0A5716901C43520900AE78E7 /* libRemoteController.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libRemoteController.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		0A5716B51C4353C000AE78E7 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
+		0AB449BB1D0C808200B8D991 /* ConnectionHandlerUnix.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ConnectionHandlerUnix.cpp; path = unix/ConnectionHandlerUnix.cpp; sourceTree = "<group>"; };
 		0AE5B0D71C44D95500155DB8 /* Engine.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Engine.cpp; path = Server/Engine.cpp; sourceTree = "<group>"; };
 		0AE5B0D81C44D95500155DB8 /* Engine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Engine.h; path = Server/Engine.h; sourceTree = "<group>"; };
 		0AE5B0DA1C44D95500155DB8 /* ImgCompressor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ImgCompressor.cpp; path = Server/ImgCompressor.cpp; sourceTree = "<group>"; };
@@ -242,6 +245,7 @@
 				0A29738F1C51FFB900A2F8F0 /* Event.cpp */,
 				0A2973901C51FFB900A2F8F0 /* Event.h */,
 				0A2973911C51FFB900A2F8F0 /* Timer.h */,
+				0AB449BA1D0C806200B8D991 /* unix */,
 				0A36AC5C1C7FFD2900922BF2 /* linux */,
 				0A29739F1C5205FA00A2F8F0 /* win32 */,
 				0A29739A1C51FFCD00A2F8F0 /* apple */,
@@ -315,6 +319,14 @@
 				0A5298711C522A9F0008A9FA /* libRemoteControllerIOS.a */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		0AB449BA1D0C806200B8D991 /* unix */ = {
+			isa = PBXGroup;
+			children = (
+				0AB449BB1D0C808200B8D991 /* ConnectionHandlerUnix.cpp */,
+			);
+			name = unix;
 			sourceTree = "<group>";
 		};
 		0AE5B0D61C44D92800155DB8 /* Server */ = {
@@ -607,6 +619,7 @@
 				0A52985F1C522A9F0008A9FA /* FrameCapturer.cpp in Sources */,
 				0A5298601C522A9F0008A9FA /* Engine.cpp in Sources */,
 				0A5298611C522A9F0008A9FA /* EngineApple.mm in Sources */,
+				0AB449BD1D0C808200B8D991 /* ConnectionHandlerUnix.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -626,6 +639,7 @@
 				0AE5B0ED1C44D95500155DB8 /* FrameCapturer.cpp in Sources */,
 				0A44AC341C58BCC0007809DA /* ZlibUtils.cpp in Sources */,
 				0A294E2A1C58734300D4CC23 /* ImgCompressor.cpp in Sources */,
+				0AB449BC1D0C808200B8D991 /* ConnectionHandlerUnix.cpp in Sources */,
 				0AE5B0E61C44D95500155DB8 /* Engine.cpp in Sources */,
 				0A4D15741CEFB3CC00F63A9B /* BaseEngine.cpp in Sources */,
 				0AE5B0EA1C44D95500155DB8 /* EngineApple.mm in Sources */,
