@@ -11,6 +11,10 @@
 namespace HQRemote {
 	class HQREMOTE_API CString {
 	public:
+		CString() {
+			init("", 0);
+		}
+
 		explicit CString(const char* str)
 		{
 			if (str == NULL)
@@ -47,6 +51,21 @@ namespace HQRemote {
 
 		const char* c_str() const { return m_str; }
 		size_t size() const { return m_len; }
+
+		CString& operator=(const char* src) {
+			delete[] m_str;
+			m_str = NULL;
+
+			if (src != NULL) {
+				auto len = strlen(src);
+
+				init(src, len);
+			}
+			else
+				init("", 0);
+
+			return *this;
+		}
 
 	private:
 		void init(const char* str, size_t len) {

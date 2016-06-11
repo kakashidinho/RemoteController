@@ -16,7 +16,6 @@
 #include "Event.h"
 #include "Timer.h"
 
-#include <string>
 #include <map>
 #include <set>
 #include <list>
@@ -84,6 +83,13 @@ namespace HQRemote {
 			return m_internalError;
 		}
 
+		std::shared_ptr<const CString> getDesc() const {
+			return m_name;
+		}
+
+		//set the description, it can be used as identifier for server discovery. Doesn't need to be unique.
+		void setDesc(const char* desc);
+
 		void registerDelegate(Delegate* delegate);
 		void unregisterDelegate(Delegate* delegate);
 		
@@ -134,6 +140,7 @@ namespace HQRemote {
 		void pushDataToQueue(DataRef data, bool reliable, bool discardIfFull);
 		
 		std::shared_ptr<CString> m_internalError;
+		std::shared_ptr<CString> m_name;//doesn't need to be unique
 		
 		int m_reliableBufferState;
 		MsgBuf m_reliableBuffer;
@@ -253,6 +260,9 @@ namespace HQRemote {
 
 		virtual bool connected() const override;
 	private:
+		//get all interfaces' addresses that can be used to join multicast group
+		static void platformGetLocalAddressesForMulticast(std::vector<struct in_addr>& addresses);
+
 		virtual bool socketInitImpl() override;
 		virtual void initConnectionImpl() override;
 		virtual void addtionalRcvThreadCleanupImpl() override;
@@ -306,7 +316,7 @@ namespace HQRemote {
 	public:
 		class DiscoveryDelegate {
 		public:
-			virtual void onNewServerDiscovered(SocketServerDiscoverClientHandler* handler, uint64_t request_id, const char* addr, int reliablePort, int unreliablePort) = 0;
+			virtual void onNewServerDiscovered(SocketServerDiscoverClientHandler* handler, uint64_t request_id, const char* addr, int reliablePort, int unreliablePort, const char* serverDesc) = 0;
 		};
 
 		SocketServerDiscoverClientHandler(DiscoveryDelegate* delegate);

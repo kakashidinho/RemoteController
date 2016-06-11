@@ -95,7 +95,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\third-party\opus\win32\VS2010\$(Platform)\$(Configuration);..\third-party\zlib-1.2.8\contrib\vstudio\vc11\x86\ZlibStat$(Configuration);..\third-party\glew\bin</AdditionalLibraryDirectories>
-      <AdditionalDependencies>silk_common.lib;silk_float.lib;celt.lib;opus.lib;zlibstat.lib;Ws2_32.lib;glew32.lib;opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>silk_common.lib;silk_float.lib;celt.lib;opus.lib;zlibstat.lib;Ws2_32.lib;Iphlpapi.lib;glew32.lib;opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Y ..\third-party\glew\bin\glew32.dll $(OutDir)
@@ -116,7 +116,7 @@ call ../touch.bat "$(OutDir)$(TargetName).lib"</Command>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\third-party\opus\win32\VS2010\$(Platform)\$(Configuration);..\third-party\zlib-1.2.8\contrib\vstudio\vc11\x64\ZlibStat$(Configuration);..\third-party\glew\bin</AdditionalLibraryDirectories>
-      <AdditionalDependencies>silk_common.lib;silk_float.lib;celt.lib;opus.lib;zlibstat.lib;Ws2_32.lib;glew32.lib;opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>silk_common.lib;silk_float.lib;celt.lib;opus.lib;zlibstat.lib;Ws2_32.lib;Iphlpapi.lib;glew32.lib;opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Y ..\third-party\glew\bin\glew32.dll $(OutDir)
@@ -141,7 +141,7 @@ call ../touch.bat "$(OutDir)$(TargetName).lib"</Command>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\third-party\opus\win32\VS2010\$(Platform)\$(Configuration);..\third-party\zlib-1.2.8\contrib\vstudio\vc11\x86\ZlibStatReleaseWithoutAsm;..\third-party\glew\bin</AdditionalLibraryDirectories>
-      <AdditionalDependencies>silk_common.lib;silk_float.lib;celt.lib;opus.lib;zlibstat.lib;Ws2_32.lib;glew32.lib;opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>silk_common.lib;silk_float.lib;celt.lib;opus.lib;zlibstat.lib;Ws2_32.lib;Iphlpapi.lib;glew32.lib;opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Y ..\third-party\glew\bin\glew32.dll $(OutDir)
@@ -166,7 +166,7 @@ call ../touch.bat "$(OutDir)$(TargetName).lib"</Command>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\third-party\opus\win32\VS2010\$(Platform)\$(Configuration);..\third-party\zlib-1.2.8\contrib\vstudio\vc11\x64\ZlibStatReleaseWithoutAsm;..\third-party\glew\bin</AdditionalLibraryDirectories>
-      <AdditionalDependencies>silk_common.lib;silk_float.lib;celt.lib;opus.lib;zlibstat.lib;Ws2_32.lib;glew32.lib;opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>silk_common.lib;silk_float.lib;celt.lib;opus.lib;zlibstat.lib;Ws2_32.lib;Iphlpapi.lib;glew32.lib;opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Y ..\third-party\glew\bin\glew32.dll $(OutDir)

@@ -65,6 +65,7 @@ LOCAL_SRC_FILES := 	ZlibUtils.cpp \
 					BaseEngine.cpp \
 					ConnectionHandler.cpp \
 					Event.cpp \
+					unix/ConnectionHandlerUnix.cpp \
 					linux/ConnectionHandlerLinux.cpp \
 					linux/TimerLinux.cpp \
 					Client/Client.cpp \

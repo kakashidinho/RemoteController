@@ -49,6 +49,15 @@ namespace HQRemote {
 			return m_connHandler->getReceiveRate();
 		}
 
+		std::shared_ptr<const CString> getDesc() const {
+			return m_connHandler->getDesc();
+		}
+
+		//set the description, it can be used as identifier for server discovery. Doesn't need to be unique.
+		void setDesc(const char* desc) {
+			m_connHandler->setDesc(desc);
+		}
+
 		uint32_t getRemoteAudioSampleRate() const;
 		uint32_t getNumRemoteAudioChannels() const;
 

@@ -429,7 +429,11 @@ namespace HQRemote {
 			callback->onConnected();
 		}
 	}
-	
+
+	void IConnectionHandler::setDesc(const char* desc) {
+		m_name = std::make_shared<CString>(desc);
+	}
+
 	void IConnectionHandler::registerDelegate(Delegate* d) {
 		if (d)
 			m_delegates.insert(d);
@@ -1075,10 +1079,22 @@ namespace HQRemote {
 					//join multicast group
 					struct ip_mreq mreq;
 					mreq.imr_multiaddr.s_addr = inet_addr(MULTICAST_ADDRESS);
-					mreq.imr_interface.s_addr = _INADDR_ANY;
 
-					re = setsockopt(m_multicastSocket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (const char*)&mreq, sizeof(mreq));
-					HQRemote::Log("Multicast setsockopt(IP_ADD_MEMBERSHIP) returned %d\n", re);
+					//join multicast group with all available network interfaces
+					std::vector<struct in_addr> interface_addresses;
+					platformGetLocalAddressesForMulticast(interface_addresses);
+
+					for (auto &_interface : interface_addresses) {
+						mreq.imr_interface = _interface;
+
+						re = setsockopt(m_multicastSocket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (const char*)&mreq, sizeof(mreq));
+
+						char addr_buffer[20];
+						if (inet_ntop(AF_INET, (void*)&_interface, addr_buffer, sizeof(addr_buffer)) != NULL)
+							HQRemote::Log("Multicast setsockopt(IP_ADD_MEMBERSHIP, %s) returned %d\n", addr_buffer, re);
+						else
+							HQRemote::Log("Multicast setsockopt(IP_ADD_MEMBERSHIP) returned %d\n", re);
+					}
 
 					//disable loopback
 #if 0
@@ -1164,17 +1180,45 @@ namespace HQRemote {
 						memcmp(msg + 1, MULTICAST_MAGIC_STRING, sizeof(MULTICAST_MAGIC_STRING) - 1) == 0)
 					{
 						//reply with our sockets' ports:
-						//reply message = | PING_REPLY_MSG_CHUNK | magic string | request_id | reliable port | unreliable port
+						//reply message = | PING_REPLY_MSG_CHUNK | magic string | request_id | reliable port | unreliable port | description length | description |
 						unsigned char* msg_ptr = msg;
+						size_t msg_size;
+
+						int32_t reliable_port = m_port;
+						int32_t unreliable_port = m_connLessPort;
 
 						*msg_ptr = (unsigned char)PING_REPLY_MSG_CHUNK;
 						msg_ptr += sizeof(MULTICAST_MAGIC_STRING) + sizeof(uint64_t);
 
-						memcpy(msg_ptr, &m_port, sizeof(m_port));//TODO: assume all platforms use the same endianess
-						memcpy(msg_ptr + sizeof(m_port), &m_connLessPort, sizeof(m_connLessPort));//TODO: assume all platforms use the same endianess
-						msg_ptr += sizeof(m_port) + sizeof(m_connLessPort);
+						//TODO: assume all platforms use the same endianess
+						memcpy(msg_ptr, &reliable_port, sizeof(reliable_port));
+						memcpy(msg_ptr + sizeof(reliable_port), &unreliable_port, sizeof(unreliable_port));
+						msg_ptr += sizeof(reliable_port) + sizeof(unreliable_port);
 
-						sendRawDataUnreliableNoLock(m_connLessSocket, &from_addr, msg, msg_ptr - msg);
+						msg_size = msg_ptr - msg;
+
+						auto remainSizeForDesc = MULTICAST_MAX_MSG_SIZE - msg_size;
+						uint32_t  descSize;
+
+						auto descRef = getDesc();
+						if (descRef->size() > remainSizeForDesc - sizeof(descSize)) {
+							//desc is too large, truncate it
+							descSize = remainSizeForDesc - sizeof(descSize);
+
+							memcpy(msg_ptr, &descSize, sizeof(descSize));
+							memcpy(msg_ptr + sizeof(descSize), descRef->c_str(), descSize - 3);
+							memcpy(msg_ptr + sizeof(descSize) + descSize - 3, "...", 3);
+						}
+						else {
+							descSize = descRef->size();
+
+							memcpy(msg_ptr, &descSize, sizeof(descSize));
+							memcpy(msg_ptr + sizeof(descSize), descRef->c_str(), descSize);
+						}
+
+						msg_size += sizeof(descSize) + descSize;
+
+						sendRawDataUnreliableNoLock(m_connLessSocket, &from_addr, msg, msg_size);
 					}
 					break;
 				}
@@ -1451,9 +1495,10 @@ namespace HQRemote {
 			if (size >= sizeof(MULTICAST_MAGIC_STRING) + sizeof(uint64_t) + 2 * sizeof(int) &&
 				memcmp(msg + 1, MULTICAST_MAGIC_STRING, sizeof(MULTICAST_MAGIC_STRING) - 1) == 0)
 			{
-				//msg = | PING_REPLY_MSG_CHUNK | magic string | request_id | reliable port | unreliable port
+				//msg = | PING_REPLY_MSG_CHUNK | magic string | request_id | reliable port | unreliable port | description length | description
 				int unreliable_port = ntohs(srcAddr.sin_port);
-				int reliable_port_in_msg, unreliable_port_in_msg;
+				int32_t reliable_port_in_msg, unreliable_port_in_msg;
+				uint32_t descLen;
 				uint64_t request_id;
 
 				auto msg_ptr = msg + sizeof(MULTICAST_MAGIC_STRING);
@@ -1461,7 +1506,16 @@ namespace HQRemote {
 				//TODO: assume all platforms use the same endianess
 				memcpy(&request_id, msg_ptr, sizeof(request_id));
 				memcpy(&reliable_port_in_msg, msg_ptr + sizeof(request_id), sizeof(reliable_port_in_msg));
-				memcpy(&unreliable_port_in_msg, msg_ptr + sizeof(request_id) + sizeof(int), sizeof(unreliable_port_in_msg));
+				memcpy(&unreliable_port_in_msg, msg_ptr + sizeof(request_id) + sizeof(int32_t), sizeof(unreliable_port_in_msg));
+				memcpy(&descLen, msg_ptr + sizeof(request_id) + 2 * sizeof(int32_t), sizeof(descLen));
+
+				msg_ptr += sizeof(request_id) + 2 * sizeof(int32_t) + sizeof(descLen);
+
+				uint32_t descMaxLen = (uint32_t)(size + msg - msg_ptr);//just to verify <descLen> is not corrupted
+				descLen = min(descLen, descMaxLen);
+				char desc[MULTICAST_MAX_MSG_SIZE];
+				memcpy(desc, msg_ptr, descLen);
+				desc[descLen] = '\0';
 
 				std::lock_guard<std::mutex> lg(m_discoveryDelegateLock);
 				char addr_buffer[20];
@@ -1470,7 +1524,7 @@ namespace HQRemote {
 					m_discoveryDelegate != NULL) {
 
 					//invoke delegate
-					m_discoveryDelegate->onNewServerDiscovered(this, request_id, addr_buffer, reliable_port_in_msg, unreliable_port_in_msg);
+					m_discoveryDelegate->onNewServerDiscovered(this, request_id, addr_buffer, reliable_port_in_msg, unreliable_port_in_msg, desc);
 				}
 			}
 			break;
