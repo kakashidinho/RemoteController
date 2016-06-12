@@ -269,6 +269,7 @@ namespace HQRemote {
 		virtual void addtionalSocketCleanupImpl() override;
 
 		virtual void addtionalRcvThreadHandlerImpl() override;
+		virtual _ssize_t handleUnwantedDataFromImpl(const sockaddr_in& srcAddr, const void* data, size_t size) override;
 
 		void pollingMulticastData();
 

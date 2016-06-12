@@ -1226,6 +1226,10 @@ namespace HQRemote {
 		}//if (select ...)
 	}
 
+	_ssize_t SocketServerHandler::handleUnwantedDataFromImpl(const sockaddr_in& srcAddr, const void* data, size_t size) {
+		return 0;
+	}
+
 	void SocketServerHandler::addtionalRcvThreadHandlerImpl() {
 		//TODO
 	}
@@ -1462,6 +1466,10 @@ namespace HQRemote {
 		if (!BaseUnreliableSocketHandler::socketInitImpl())
 			return false;
 
+		//enable broadcasting
+		int _true = 1;
+		setsockopt(m_connLessSocket, SOL_SOCKET, SO_BROADCAST, (char*)&_true, sizeof(_true));
+
 		//destination address is the multicast group
 		m_connLessSocketDestAddr = std::unique_ptr<sockaddr_in>(new sockaddr_in());
 
@@ -1485,6 +1493,16 @@ namespace HQRemote {
 
 		//send to multicast group
 		sendRawDataUnreliableImpl(ping_msg, sizeof(ping_msg));
+
+		//also attempt to broadcast the ping message in case multicast doesn't work
+		struct sockaddr_in broadcast_addr = {0};
+		broadcast_addr.sin_family = AF_INET;
+		broadcast_addr.sin_addr.s_addr = htonl(INADDR_BROADCAST);
+		broadcast_addr.sin_port = htons(MULTICAST_PORT);
+
+		m_socketLock.lock();
+		sendRawDataUnreliableNoLock(m_connLessSocket, &broadcast_addr, ping_msg, sizeof(ping_msg));
+		m_socketLock.unlock();
 	}
 	
 	_ssize_t SocketServerDiscoverClientHandler::handleUnwantedDataFromImpl(const sockaddr_in& srcAddr, const void* data, size_t size) {
