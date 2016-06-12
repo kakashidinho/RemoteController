@@ -1469,10 +1469,17 @@ namespace HQRemote {
 	{
 		if (!BaseUnreliableSocketHandler::socketInitImpl())
 			return false;
+		int re;
 
 		//enable broadcasting
 		int _true = 1;
 		setsockopt(m_connLessSocket, SOL_SOCKET, SO_BROADCAST, (char*)&_true, sizeof(_true));
+
+		//increase TTL
+		//set max TTL to reach more than one subnets
+		int ttl = 3;
+		re = setsockopt(m_connLessSocket, IPPROTO_IP, IP_TTL, (const char*)&ttl, sizeof(ttl));
+		HQRemote::Log("SocketServerDiscoverClientHandler: setsockopt(IP_TTL) returned %d\n", re);
 
 		//destination address is the multicast group
 		m_connLessSocketDestAddr = std::unique_ptr<sockaddr_in>(new sockaddr_in());
@@ -1544,6 +1551,8 @@ namespace HQRemote {
 				if (inet_ntop(AF_INET, (void*)&srcAddr.sin_addr, addr_buffer, sizeof(addr_buffer)) != NULL &&
 					unreliable_port_in_msg == unreliable_port &&
 					m_discoveryDelegate != NULL) {
+
+					//HQRemote::Log("Get ping reply from %s:%d\n", addr_buffer, unreliable_port);
 
 					//invoke delegate
 					m_discoveryDelegate->onNewServerDiscovered(this, request_id, addr_buffer, reliable_port_in_msg, unreliable_port_in_msg, desc);
