@@ -43,6 +43,9 @@
     <Filter Include="Source Files\Common\linux">
       <UniqueIdentifier>{bbce5501-cf0d-4db5-b01e-9f1eae9d9c34}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Common\unix">
+      <UniqueIdentifier>{6b3efcbc-a613-4077-b542-2ff2f0aebd84}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\third-party\jpeg-9a\jaricom.c">
@@ -245,6 +248,9 @@
     </ClCompile>
     <ClCompile Include="..\AudioCapturer.cpp">
       <Filter>Source Files\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\unix\ConnectionHandlerUnix.cpp">
+      <Filter>Source Files\Common\unix</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
