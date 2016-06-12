@@ -1222,6 +1222,9 @@ namespace HQRemote {
 
 						msg_size += sizeof(descSize) + descSize;
 
+						//send 3 reply messages to avoid packet loss
+						sendRawDataUnreliableNoLock(m_connLessSocket, &from_addr, msg, msg_size);
+						sendRawDataUnreliableNoLock(m_connLessSocket, &from_addr, msg, msg_size);
 						sendRawDataUnreliableNoLock(m_connLessSocket, &from_addr, msg, msg_size);
 					}
 					break;
@@ -1502,7 +1505,9 @@ namespace HQRemote {
 		memcpy(ping_msg + 1, MULTICAST_MAGIC_STRING, sizeof(MULTICAST_MAGIC_STRING) - 1);
 		memcpy(ping_msg + sizeof(MULTICAST_MAGIC_STRING), &request_id, sizeof(request_id));//TODO: assume all platforms use the same endianess
 
-		//send to multicast group
+		//send to multicast group 3 times to avoid packet drop
+		sendRawDataUnreliableImpl(ping_msg, sizeof(ping_msg));
+		sendRawDataUnreliableImpl(ping_msg, sizeof(ping_msg));
 		sendRawDataUnreliableImpl(ping_msg, sizeof(ping_msg));
 
 		//also attempt to broadcast the ping message in case multicast doesn't work
