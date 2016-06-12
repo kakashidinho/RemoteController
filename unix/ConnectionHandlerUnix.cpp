@@ -1,7 +1,9 @@
 #include "../ConnectionHandler.h"
 
 #include <fcntl.h>
-#include <ifaddrs.h>
+#if !defined __ANDROID__
+#	include <ifaddrs.h>
+#endif
 
 namespace HQRemote {
 	int SocketConnectionHandler::platformSetSocketBlockingMode(socket_t socket, bool blocking)
@@ -21,9 +23,10 @@ namespace HQRemote {
 		return errno;
 	}
 
+	__attribute__((weak))
 	void SocketServerHandler::platformGetLocalAddressesForMulticast(std::vector<struct in_addr>& addresses) {
 		addresses.clear();
-#if 1
+#if !defined __ANDROID__
 		struct ifaddrs *ifap_buf;
 		if (getifaddrs(&ifap_buf) == 0)
 		{

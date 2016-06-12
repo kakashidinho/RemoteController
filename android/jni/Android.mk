@@ -65,6 +65,8 @@ LOCAL_SRC_FILES := 	ZlibUtils.cpp \
 					BaseEngine.cpp \
 					ConnectionHandler.cpp \
 					Event.cpp \
+					android/JniUtils.cpp \
+					android/ConnectionHandlerAndroid.cpp \
 					unix/ConnectionHandlerUnix.cpp \
 					linux/ConnectionHandlerLinux.cpp \
 					linux/TimerLinux.cpp \

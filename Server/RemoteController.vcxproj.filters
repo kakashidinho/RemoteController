@@ -46,6 +46,9 @@
     <Filter Include="Source Files\Common\unix">
       <UniqueIdentifier>{6b3efcbc-a613-4077-b542-2ff2f0aebd84}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Common\android">
+      <UniqueIdentifier>{e54c2c98-bd41-4268-a4db-05d09f0cc945}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\third-party\jpeg-9a\jaricom.c">
@@ -252,6 +255,12 @@
     <ClCompile Include="..\unix\ConnectionHandlerUnix.cpp">
       <Filter>Source Files\Common\unix</Filter>
     </ClCompile>
+    <ClCompile Include="..\android\ConnectionHandlerAndroid.cpp">
+      <Filter>Source Files\Common\android</Filter>
+    </ClCompile>
+    <ClCompile Include="..\android\JniUtils.cpp">
+      <Filter>Source Files\Common\android</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\third-party\jpeg-9a\win32\jconfig.h">
@@ -331,6 +340,9 @@
     </ClInclude>
     <ClInclude Include="..\AudioCapturer.h">
       <Filter>Source Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\android\JniUtils.h">
+      <Filter>Source Files\Common\android</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
