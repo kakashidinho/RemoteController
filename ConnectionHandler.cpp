@@ -1076,6 +1076,10 @@ namespace HQRemote {
 
 				if (m_multicastSocket != INVALID_SOCKET)
 				{
+					//enable broadcasting
+					int _true = 1;
+					setsockopt(m_multicastSocket, SOL_SOCKET, SO_BROADCAST, (char*)&_true, sizeof(_true));
+
 					//join multicast group
 					struct ip_mreq mreq;
 					mreq.imr_multiaddr.s_addr = inet_addr(MULTICAST_ADDRESS);
