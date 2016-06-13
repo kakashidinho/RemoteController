@@ -414,19 +414,24 @@ namespace HQRemote {
 	}
 	
 
-	void IConnectionHandler::onConnected()
+	void IConnectionHandler::onConnected(bool reconnected)
 	{
 		//reset internal buffer
 		invalidateUnusedReliableData();
 		
-		//reset data rate counter
-		getTimeCheckPoint(m_lastRecvTime);
-		m_numLastestDataReceived = 0;
-		m_recvRate = 0;
+		if (!reconnected)
+		{
+			//we only do these if this is a fresh connection (not reconnection)
+			
+			//reset data rate counter
+			getTimeCheckPoint(m_lastRecvTime);
+			m_numLastestDataReceived = 0;
+			m_recvRate = 0;
 
-		//invoke callback> TODO: don't allow unregisterConnectedCallback() to be called inside callback
-		for (auto& callback : m_delegates) {
-			callback->onConnected();
+			//invoke callback> TODO: don't allow unregisterConnectedCallback() to be called inside callback
+			for (auto& callback : m_delegates) {
+				callback->onConnected();
+			}
 		}
 	}
 

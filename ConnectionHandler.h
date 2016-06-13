@@ -117,7 +117,7 @@ namespace HQRemote {
 		//this should be called when data is received from unreliable channel
 		void onReceivedUnreliableDataFragment(const void* data, size_t size);
 		//this should be called when endpoints connected successfully
-		void onConnected();
+		void onConnected(bool reconnected = false);
 		
 		void setInternalError(const char* msg);
 		
@@ -259,9 +259,10 @@ namespace HQRemote {
 		~SocketServerHandler();
 
 		virtual bool connected() const override;
-	private:
+		
 		//get all interfaces' addresses that can be used to join multicast group
 		static void platformGetLocalAddressesForMulticast(std::vector<struct in_addr>& addresses);
+	private:
 
 		virtual bool socketInitImpl() override;
 		virtual void initConnectionImpl() override;
