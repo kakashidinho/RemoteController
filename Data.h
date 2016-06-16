@@ -46,13 +46,14 @@ namespace HQRemote {
 			memcpy(m_data, data, size);
 		}
 
-		//this object will take ownership of the passed pointer
+		//this object will take ownership of the passed pointer if <destructFunc> is not null
 		CData(unsigned char* data, size_t size, DestructFunc destructFunc) {
 			transferFrom(data, size, destructFunc);
 		}
 
 		~CData() {
-			m_destructFunc(m_data);
+			if (m_destructFunc)
+				m_destructFunc(m_data);
 		}
 
 		virtual unsigned char* data() override { return m_data; }

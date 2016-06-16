@@ -428,6 +428,11 @@ namespace HQRemote {
 			m_numLastestDataReceived = 0;
 			m_recvRate = 0;
 
+			//clear all pending unhandled data
+			m_dataLock.lock();
+			m_dataQueue.clear();
+			m_dataLock.unlock();
+
 			//invoke callback> TODO: don't allow unregisterConnectedCallback() to be called inside callback
 			for (auto& callback : m_delegates) {
 				callback->onConnected();

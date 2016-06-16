@@ -571,6 +571,18 @@ namespace HQRemote {
 			}
 		}
 		break;
+		case MESSAGE:
+		{
+			//send acknowledge message back to sender
+			PlainEvent ackEvent(MESSAGE_ACK);
+			ackEvent.event.messageAck.messageId = event.renderedFrameData.frameId;
+
+			sendEvent(ackEvent);
+
+			//forward the event to user
+			pushEvent(eventRef);
+		}
+		break;
 		default:
 		{
 			//generic envent is forwarded to user

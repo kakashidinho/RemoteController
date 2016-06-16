@@ -41,6 +41,9 @@ namespace HQRemote {
 
 		COMPRESSED_EVENTS,
 
+		MESSAGE,//send a message. This uses renderedFrameData field in Event struct
+		MESSAGE_ACK,//sent message acknowledged
+
 		NO_EVENT,
 	};
 
@@ -79,6 +82,10 @@ namespace HQRemote {
 				int32_t framesBundleSize;
 				int32_t frameSizeMs;
 			} audioStreamInfo;
+
+			struct {
+				uint64_t messageId;
+			} messageAck;
 			
 			double frameInterval;
 
@@ -154,6 +161,7 @@ namespace HQRemote {
 	struct HQREMOTE_API FrameEvent : public DataEvent {
 		explicit FrameEvent(EventType type = RENDERED_FRAME);
 		explicit FrameEvent(uint32_t frameSize, uint64_t frameId, EventType type = RENDERED_FRAME);
+		explicit FrameEvent(const void* frameData, uint32_t frameSize, uint64_t frameId, EventType type = RENDERED_FRAME);
 		explicit FrameEvent(ConstDataRef frameData, uint64_t frameId, EventType type = RENDERED_FRAME);
 
 	private:

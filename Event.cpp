@@ -209,6 +209,13 @@ namespace HQRemote {
 		event.renderedFrameData.frameData = storage->data() + sizeof(event);
 	}
 
+	FrameEvent::FrameEvent(const void* frameData, uint32_t frameSize, uint64_t frameId, EventType type)
+		:FrameEvent(frameSize, frameId, type)
+	{
+		//copy frame data
+		memcpy(event.renderedFrameData.frameData, frameData, frameSize);
+	}
+
 	FrameEvent::FrameEvent(ConstDataRef frameData, uint64_t frameId, EventType type)
 		:FrameEvent(frameData->size(), frameId, type)
 	{
@@ -245,7 +252,7 @@ namespace HQRemote {
 			plainEvent.deserialize(dataRefCopy);
 
 			switch (plainEvent.event.type) {
-			case RENDERED_FRAME: case AUDIO_ENCODED_PACKET: case ENDPOINT_NAME:
+			case RENDERED_FRAME: case AUDIO_ENCODED_PACKET: case ENDPOINT_NAME: case MESSAGE:
 			{
 				//this is non-plain event
 				auto frameEvent = std::make_shared<FrameEvent>(plainEvent.event.type);
