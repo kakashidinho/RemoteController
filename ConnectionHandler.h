@@ -90,6 +90,10 @@ namespace HQRemote {
 		//set the description, it can be used as identifier for server discovery. Doesn't need to be unique.
 		void setDesc(const char* desc);
 
+		void setTag(size_t tag) { m_tag = tag; }
+
+		size_t getTag() { return m_tag; }
+
 		void registerDelegate(Delegate* delegate);
 		void unregisterDelegate(Delegate* delegate);
 		
@@ -141,6 +145,8 @@ namespace HQRemote {
 		
 		std::shared_ptr<CString> m_internalError;
 		std::shared_ptr<CString> m_name;//doesn't need to be unique
+
+		std::atomic<size_t> m_tag;
 		
 		int m_reliableBufferState;
 		MsgBuf m_reliableBuffer;

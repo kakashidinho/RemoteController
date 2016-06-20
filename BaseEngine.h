@@ -53,9 +53,21 @@ namespace HQRemote {
 			return m_connHandler->getDesc();
 		}
 
+		void setTag(size_t tag) {
+			m_connHandler->setTag(tag);
+		}
+
+		size_t getTag() {
+			return m_connHandler->getTag();
+		}
+
 		//set the description, it can be used as identifier for server discovery. Doesn't need to be unique.
 		void setDesc(const char* desc) {
 			m_connHandler->setDesc(desc);
+		}
+
+		std::shared_ptr<IConnectionHandler> getConnHandler() {
+			return m_connHandler;
 		}
 
 		uint32_t getRemoteAudioSampleRate() const;
@@ -68,11 +80,9 @@ namespace HQRemote {
 		//TODO: only support 16 bit PCM, and sample rate (8000, 12000, 16000, 24000, or 48000) for now
 		void captureAndSendAudio();
 		void sendCapturedAudioInfo();//send captured audio info (i.e. sample rate, channels, etc) to remote side
-
 	protected:
 		typedef std::map<uint64_t, ConstFrameEventRef> TimedDataQueue;
 
-		IConnectionHandler* getConnHandler() { return m_connHandler.get(); }
 		const std::thread* getDataPollingThread() { return m_dataPollingThread.get(); }
 
 		void tryRecvEvent(EventType eventToDiscard = NO_EVENT, bool consumeAllAvailableData = false);//try to parse & process the received data if available 

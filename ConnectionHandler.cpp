@@ -108,7 +108,7 @@ namespace HQRemote {
 
 	/*--------------- IConnectionHandler -----------*/
 	IConnectionHandler::IConnectionHandler()
-	: m_running(false), m_recvRate(0)
+	: m_running(false), m_recvRate(0), m_tag(0)
 	{
 	}
 	
