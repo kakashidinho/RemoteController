@@ -173,8 +173,8 @@ namespace HQRemote {
 
 		virtual bool connected() const override;
 		
-		static int platformSetSocketBlockingMode(socket_t socket, bool blocking);
-		static int platformGetLastSocketErr();
+		static int HQ_FASTCALL platformSetSocketBlockingMode(socket_t socket, bool blocking);
+		static int HQ_FASTCALL platformGetLastSocketErr();
 	private:
 
 		void platformConstruct();
@@ -267,7 +267,7 @@ namespace HQRemote {
 		virtual bool connected() const override;
 		
 		//get all interfaces' addresses that can be used to join multicast group
-		static void platformGetLocalAddressesForMulticast(std::vector<struct in_addr>& addresses);
+		static void HQ_FASTCALL platformGetLocalAddressesForMulticast(std::vector<struct in_addr>& addresses);
 	private:
 
 		virtual bool socketInitImpl() override;
