@@ -172,6 +172,13 @@
 		0A5298721C522ACC0008A9FA /* OpenGLES.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGLES.framework; path = System/Library/Frameworks/OpenGLES.framework; sourceTree = SDKROOT; };
 		0A5716901C43520900AE78E7 /* libRemoteController.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libRemoteController.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		0A5716B51C4353C000AE78E7 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
+		0A8DD5241D1BBF7D0040E8D3 /* ConnectionHandlerAndroid.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = ConnectionHandlerAndroid.cpp; path = android/ConnectionHandlerAndroid.cpp; sourceTree = "<group>"; };
+		0A8DD5251D1BBF7D0040E8D3 /* JniUtils.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = JniUtils.cpp; path = android/JniUtils.cpp; sourceTree = "<group>"; };
+		0A8DD5261D1BBF7D0040E8D3 /* JniUtils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = JniUtils.h; path = android/JniUtils.h; sourceTree = "<group>"; };
+		0A8DD5281D1BC0EA0040E8D3 /* Android.mk */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Android.mk; path = android/jni/Android.mk; sourceTree = "<group>"; };
+		0A8DD5291D1BC0EA0040E8D3 /* Application.mk */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Application.mk; path = android/jni/Application.mk; sourceTree = "<group>"; };
+		0A8DD52D1D1BC20E0040E8D3 /* Android.mk */ = {isa = PBXFileReference; lastKnownFileType = text; name = Android.mk; path = "third-party/opus-prebuilt/Android/jni/Android.mk"; sourceTree = "<group>"; };
+		0A8DD52E1D1BC20E0040E8D3 /* Application.mk */ = {isa = PBXFileReference; lastKnownFileType = text; name = Application.mk; path = "third-party/opus-prebuilt/Android/jni/Application.mk"; sourceTree = "<group>"; };
 		0AB449BB1D0C808200B8D991 /* ConnectionHandlerUnix.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ConnectionHandlerUnix.cpp; path = unix/ConnectionHandlerUnix.cpp; sourceTree = "<group>"; };
 		0AE5B0D71C44D95500155DB8 /* Engine.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Engine.cpp; path = Server/Engine.cpp; sourceTree = "<group>"; };
 		0AE5B0D81C44D95500155DB8 /* Engine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Engine.h; path = Server/Engine.h; sourceTree = "<group>"; };
@@ -245,6 +252,7 @@
 				0A29738F1C51FFB900A2F8F0 /* Event.cpp */,
 				0A2973901C51FFB900A2F8F0 /* Event.h */,
 				0A2973911C51FFB900A2F8F0 /* Timer.h */,
+				0A8DD5231D1BBF5A0040E8D3 /* android */,
 				0AB449BA1D0C806200B8D991 /* unix */,
 				0A36AC5C1C7FFD2900922BF2 /* linux */,
 				0A29739F1C5205FA00A2F8F0 /* win32 */,
@@ -319,6 +327,44 @@
 				0A5298711C522A9F0008A9FA /* libRemoteControllerIOS.a */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		0A8DD5231D1BBF5A0040E8D3 /* android */ = {
+			isa = PBXGroup;
+			children = (
+				0A8DD52B1D1BC1CE0040E8D3 /* thir-party */,
+				0A8DD5271D1BC0D80040E8D3 /* jni */,
+				0A8DD5241D1BBF7D0040E8D3 /* ConnectionHandlerAndroid.cpp */,
+				0A8DD5251D1BBF7D0040E8D3 /* JniUtils.cpp */,
+				0A8DD5261D1BBF7D0040E8D3 /* JniUtils.h */,
+			);
+			name = android;
+			sourceTree = "<group>";
+		};
+		0A8DD5271D1BC0D80040E8D3 /* jni */ = {
+			isa = PBXGroup;
+			children = (
+				0A8DD5281D1BC0EA0040E8D3 /* Android.mk */,
+				0A8DD5291D1BC0EA0040E8D3 /* Application.mk */,
+			);
+			name = jni;
+			sourceTree = "<group>";
+		};
+		0A8DD52B1D1BC1CE0040E8D3 /* thir-party */ = {
+			isa = PBXGroup;
+			children = (
+				0A8DD52C1D1BC1D80040E8D3 /* opus_scripts */,
+			);
+			name = "thir-party";
+			sourceTree = "<group>";
+		};
+		0A8DD52C1D1BC1D80040E8D3 /* opus_scripts */ = {
+			isa = PBXGroup;
+			children = (
+				0A8DD52D1D1BC20E0040E8D3 /* Android.mk */,
+				0A8DD52E1D1BC20E0040E8D3 /* Application.mk */,
+			);
+			name = opus_scripts;
 			sourceTree = "<group>";
 		};
 		0AB449BA1D0C806200B8D991 /* unix */ = {

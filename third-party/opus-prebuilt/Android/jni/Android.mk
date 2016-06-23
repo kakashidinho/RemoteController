@@ -116,7 +116,7 @@ LOCAL_C_INCLUDES    := \
     $(LOCAL_PATH)/silk/float \
     $(LOCAL_PATH)/celt
 LOCAL_CFLAGS        := -DNULL=0 -DSOCKLEN_T=socklen_t -DLOCALE_NOT_USED -D_LARGEFILE_SOURCE=1 -D_FILE_OFFSET_BITS=64
-LOCAL_CFLAGS    += -Drestrict='' -D__EMX__ -DOPUS_BUILD -DUSE_ALLOCA -DHAVE_LRINT -DHAVE_LRINTF -O3 -fno-math-errno
+LOCAL_CFLAGS    += -Drestrict='' -D__EMX__ -DOPUS_BUILD -DUSE_ALLOCA -DHAVE_LRINT -DHAVE_LRINTF -O3 -fno-math-errno -fvisibility=hidden
 LOCAL_CPPFLAGS      := -DBSD=1 
 LOCAL_CPPFLAGS          += -ffast-math -O3 -funroll-loops
 

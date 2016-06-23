@@ -9,6 +9,7 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := RemoteController
 
+LOCAL_CFLAGS := -fvisibility=hidden
 LOCAL_CPPFLAGS := -std=c++11
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/third-party/opus/include $(LOCAL_PATH)/third-party/jpeg-9a
 
