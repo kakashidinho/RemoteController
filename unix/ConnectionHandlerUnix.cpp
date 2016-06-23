@@ -23,6 +23,16 @@ namespace HQRemote {
 		return errno;
 	}
 
+	in_addr SocketConnectionHandler::platformIpv4StringToAddr(const char* addr_str) {
+		in_addr re;
+		re.s_addr = inet_addr(addr_str);
+		return re;
+	}
+
+	const char* SocketConnectionHandler::platformIpv4AddrToString(const in_addr* addr, char* addr_buf, size_t addr_buf_max_len) {
+		return inet_ntop(AF_INET, (const void*)addr, addr_buf, addr_buf_max_len);
+	}
+
 	__attribute__((weak))
 	void SocketServerHandler::platformGetLocalAddressesForMulticast(std::vector<struct in_addr>& addresses) {
 		addresses.clear();

@@ -1,0 +1,215 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <ItemsProjectGuid>{b2f56166-9dd8-41dc-98cb-e8d75b39c314}</ItemsProjectGuid>
+    <ItemsRootNamespace>RemoteControllerWinRT</ItemsRootNamespace>
+    <ItemsProjectName>RemoteControllerWinRT.Shared</ItemsProjectName>
+    <CodeSharingProject>248F659F-DAC5-46E8-AC09-60EC9FC95053</CodeSharingProject>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\AudioCapturer.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\BaseEngine.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\Client\Client.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\Common.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\ConnectionHandler.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\Event.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\Server\apple\ImgCompressorApple.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\Server\Engine.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\Server\FrameCapturer.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\Server\ImgCompressor.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\Server\JpegCompressor.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\Server\PngCompressor.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\Server\win32\EngineWin32.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\Server\winrt\EngineWinRT.cpp">
+      <CompileAsWinRT>true</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jaricom.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jcapimin.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jcapistd.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jcarith.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jccoefct.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jccolor.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jcdctmgr.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jchuff.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jcinit.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jcmainct.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jcmarker.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jcmaster.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jcomapi.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jcparam.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jcprepct.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jcsample.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jctrans.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jdapimin.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jdapistd.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jdarith.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jdatadst.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jdatasrc.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jdcoefct.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jdcolor.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jddctmgr.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jdhuff.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jdinput.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jdmainct.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jdmarker.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jdmaster.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jdmerge.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jdpostct.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jdsample.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jdtrans.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jerror.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jfdctflt.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jfdctfst.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jfdctint.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jidctflt.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jidctfst.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jidctint.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jmemansi.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jmemmgr.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jquant1.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jquant2.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jutils.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\unix\ConnectionHandlerUnix.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\win32\ConnectionHandlerWin32.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\win32\TimerWin32.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\ZlibUtils.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)dllmain.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectCapability Include="SourceItemsFromImports" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\AudioCapturer.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\BaseEngine.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\Client\Client.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\Common.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\ConnectionHandler.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\CString.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\Data.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\Event.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\Server\Engine.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\Server\FrameCapturer.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\Server\ImgCompressor.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jconfig.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jdct.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jerror.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jinclude.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jmemsys.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jmorecfg.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jpegint.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jpeglib.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\third-party\jpeg-9a\jversion.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\Timer.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\ZlibUtils.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)..\..\Server\apple\EngineApple.mm">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </None>
+  </ItemGroup>
+</Project>

@@ -1,6 +1,10 @@
 #include "../ConnectionHandler.h"
-
-#include <Iphlpapi.h>
+#if WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP || WINAPI_FAMILY == WINAPI_FAMILY_APP
+#	include <Ws2tcpip.h>
+#	if WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP
+#		include <Iphlpapi.h>
+#	endif
+#endif
 
 namespace HQRemote {
 	/*------------ SocketConnectionHandler ---------*/
@@ -32,10 +36,39 @@ namespace HQRemote {
 		return WSAGetLastError();
 	}
 
+	in_addr SocketConnectionHandler::platformIpv4StringToAddr(const char* addr_str) {
+		in_addr re;
+#if WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP || WINAPI_FAMILY == WINAPI_FAMILY_APP
+		re.s_addr = INADDR_ANY;
+
+		InetPtonA(AF_INET, addr_str, &re);
+#else//#if WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP || WINAPI_FAMILY == WINAPI_FAMILY_APP
+		re.s_addr = inet_addr(addr_str);
+#endif//#if WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP || WINAPI_FAMILY == WINAPI_FAMILY_APP
+		return re;
+	}
+
+	const char* SocketConnectionHandler::platformIpv4AddrToString(const in_addr* addr, char* addr_buf, size_t addr_buf_max_len) {
+#if WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP || WINAPI_FAMILY == WINAPI_FAMILY_APP
+		return inet_ntop(AF_INET, const_cast<in_addr*>(addr), addr_buf, addr_buf_max_len);
+#else//#if WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP
+
+		//WinRT doesn't have inet_ntop
+		auto addr_str = inet_ntoa(*addr);
+		auto addr_str_len = strlen(addr_str);
+		if (addr_str_len > addr_buf_max_len - 1)
+			return NULL;
+
+		memcpy(addr_buf, addr_str, addr_str_len + 1);
+
+		return addr_buf;
+#endif//#if WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP
+	}
+
 	/*--------- SocketServerHandler -------------*/
 	void SocketServerHandler::platformGetLocalAddressesForMulticast(std::vector<struct in_addr>& addresses) {
 		addresses.clear();
-
+#if WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP
 		IP_ADAPTER_ADDRESSES* addressesBuf = NULL;
 
 		try {
@@ -66,7 +99,9 @@ namespace HQRemote {
 				pAddressInfo = pAddressInfo->Next;//next adapter's address info
 			}//while (pAddressInfo)
 		}
-		catch (...) {
+		catch (...) 
+#endif// #if WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP
+		{
 			addresses.clear();
 
 			//use default address
@@ -74,8 +109,9 @@ namespace HQRemote {
 			default.s_addr = INADDR_ANY;
 			addresses.push_back(default);
 		}
-
+#if WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP
 		//cleanup
 		free(addressesBuf);
+#endif//#if WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP
 	}
 }

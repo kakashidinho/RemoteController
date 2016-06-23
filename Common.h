@@ -1,6 +1,12 @@
 #ifndef REMOTE_COMMON_H
 #define REMOTE_COMMON_H
 
+#ifndef WIN32
+#	ifdef _WIN32
+#		define WIN32
+#	endif
+#endif
+
 #ifdef WIN32
 #include <windows.h>
 #else

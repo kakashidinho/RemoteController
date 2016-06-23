@@ -1,0 +1,228 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <ItemsProjectGuid>{c3ba6195-9701-4c38-a2c9-d2320ed73d4d}</ItemsProjectGuid>
+    <ItemsRootNamespace>opus_winrt</ItemsRootNamespace>
+    <ItemsProjectName>opus_winrt.Shared</ItemsProjectName>
+    <CodeSharingProject>248F659F-DAC5-46E8-AC09-60EC9FC95053</CodeSharingProject>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectCapability Include="SourceItemsFromImports" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\bands.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\celt.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\celt_decoder.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\celt_encoder.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\celt_lpc.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\cwrs.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\entcode.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\entdec.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\entenc.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\kiss_fft.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\laplace.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\mathops.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\mdct.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\modes.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\pitch.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\quant_bands.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\rate.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\vq.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\A2NLSF.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\ana_filt_bank_1.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\biquad_alt.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\bwexpander.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\bwexpander_32.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\check_control_input.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\CNG.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\code_signs.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\control_audio_bandwidth.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\control_codec.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\control_SNR.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\debug.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\decoder_set_fs.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\decode_core.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\decode_frame.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\decode_indices.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\decode_parameters.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\decode_pitch.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\decode_pulses.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\dec_API.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\encode_indices.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\encode_pulses.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\enc_API.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\apply_sine_window_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\autocorrelation_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\burg_modified_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\bwexpander_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\corrMatrix_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\encode_frame_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\energy_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\find_LPC_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\find_LTP_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\find_pitch_lags_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\find_pred_coefs_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\inner_product_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\k2a_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\levinsondurbin_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\LPC_analysis_filter_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\LPC_inv_pred_gain_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\LTP_analysis_filter_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\LTP_scale_ctrl_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\noise_shape_analysis_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\pitch_analysis_core_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\prefilter_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\process_gains_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\regularize_correlations_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\residual_energy_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\scale_copy_vector_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\scale_vector_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\schur_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\solve_LS_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\sort_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\warped_autocorrelation_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\wrappers_FLP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\gain_quant.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\HP_variable_cutoff.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\init_decoder.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\init_encoder.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\inner_prod_aligned.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\interpolate.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\lin2log.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\log2lin.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\LPC_analysis_filter.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\LPC_inv_pred_gain.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\LP_variable_cutoff.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\NLSF2A.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\NLSF_decode.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\NLSF_del_dec_quant.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\NLSF_encode.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\NLSF_stabilize.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\NLSF_unpack.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\NLSF_VQ.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\NLSF_VQ_weights_laroia.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\NSQ.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\NSQ_del_dec.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\pitch_est_tables.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\PLC.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\process_NLSFs.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\quant_LTP_gains.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\resampler.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\resampler_down2.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\resampler_down2_3.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\resampler_private_AR2.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\resampler_private_down_FIR.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\resampler_private_IIR_FIR.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\resampler_private_up2_HQ.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\resampler_rom.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\shell_coder.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\sigm_Q15.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\sort.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\stereo_decode_pred.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\stereo_encode_pred.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\stereo_find_predictor.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\stereo_LR_to_MS.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\stereo_MS_to_LR.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\stereo_quant_pred.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\sum_sqr_shift.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\tables_gain.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\tables_LTP.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\tables_NLSF_CB_NB_MB.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\tables_NLSF_CB_WB.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\tables_other.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\tables_pitch_lag.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\tables_pulses_per_block.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\table_LSF_cos.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\VAD.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\VQ_WMat_EC.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\src\analysis.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\src\mlp.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\src\mlp_data.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\src\mlp_train.c">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\src\opus.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\src\opus_decoder.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\src\opus_encoder.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\src\opus_multistream.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\src\opus_multistream_decoder.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\src\opus_multistream_encoder.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\opus\src\repacketizer.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\arch.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\bands.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\celt.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\celt_lpc.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\cpu_support.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\cwrs.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\ecintrin.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\entcode.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\entdec.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\entenc.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\fixed_c5x.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\fixed_c6x.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\fixed_debug.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\fixed_generic.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\float_cast.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\kiss_fft.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\laplace.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\mathops.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\mdct.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\mfrngcod.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\modes.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\os_support.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\pitch.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\quant_bands.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\rate.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\stack_alloc.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\static_modes_fixed.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\static_modes_fixed_arm_ne10.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\static_modes_float.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\static_modes_float_arm_ne10.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\vq.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\celt\_kiss_fft_guts.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\include\opus.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\include\opus_custom.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\include\opus_defines.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\include\opus_multistream.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\include\opus_types.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\API.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\control.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\debug.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\define.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\errors.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\main_FLP.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\SigProc_FLP.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\float\structs_FLP.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\Inlines.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\MacroCount.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\MacroDebug.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\macros.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\main.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\pitch_est_defines.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\PLC.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\resampler_private.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\resampler_rom.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\resampler_structs.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\SigProc_FIX.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\structs.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\tables.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\tuning_parameters.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\silk\typedef.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\src\analysis.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\src\mlp.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\src\mlp_train.h">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\src\opus_private.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\opus\src\tansig_table.h" />
+  </ItemGroup>
+</Project>

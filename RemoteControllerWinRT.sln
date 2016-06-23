@@ -1,0 +1,138 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.24720.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "RemoteControllerWinRT", "RemoteControllerWinRT", "{E54BB448-46D6-494D-8101-C743FCA8EB25}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RemoteControllerWinRT.Shared", "RemoteControllerWinRT\RemoteControllerWinRT.Shared\RemoteControllerWinRT.Shared.vcxitems", "{B2F56166-9DD8-41DC-98CB-E8D75B39C314}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RemoteControllerWinRT.Windows", "RemoteControllerWinRT\RemoteControllerWinRT.Windows\RemoteControllerWinRT.Windows.vcxproj", "{542B0731-31AF-4BD4-9AE1-EE442E1CFB2D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D140D4DD-FE9F-43E4-9EDF-A9E0058BBA56} = {D140D4DD-FE9F-43E4-9EDF-A9E0058BBA56}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RemoteControllerWinRT.WindowsPhone", "RemoteControllerWinRT\RemoteControllerWinRT.WindowsPhone\RemoteControllerWinRT.WindowsPhone.vcxproj", "{A1B9ED68-9183-4241-9615-45E567D9CA7D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{2BE91149-7AD8-40C5-ABFD-6D607A6B7105} = {2BE91149-7AD8-40C5-ABFD-6D607A6B7105}
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "zlib_stastic_winrt", "zlib_stastic_winrt", "{9250B709-9A23-405E-A522-B3FF51E557BF}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zlib_stastic_winrt.Shared", "third-party\zlib-1.2.8\contrib\vstudio\vc14\zlib_stastic_winrt\zlib_stastic_winrt.Shared\zlib_stastic_winrt.Shared.vcxitems", "{13197D82-BCDB-4154-B3D7-FC0F122DEE7B}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zlib_stastic_winrt.Windows", "third-party\zlib-1.2.8\contrib\vstudio\vc14\zlib_stastic_winrt\zlib_stastic_winrt.Windows\zlib_stastic_winrt.Windows.vcxproj", "{D140D4DD-FE9F-43E4-9EDF-A9E0058BBA56}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zlib_stastic_winrt.WindowsPhone", "third-party\zlib-1.2.8\contrib\vstudio\vc14\zlib_stastic_winrt\zlib_stastic_winrt.WindowsPhone\zlib_stastic_winrt.WindowsPhone.vcxproj", "{2BE91149-7AD8-40C5-ABFD-6D607A6B7105}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "opus_winrt", "opus_winrt", "{1C101952-119F-4EF7-B7F2-B8864F9DB32C}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "opus_winrt.Shared", "third-party\opus-prebuilt\WinRT\opus_winrt.Shared\opus_winrt.Shared.vcxitems", "{C3BA6195-9701-4C38-A2C9-D2320ED73D4D}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "opus_winrt.Windows", "third-party\opus-prebuilt\WinRT\opus_winrt.Windows\opus_winrt.Windows.vcxproj", "{4C00FFE6-8A5F-46B0-848D-DF74B7072326}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "opus_winrt.WindowsPhone", "third-party\opus-prebuilt\WinRT\opus_winrt.WindowsPhone\opus_winrt.WindowsPhone.vcxproj", "{1030CF22-46B1-4549-A809-BC68E780D6C6}"
+EndProject
+Global
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		third-party\opus-prebuilt\WinRT\opus_winrt.Shared\opus_winrt.Shared.vcxitems*{c3ba6195-9701-4c38-a2c9-d2320ed73d4d}*SharedItemsImports = 9
+		third-party\zlib-1.2.8\contrib\vstudio\vc14\zlib_stastic_winrt\zlib_stastic_winrt.Shared\zlib_stastic_winrt.Shared.vcxitems*{d140d4dd-fe9f-43e4-9edf-a9e0058bba56}*SharedItemsImports = 4
+		RemoteControllerWinRT\RemoteControllerWinRT.Shared\RemoteControllerWinRT.Shared.vcxitems*{542b0731-31af-4bd4-9ae1-ee442e1cfb2d}*SharedItemsImports = 4
+		RemoteControllerWinRT\RemoteControllerWinRT.Shared\RemoteControllerWinRT.Shared.vcxitems*{b2f56166-9dd8-41dc-98cb-e8d75b39c314}*SharedItemsImports = 9
+		third-party\opus-prebuilt\WinRT\opus_winrt.Shared\opus_winrt.Shared.vcxitems*{1030cf22-46b1-4549-a809-bc68e780d6c6}*SharedItemsImports = 4
+		third-party\opus-prebuilt\WinRT\opus_winrt.Shared\opus_winrt.Shared.vcxitems*{4c00ffe6-8a5f-46b0-848d-df74b7072326}*SharedItemsImports = 4
+		third-party\zlib-1.2.8\contrib\vstudio\vc14\zlib_stastic_winrt\zlib_stastic_winrt.Shared\zlib_stastic_winrt.Shared.vcxitems*{2be91149-7ad8-40c5-abfd-6d607a6b7105}*SharedItemsImports = 4
+		third-party\zlib-1.2.8\contrib\vstudio\vc14\zlib_stastic_winrt\zlib_stastic_winrt.Shared\zlib_stastic_winrt.Shared.vcxitems*{13197d82-bcdb-4154-b3d7-fc0f122dee7b}*SharedItemsImports = 9
+		RemoteControllerWinRT\RemoteControllerWinRT.Shared\RemoteControllerWinRT.Shared.vcxitems*{a1b9ed68-9183-4241-9615-45e567d9ca7d}*SharedItemsImports = 4
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|ARM = Debug|ARM
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|ARM = Release|ARM
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{542B0731-31AF-4BD4-9AE1-EE442E1CFB2D}.Debug|ARM.ActiveCfg = Debug|ARM
+		{542B0731-31AF-4BD4-9AE1-EE442E1CFB2D}.Debug|ARM.Build.0 = Debug|ARM
+		{542B0731-31AF-4BD4-9AE1-EE442E1CFB2D}.Debug|x64.ActiveCfg = Debug|x64
+		{542B0731-31AF-4BD4-9AE1-EE442E1CFB2D}.Debug|x64.Build.0 = Debug|x64
+		{542B0731-31AF-4BD4-9AE1-EE442E1CFB2D}.Debug|x86.ActiveCfg = Debug|Win32
+		{542B0731-31AF-4BD4-9AE1-EE442E1CFB2D}.Debug|x86.Build.0 = Debug|Win32
+		{542B0731-31AF-4BD4-9AE1-EE442E1CFB2D}.Release|ARM.ActiveCfg = Release|ARM
+		{542B0731-31AF-4BD4-9AE1-EE442E1CFB2D}.Release|ARM.Build.0 = Release|ARM
+		{542B0731-31AF-4BD4-9AE1-EE442E1CFB2D}.Release|x64.ActiveCfg = Release|x64
+		{542B0731-31AF-4BD4-9AE1-EE442E1CFB2D}.Release|x64.Build.0 = Release|x64
+		{542B0731-31AF-4BD4-9AE1-EE442E1CFB2D}.Release|x86.ActiveCfg = Release|Win32
+		{542B0731-31AF-4BD4-9AE1-EE442E1CFB2D}.Release|x86.Build.0 = Release|Win32
+		{A1B9ED68-9183-4241-9615-45E567D9CA7D}.Debug|ARM.ActiveCfg = Debug|ARM
+		{A1B9ED68-9183-4241-9615-45E567D9CA7D}.Debug|ARM.Build.0 = Debug|ARM
+		{A1B9ED68-9183-4241-9615-45E567D9CA7D}.Debug|x64.ActiveCfg = Debug|Win32
+		{A1B9ED68-9183-4241-9615-45E567D9CA7D}.Debug|x86.ActiveCfg = Debug|Win32
+		{A1B9ED68-9183-4241-9615-45E567D9CA7D}.Debug|x86.Build.0 = Debug|Win32
+		{A1B9ED68-9183-4241-9615-45E567D9CA7D}.Release|ARM.ActiveCfg = Release|ARM
+		{A1B9ED68-9183-4241-9615-45E567D9CA7D}.Release|ARM.Build.0 = Release|ARM
+		{A1B9ED68-9183-4241-9615-45E567D9CA7D}.Release|x64.ActiveCfg = Release|Win32
+		{A1B9ED68-9183-4241-9615-45E567D9CA7D}.Release|x86.ActiveCfg = Release|Win32
+		{A1B9ED68-9183-4241-9615-45E567D9CA7D}.Release|x86.Build.0 = Release|Win32
+		{D140D4DD-FE9F-43E4-9EDF-A9E0058BBA56}.Debug|ARM.ActiveCfg = Debug|ARM
+		{D140D4DD-FE9F-43E4-9EDF-A9E0058BBA56}.Debug|ARM.Build.0 = Debug|ARM
+		{D140D4DD-FE9F-43E4-9EDF-A9E0058BBA56}.Debug|x64.ActiveCfg = Debug|x64
+		{D140D4DD-FE9F-43E4-9EDF-A9E0058BBA56}.Debug|x64.Build.0 = Debug|x64
+		{D140D4DD-FE9F-43E4-9EDF-A9E0058BBA56}.Debug|x86.ActiveCfg = Debug|Win32
+		{D140D4DD-FE9F-43E4-9EDF-A9E0058BBA56}.Debug|x86.Build.0 = Debug|Win32
+		{D140D4DD-FE9F-43E4-9EDF-A9E0058BBA56}.Release|ARM.ActiveCfg = Release|ARM
+		{D140D4DD-FE9F-43E4-9EDF-A9E0058BBA56}.Release|ARM.Build.0 = Release|ARM
+		{D140D4DD-FE9F-43E4-9EDF-A9E0058BBA56}.Release|x64.ActiveCfg = Release|x64
+		{D140D4DD-FE9F-43E4-9EDF-A9E0058BBA56}.Release|x64.Build.0 = Release|x64
+		{D140D4DD-FE9F-43E4-9EDF-A9E0058BBA56}.Release|x86.ActiveCfg = Release|Win32
+		{D140D4DD-FE9F-43E4-9EDF-A9E0058BBA56}.Release|x86.Build.0 = Release|Win32
+		{2BE91149-7AD8-40C5-ABFD-6D607A6B7105}.Debug|ARM.ActiveCfg = Debug|ARM
+		{2BE91149-7AD8-40C5-ABFD-6D607A6B7105}.Debug|ARM.Build.0 = Debug|ARM
+		{2BE91149-7AD8-40C5-ABFD-6D607A6B7105}.Debug|x64.ActiveCfg = Debug|Win32
+		{2BE91149-7AD8-40C5-ABFD-6D607A6B7105}.Debug|x86.ActiveCfg = Debug|Win32
+		{2BE91149-7AD8-40C5-ABFD-6D607A6B7105}.Debug|x86.Build.0 = Debug|Win32
+		{2BE91149-7AD8-40C5-ABFD-6D607A6B7105}.Release|ARM.ActiveCfg = Release|ARM
+		{2BE91149-7AD8-40C5-ABFD-6D607A6B7105}.Release|ARM.Build.0 = Release|ARM
+		{2BE91149-7AD8-40C5-ABFD-6D607A6B7105}.Release|x64.ActiveCfg = Release|Win32
+		{2BE91149-7AD8-40C5-ABFD-6D607A6B7105}.Release|x86.ActiveCfg = Release|Win32
+		{2BE91149-7AD8-40C5-ABFD-6D607A6B7105}.Release|x86.Build.0 = Release|Win32
+		{4C00FFE6-8A5F-46B0-848D-DF74B7072326}.Debug|ARM.ActiveCfg = Debug|ARM
+		{4C00FFE6-8A5F-46B0-848D-DF74B7072326}.Debug|ARM.Build.0 = Debug|ARM
+		{4C00FFE6-8A5F-46B0-848D-DF74B7072326}.Debug|x64.ActiveCfg = Debug|x64
+		{4C00FFE6-8A5F-46B0-848D-DF74B7072326}.Debug|x64.Build.0 = Debug|x64
+		{4C00FFE6-8A5F-46B0-848D-DF74B7072326}.Debug|x86.ActiveCfg = Debug|Win32
+		{4C00FFE6-8A5F-46B0-848D-DF74B7072326}.Debug|x86.Build.0 = Debug|Win32
+		{4C00FFE6-8A5F-46B0-848D-DF74B7072326}.Release|ARM.ActiveCfg = Release|ARM
+		{4C00FFE6-8A5F-46B0-848D-DF74B7072326}.Release|ARM.Build.0 = Release|ARM
+		{4C00FFE6-8A5F-46B0-848D-DF74B7072326}.Release|x64.ActiveCfg = Release|x64
+		{4C00FFE6-8A5F-46B0-848D-DF74B7072326}.Release|x64.Build.0 = Release|x64
+		{4C00FFE6-8A5F-46B0-848D-DF74B7072326}.Release|x86.ActiveCfg = Release|Win32
+		{4C00FFE6-8A5F-46B0-848D-DF74B7072326}.Release|x86.Build.0 = Release|Win32
+		{1030CF22-46B1-4549-A809-BC68E780D6C6}.Debug|ARM.ActiveCfg = Debug|ARM
+		{1030CF22-46B1-4549-A809-BC68E780D6C6}.Debug|ARM.Build.0 = Debug|ARM
+		{1030CF22-46B1-4549-A809-BC68E780D6C6}.Debug|x64.ActiveCfg = Debug|Win32
+		{1030CF22-46B1-4549-A809-BC68E780D6C6}.Debug|x86.ActiveCfg = Debug|Win32
+		{1030CF22-46B1-4549-A809-BC68E780D6C6}.Debug|x86.Build.0 = Debug|Win32
+		{1030CF22-46B1-4549-A809-BC68E780D6C6}.Release|ARM.ActiveCfg = Release|ARM
+		{1030CF22-46B1-4549-A809-BC68E780D6C6}.Release|ARM.Build.0 = Release|ARM
+		{1030CF22-46B1-4549-A809-BC68E780D6C6}.Release|x64.ActiveCfg = Release|Win32
+		{1030CF22-46B1-4549-A809-BC68E780D6C6}.Release|x86.ActiveCfg = Release|Win32
+		{1030CF22-46B1-4549-A809-BC68E780D6C6}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{B2F56166-9DD8-41DC-98CB-E8D75B39C314} = {E54BB448-46D6-494D-8101-C743FCA8EB25}
+		{542B0731-31AF-4BD4-9AE1-EE442E1CFB2D} = {E54BB448-46D6-494D-8101-C743FCA8EB25}
+		{A1B9ED68-9183-4241-9615-45E567D9CA7D} = {E54BB448-46D6-494D-8101-C743FCA8EB25}
+		{13197D82-BCDB-4154-B3D7-FC0F122DEE7B} = {9250B709-9A23-405E-A522-B3FF51E557BF}
+		{D140D4DD-FE9F-43E4-9EDF-A9E0058BBA56} = {9250B709-9A23-405E-A522-B3FF51E557BF}
+		{2BE91149-7AD8-40C5-ABFD-6D607A6B7105} = {9250B709-9A23-405E-A522-B3FF51E557BF}
+		{C3BA6195-9701-4C38-A2C9-D2320ED73D4D} = {1C101952-119F-4EF7-B7F2-B8864F9DB32C}
+		{4C00FFE6-8A5F-46B0-848D-DF74B7072326} = {1C101952-119F-4EF7-B7F2-B8864F9DB32C}
+		{1030CF22-46B1-4549-A809-BC68E780D6C6} = {1C101952-119F-4EF7-B7F2-B8864F9DB32C}
+	EndGlobalSection
+EndGlobal

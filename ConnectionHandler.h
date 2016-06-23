@@ -175,6 +175,8 @@ namespace HQRemote {
 		
 		static int HQ_FASTCALL platformSetSocketBlockingMode(socket_t socket, bool blocking);
 		static int HQ_FASTCALL platformGetLastSocketErr();
+		static in_addr HQ_FASTCALL platformIpv4StringToAddr(const char* addr_str);
+		static const char* HQ_FASTCALL platformIpv4AddrToString(const in_addr* addr, char* addr_buf, size_t addr_buf_max_len);
 	private:
 
 		void platformConstruct();

@@ -1092,7 +1092,7 @@ namespace HQRemote {
 
 					//join multicast group
 					struct ip_mreq mreq;
-					mreq.imr_multiaddr.s_addr = inet_addr(MULTICAST_ADDRESS);
+					mreq.imr_multiaddr = platformIpv4StringToAddr(MULTICAST_ADDRESS);
 
 					//join multicast group with all available network interfaces
 					std::vector<struct in_addr> interface_addresses;
@@ -1104,7 +1104,7 @@ namespace HQRemote {
 						re = setsockopt(m_multicastSocket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (const char*)&mreq, sizeof(mreq));
 
 						char addr_buffer[20];
-						if (inet_ntop(AF_INET, (void*)&_interface, addr_buffer, sizeof(addr_buffer)) != NULL)
+						if (platformIpv4AddrToString(&_interface, addr_buffer, sizeof(addr_buffer)) != NULL)
 							HQRemote::Log("Multicast setsockopt(IP_ADD_MEMBERSHIP, %s) returned %d\n", addr_buffer, re);
 						else
 							HQRemote::Log("Multicast setsockopt(IP_ADD_MEMBERSHIP) returned %d\n", re);
@@ -1181,7 +1181,7 @@ namespace HQRemote {
 				//debug
 				int src_port = ntohs(from_addr.sin_port);
 				char src_addr_buffer[20];
-				if (inet_ntop(AF_INET, (void*)&from_addr.sin_addr, src_addr_buffer, sizeof(src_addr_buffer)) != NULL) {
+				if (platformIpv4AddrToString(&from_addr.sin_addr, src_addr_buffer, sizeof(src_addr_buffer)) != NULL) {
 					HQRemote::Log("Received multicast data from %s:%d\n", src_addr_buffer, src_port);
 				}
 
@@ -1316,7 +1316,7 @@ namespace HQRemote {
 			memset(&sa, 0, sizeof sa);
 			
 			sa.sin_family = AF_INET;
-			sa.sin_addr.s_addr = inet_addr(m_connLessRemoteEndpoint.address.c_str());
+			sa.sin_addr = platformIpv4StringToAddr(m_connLessRemoteEndpoint.address.c_str());
 			sa.sin_port = htons(m_connLessRemoteEndpoint.port);
 			
 			//try to ping the destination
@@ -1381,7 +1381,7 @@ namespace HQRemote {
 			
 			m_connSocket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 			if (m_connSocket != INVALID_SOCKET) {
-				sa.sin_addr.s_addr = inet_addr(m_remoteEndpoint.address.c_str());
+				sa.sin_addr = platformIpv4StringToAddr(m_remoteEndpoint.address.c_str());
 				sa.sin_port = htons(m_remoteEndpoint.port);
 				
 				platformSetSocketBlockingMode(m_connSocket, false);//disable blocking mode
@@ -1500,7 +1500,7 @@ namespace HQRemote {
 		memset(m_connLessSocketDestAddr.get(), 0, sizeof(sockaddr_in));
 
 		m_connLessSocketDestAddr->sin_family = AF_INET;
-		m_connLessSocketDestAddr->sin_addr.s_addr = inet_addr(MULTICAST_ADDRESS);
+		m_connLessSocketDestAddr->sin_addr = platformIpv4StringToAddr(MULTICAST_ADDRESS);
 		m_connLessSocketDestAddr->sin_port = htons(MULTICAST_PORT);
 		
 		return true;
@@ -1563,7 +1563,7 @@ namespace HQRemote {
 
 				std::lock_guard<std::mutex> lg(m_discoveryDelegateLock);
 				char addr_buffer[20];
-				if (inet_ntop(AF_INET, (void*)&srcAddr.sin_addr, addr_buffer, sizeof(addr_buffer)) != NULL &&
+				if (platformIpv4AddrToString(&srcAddr.sin_addr, addr_buffer, sizeof(addr_buffer)) != NULL &&
 					unreliable_port_in_msg == unreliable_port &&
 					m_discoveryDelegate != NULL) {
 
