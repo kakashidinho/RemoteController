@@ -1,6 +1,5 @@
 #include "Common.h"
 
-#include <stdarg.h>
 #include <stdio.h>
 
 #ifdef WIN32
@@ -57,18 +56,8 @@ namespace HQRemote {
 	{
 		va_list arg;
 		va_start(arg, format);
-#ifdef __ANDROID__
 		
-		__android_log_vprint(ANDROID_LOG_DEBUG, "HQRemote", format, arg);
-#elif defined WIN32
-
-		char buffer[1024];
-		vsnprintf(buffer, sizeof(buffer) - 1, format, arg);
-
-		OutputDebugStringA(buffer);
-#else
-		vfprintf(stdout, format, arg);
-#endif
+		LogV(format, arg);
 
 		va_end(arg);
 	}
@@ -77,19 +66,51 @@ namespace HQRemote {
 	{
 		va_list arg;
 		va_start(arg, format);
+
+		LogErrV(format, arg);
+
+		va_end(arg);
+	}
+
+	void HQ_APICALL LogV(const char* format, va_list arg)
+	{
+#ifdef __ANDROID__
+		
+		__android_log_vprint(ANDROID_LOG_DEBUG, "HQRemote", format, arg);
+#elif defined WIN32
+
+		char buffer[1024];
+		int chars = vsnprintf(buffer, sizeof(buffer) - 2, format, arg);
+		if (chars < 0)
+			return;
+
+		buffer[chars] = '\n';
+		buffer[chars + 1] = '\0';
+
+		OutputDebugStringA(buffer);
+#else
+		vfprintf(stdout, format, arg);
+#endif
+	}
+
+	void HQ_APICALL LogErrV(const char* format, va_list arg)
+	{
 #ifdef __ANDROID__
 
 		__android_log_vprint(ANDROID_LOG_ERROR, "HQRemote", format, arg);
 #elif defined WIN32
 
 		char buffer[1024];
-		vsnprintf(buffer, sizeof(buffer) - 1, format, arg);
+		int chars = vsnprintf(buffer, sizeof(buffer) - 2, format, arg);
+		if (chars < 0)
+			return;
+
+		buffer[chars] = '\n';
+		buffer[chars + 1] = '\0';
 
 		OutputDebugStringA(buffer);
 #else
 		vfprintf(stderr, format, arg);
 #endif
-
-		va_end(arg);
 	}
 }

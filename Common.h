@@ -13,6 +13,8 @@
 #include <unistd.h>
 #endif//WIN32
 
+#include <stdarg.h>
+
 #ifndef HQREMOTE_API
 #	if defined WIN32
 #		ifdef REMOTECONTROLLER_EXPORTS
@@ -60,6 +62,9 @@ namespace HQRemote {
 
 	HQREMOTE_API void HQ_APICALL Log(const char* format, ...);
 	HQREMOTE_API void HQ_APICALL LogErr(const char* format, ...);
+
+	HQREMOTE_API void HQ_APICALL LogV(const char* format, va_list args);
+	HQREMOTE_API void HQ_APICALL LogErrV(const char* format, va_list args);
 }
 
 #endif
