@@ -87,7 +87,10 @@ namespace HQRemote {
 		buffer[chars] = '\n';
 		buffer[chars + 1] = '\0';
 
+#	if defined _DEBUG || defined DEBUG
 		OutputDebugStringA(buffer);
+#	endif
+
 #else
 		vfprintf(stdout, format, arg);
 #endif
@@ -108,7 +111,10 @@ namespace HQRemote {
 		buffer[chars] = '\n';
 		buffer[chars + 1] = '\0';
 
+#	if defined _DEBUG || defined DEBUG
 		OutputDebugStringA(buffer);
+#	endif
+
 #else
 		vfprintf(stderr, format, arg);
 #endif
