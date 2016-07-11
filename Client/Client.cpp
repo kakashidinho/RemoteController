@@ -57,7 +57,7 @@ namespace HQRemote {
 			m_frameQueue.erase(frameIte);
 			
 #if defined DEBUG || defined _DEBUG
-			Log("discarded frame %lld\n", frameIte->first);
+			Log("---> discarded frame %lld\n", frameIte->first);
 #endif
 		}
 
