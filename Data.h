@@ -91,6 +91,7 @@ namespace HQRemote {
 		
 		void push_back(const void* _data, size_t _size)
 		{
+			m_data.reserve(m_data.size() + _size);
 			for (size_t i = 0; i < _size; ++i)
 				m_data.push_back(((unsigned char*)_data)[i]);
 		}
@@ -102,6 +103,14 @@ namespace HQRemote {
 		
 		void expand(size_t size) {
 			m_data.insert(m_data.end(), size, 0);
+		}
+
+		void resize(size_t size) {
+			m_data.resize(size);
+		}
+
+		void reserve(size_t cap) {
+			m_data.reserve(cap);
 		}
 	private:
 		std::vector<unsigned char> m_data;
