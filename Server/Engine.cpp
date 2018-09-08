@@ -88,8 +88,12 @@ namespace HQRemote {
 		}));
 
 		//start background threads compress captured frames
-		auto numCompressThreads = max(std::thread::hardware_concurrency(), DEFAULT_NUM_COMPRESS_THREADS);
-		numCompressThreads = min(MAX_NUM_COMPRESS_THREADS, numCompressThreads);
+		unsigned int numCompressThreads = 1; 
+		
+		if (m_imgCompressor->canSupportMultiThreads()) {
+			numCompressThreads = max(std::thread::hardware_concurrency(), DEFAULT_NUM_COMPRESS_THREADS);
+			numCompressThreads = min(MAX_NUM_COMPRESS_THREADS, numCompressThreads);
+		}
 
 		m_frameCompressionThreads.reserve(numCompressThreads);
 		for (unsigned int i = 0; i < numCompressThreads; ++i) {
@@ -333,17 +337,28 @@ namespace HQRemote {
 													 m_frameCapturer->getNumColorChannels());
 
 				if (compressedFrame != nullptr) {
-					//convert to frame event
-					auto frameEvent = std::make_shared<FrameEvent>((ConstDataRef)compressedFrame, frameId);
+					try {
+						//convert to frame event
+						auto frameEvent = std::make_shared<FrameEvent>((ConstDataRef)compressedFrame, frameId);
 
-					if (m_frameBundleSize <= 1)
-					{
-						//send to frame sending thread
-						pushFrameDataForSending(frameId, *frameEvent);
+						if (m_frameBundleSize <= 1)
+						{
+							if (m_imgCompressor->canSupportMultiThreads()) {
+								//send to frame sending thread
+								pushFrameDataForSending(frameId, *frameEvent);
+							}
+							else {
+								// send to network directly
+								getConnHandler()->sendDataUnreliable(*frameEvent);
+							}
+						}
+						else {
+							//send to frame bundling thread
+							pushCompressedFrameForBundling(frameEvent);
+						}
 					}
-					else {
-						//send to frame bundling thread
-						pushCompressedFrameForBundling(frameEvent);
+					catch (...) {
+						// ignore
 					}
 				}//if (compressedFrame != nullptr)
 			}//if (m_capturedFramesForCompress.size() > 0)

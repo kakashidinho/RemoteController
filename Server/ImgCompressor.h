@@ -18,6 +18,7 @@ namespace HQRemote {
 		virtual ~IImgCompressor() {}
 
 		virtual DataRef compress(ConstDataRef src, uint64_t id, uint32_t width, uint32_t height, unsigned int numChannels) = 0;
+		virtual bool canSupportMultiThreads() const { return true; }
 	};
 
 	class HQREMOTE_API JpegImgCompressor : public IImgCompressor {
