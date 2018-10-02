@@ -9,6 +9,7 @@
 #include "JniUtils.h"
 
 #include <pthread.h>
+#include <stdlib.h>
 
 namespace HQRemote {
 	static JavaVM *g_jvm = NULL;
@@ -31,7 +32,16 @@ namespace HQRemote {
 	//this will be called when attached thread exit
 	void onJavaDetach(void* arg)
 	{
-		g_jvm->DetachCurrentThread();
+		JNIEnv *env;
+		jint re = g_jvm->GetEnv((void**)&env, JNI_VERSION_1_4);
+
+		Log("Detaching current thread from java ...");
+		if (re == JNI_OK) {
+			g_jvm->DetachCurrentThread();
+			Log("Detaching current thread from java DONE!");
+		} else {
+			Log("Current thread already detached, skipping ...");
+		}
 			
 		//release thread key
 		pthread_key_t *javaDetach = (pthread_key_t*)arg;
@@ -70,5 +80,20 @@ namespace HQRemote {
 			env = NULL;
 			
 		return env;
+	}
+
+	void setCurrentThreadName(JNIEnv* jenv, const char* name) {
+		// name this thread in C++
+		pthread_setname_np(pthread_self(), name);
+
+		// name this thread in java
+		JClassRef ThreadClass = jenv->FindClass("java/lang/Thread");
+		jmethodID currentThreadMethodID = jenv->GetStaticMethodID(ThreadClass, "currentThread", "()Ljava/lang/Thread;");
+
+		jmethodID setThreadNameMethodID = jenv->GetMethodID(ThreadClass, "setName", "(Ljava/lang/String;)V");
+
+		JObjectRef jcurrentThread = jenv->CallStaticObjectMethod(ThreadClass, currentThreadMethodID);
+		JStringRef jname = jenv->NewStringUTF(name);
+		jenv->CallVoidMethod(jcurrentThread, setThreadNameMethodID, jname.get());
 	}
 }

@@ -19,6 +19,7 @@
 namespace HQRemote {
 	HQREMOTE_API void setJVM(JavaVM *vm);
 	HQREMOTE_API JNIEnv * getCurrenThreadJEnv();
+	HQREMOTE_API void setCurrentThreadName(JNIEnv* env, const char* name);
 		
 	template <class T>
 	class JWrapper {
