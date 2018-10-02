@@ -6,7 +6,7 @@ file(GLOB MY_FLOAT_SOURCE_DIR ${MY_SOURCE_DIR}/silk/float/*.c*)
 
 set(MY_C_FLAGS
     "-DNULL=0 -DSOCKLEN_T=socklen_t -DLOCALE_NOT_USED -D_LARGEFILE_SOURCE=1 -D_FILE_OFFSET_BITS=64 \
-     -Drestrict='' -D__EMX__ -DOPUS_BUILD -DUSE_ALLOCA -DHAVE_LRINT -DHAVE_LRINTF -O3 -fno-math-errno -fvisibility=hidden"
+     -D__EMX__ -DOPUS_BUILD -DUSE_ALLOCA -DHAVE_LRINT -DHAVE_LRINTF -O3 -fno-math-errno -fvisibility=hidden"
     )
 
 set(MY_CXX_FLAGS
