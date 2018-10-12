@@ -49,6 +49,10 @@ namespace HQRemote {
 			return m_connHandler->getReceiveRate();
 		}
 
+		float getSendRate() const {
+			return m_connHandler->getSendRate();
+		}
+
 		std::shared_ptr<const CString> getDesc() const {
 			return m_connHandler->getDesc();
 		}

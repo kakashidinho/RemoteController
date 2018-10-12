@@ -15,7 +15,7 @@
 
 #define NUM_PENDING_MSGS_TO_START_DISCARD 60
 
-#define RCV_RATE_UPDATE_INTERVAL 1.0
+#define DATA_RATE_UPDATE_INTERVAL 1.0
 
 #ifndef min
 #	define min(a,b) ((a) < (b) ? (a) : (b))
@@ -108,7 +108,7 @@ namespace HQRemote {
 
 	/*--------------- IConnectionHandler -----------*/
 	IConnectionHandler::IConnectionHandler()
-	: m_running(false), m_recvRate(0), m_tag(0)
+	: m_running(false), m_recvRate(0), m_tag(0), m_sentRate(0)
 	{
 	}
 	
@@ -215,6 +215,9 @@ namespace HQRemote {
 		sendRawDataAtomic(data, size);
 		
 		flushRawDataImpl();
+
+		// assume all data successfully sent. It doesn't need to be accurate anyway
+		updateDataSentRate(size + sizeof(sizeToSend));
 	}
 	
 	void IConnectionHandler::sendDataUnreliable(const void* data, size_t size)
@@ -237,6 +240,7 @@ namespace HQRemote {
 		re = sendRawDataUnreliableImpl(&chunk, headerSize);
 		if (re < (_ssize_t)headerSize)
 			return;//failed
+		updateDataSentRate(headerSize);
 		
 		//send data's fragments
 		uint32_t maxFragmentSize = sizeof(chunk.payload);
@@ -258,6 +262,9 @@ namespace HQRemote {
 			re = sendRawDataUnreliableImpl(&chunk, sizeToSend);
 			
 			if (re > 0) {
+
+				updateDataSentRate(re);
+
 				if ((uint32_t)re < headerSize)
 					re = -1;//not even able to send the header data. Treat as error
 				else {
@@ -428,6 +435,10 @@ namespace HQRemote {
 			m_numLastestDataReceived = 0;
 			m_recvRate = 0;
 
+			getTimeCheckPoint(m_lastSendTime);
+			m_numLastestDataSent = 0;
+			m_sentRate = 0;
+
 			//clear all pending unhandled data
 			m_dataLock.lock();
 			m_dataQueue.clear();
@@ -505,7 +516,7 @@ namespace HQRemote {
 		m_numLastestDataReceived += data->size();
 		
 		auto elapsedTime = getElapsedTime(m_lastRecvTime, curTime);
-		if (elapsedTime >= RCV_RATE_UPDATE_INTERVAL)
+		if (elapsedTime >= DATA_RATE_UPDATE_INTERVAL)
 		{
 			auto oldRcvRate = m_recvRate.load(std::memory_order_relaxed);
 			auto newRcvRate = 0.8f * oldRcvRate + 0.2f * m_numLastestDataReceived / (float)elapsedTime;
@@ -513,6 +524,10 @@ namespace HQRemote {
 			
 			m_lastRecvTime = curTime;
 			m_numLastestDataReceived = 0;
+
+#if 0 && (defined DEBUG || defined _DEBUG)
+			Log("pushDataToQueue() rcv Bps=%.3f\n", m_recvRate.load(std::memory_order_relaxed));
+#endif
 		}
 		
 		//discard data if no more room
@@ -527,6 +542,27 @@ namespace HQRemote {
 		m_dataQueue.push_back(ReceivedData(data, reliable));
 		
 		m_dataCv.notify_all();
+	}
+
+	void IConnectionHandler::updateDataSentRate(size_t sentSize) {
+		m_numLastestDataSent += sentSize;
+		time_checkpoint_t curTime;
+		getTimeCheckPoint(curTime);
+
+		auto elapsedTime = getElapsedTime(m_lastSendTime, curTime);
+		if (elapsedTime >= DATA_RATE_UPDATE_INTERVAL)
+		{
+			auto oldSndRate = m_sentRate.load(std::memory_order_relaxed);
+			auto newSndRate = 0.8f * oldSndRate + 0.2f * m_numLastestDataSent / (float)elapsedTime;
+			m_sentRate.store(newSndRate, std::memory_order_relaxed);
+
+			m_lastSendTime = curTime;
+			m_numLastestDataSent = 0;
+
+#if 0 && (defined DEBUG || defined _DEBUG)
+			Log("updateDataSentRate() Bps=%.3f\n", m_sentRate.load(std::memory_order_relaxed));
+#endif
+		}
 	}
 
 	/*----------------SocketConnectionHandler ----------------*/

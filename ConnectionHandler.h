@@ -78,6 +78,10 @@ namespace HQRemote {
 			return m_recvRate.load(std::memory_order_relaxed);
 		}
 
+		float getSendRate() const {
+			return m_sentRate.load(std::memory_order_relaxed);
+		}
+
 		std::shared_ptr<const CString> getInternalErrorMsg() const
 		{
 			return m_internalError;
@@ -142,6 +146,8 @@ namespace HQRemote {
 		void invalidateUnusedReliableData();
 		
 		void pushDataToQueue(DataRef data, bool reliable, bool discardIfFull);
+
+		void updateDataSentRate(size_t sentSize);
 		
 		std::shared_ptr<CString> m_internalError;
 		std::shared_ptr<CString> m_name;//doesn't need to be unique
@@ -158,6 +164,10 @@ namespace HQRemote {
 		time_checkpoint_t m_lastRecvTime;
 		size_t m_numLastestDataReceived;
 		std::atomic<float> m_recvRate;
+
+		time_checkpoint_t m_lastSendTime;
+		size_t m_numLastestDataSent;
+		std::atomic<float> m_sentRate;
 
 		std::set<Delegate*> m_delegates;
 		

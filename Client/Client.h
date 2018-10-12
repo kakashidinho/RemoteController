@@ -17,6 +17,7 @@ namespace HQRemote {
 		~Client();
 
 		void setFrameInterval(float t);
+		float getFrameInterval() const { return m_frameInterval; }
 
 		//query rendered frame event
 		ConstFrameEventRef getFrameEvent();

@@ -89,6 +89,11 @@ namespace HQRemote {
 			
 			double frameInterval;
 
+			// generic value
+			float floatValue;
+			double doubleValue;
+
+			// custom data
 			unsigned char customData[8 + 8 + 8];
 		};
 

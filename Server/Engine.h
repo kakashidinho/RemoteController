@@ -37,6 +37,8 @@ namespace HQRemote {
 
 		virtual bool start(bool preprocessEventAsync = false) override;
 		virtual void stop() override;
+
+		double getFrameInterval() const { return m_intendedFrameInterval; }
 	private:
 		void platformConstruct();
 		void platformDestruct();
