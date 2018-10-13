@@ -149,6 +149,8 @@ namespace HQRemote {
 	}
 	
 	void IConnectionHandler::stop() {
+		if (!m_running)
+			return;
 		m_running = false;
 		
 		stopImpl();
