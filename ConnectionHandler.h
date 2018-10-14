@@ -256,6 +256,7 @@ namespace HQRemote {
 	class HQREMOTE_API BaseUnreliableSocketHandler : public SocketConnectionHandler {
 	public:
 		BaseUnreliableSocketHandler(int connLessListeningPort);
+		BaseUnreliableSocketHandler(const char* bindAddress, int connLessListeningPort);
 		~BaseUnreliableSocketHandler();
 
 	protected:
@@ -264,7 +265,9 @@ namespace HQRemote {
 		virtual void addtionalRcvThreadCleanupImpl() override;
 		virtual void addtionalSocketCleanupImpl() override;
 
-		static socket_t createUnreliableSocket(int port, bool reuseAddr = true);
+		static socket_t createUnreliableSocket(const CString& bindAddr, int port, bool reuseAddr = true);
+
+		CString m_bindAddress;
 
 		int m_connLessPort;
 	};
@@ -274,6 +277,7 @@ namespace HQRemote {
 	public:
 		//pass <connLessListeningPort> = 0 if you don't want to use unreliable socket
 		SocketServerHandler(int listeningPort, int connLessListeningPort);
+		SocketServerHandler(const char* listeningAddr, int listeningPort, int connLessListeningPort);
 		~SocketServerHandler();
 
 		virtual bool connected() const override;

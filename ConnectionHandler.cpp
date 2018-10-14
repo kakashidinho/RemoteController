@@ -966,7 +966,12 @@ namespace HQRemote {
 
 	/*---------------- BaseUnreliableSocketHandler -------------------*/
 	BaseUnreliableSocketHandler::BaseUnreliableSocketHandler(int connLessListeningPort)
-		: SocketConnectionHandler(), m_connLessPort(connLessListeningPort)
+		: BaseUnreliableSocketHandler("", connLessListeningPort)
+	{
+	}
+
+	BaseUnreliableSocketHandler::BaseUnreliableSocketHandler(const char* bindAddress, int connLessListeningPort)
+		: SocketConnectionHandler(), m_connLessPort(connLessListeningPort), m_bindAddress(bindAddress)
 	{
 	}
 
@@ -974,7 +979,7 @@ namespace HQRemote {
 
 	}
 
-	socket_t BaseUnreliableSocketHandler::createUnreliableSocket(int port, bool reuseAddr) {
+	socket_t BaseUnreliableSocketHandler::createUnreliableSocket(const CString& bindAddr, int port, bool reuseAddr) {
 		socket_t new_socket;
 		_ssize_t re;
 
@@ -982,7 +987,11 @@ namespace HQRemote {
 		memset(&sa, 0, sizeof sa);
 
 		sa.sin_family = AF_INET;
-		sa.sin_addr.s_addr = _INADDR_ANY;
+
+		if (bindAddr.size() == 0)
+			sa.sin_addr.s_addr = _INADDR_ANY;
+		else
+			sa.sin_addr = platformIpv4StringToAddr(bindAddr.c_str());
 
 		new_socket = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
 		if (new_socket != INVALID_SOCKET) {
@@ -996,6 +1005,8 @@ namespace HQRemote {
 			}//if (reuseAddr)
 
 			sa.sin_port = port >= RANDOM_PORT? 0 : htons(port);
+
+			Log("Binding connectionless socket to port=%d addr=%s\n", port, bindAddr.c_str());
 
 			re = ::bind(new_socket, (sockaddr*)&sa, sizeof(sa));
 			if (re == SOCKET_ERROR) {
@@ -1018,7 +1029,7 @@ namespace HQRemote {
 		if (m_connLessSocket == INVALID_SOCKET && m_connLessPort != 0) {
 			m_connLessSocketDestAddr = nullptr;
 
-			m_connLessSocket = createUnreliableSocket(m_connLessPort);
+			m_connLessSocket = createUnreliableSocket(m_bindAddress, m_connLessPort);
 
 			//get true port number 
 			sockaddr_in sa;
@@ -1043,9 +1054,13 @@ namespace HQRemote {
 
 	/*-------------  SocketServerHandler  ---------------------------*/
 	SocketServerHandler::SocketServerHandler(int listeningPort, int connLessListeningPort)
-	: BaseUnreliableSocketHandler(connLessListeningPort),  m_serverSocket(INVALID_SOCKET), m_port(listeningPort), m_multicastSocket(INVALID_SOCKET)
+	: SocketServerHandler("", listeningPort, connLessListeningPort)
 	{
 	}
+
+	SocketServerHandler::SocketServerHandler(const char* listeningAddr, int listeningPort, int connLessListeningPort)
+	: BaseUnreliableSocketHandler(listeningAddr, connLessListeningPort),  m_serverSocket(INVALID_SOCKET), m_port(listeningPort), m_multicastSocket(INVALID_SOCKET)
+	{}
 
 	SocketServerHandler::~SocketServerHandler() {
 
@@ -1067,7 +1082,12 @@ namespace HQRemote {
 		memset(&sa, 0, sizeof sa);
 
 		sa.sin_family = AF_INET;
-		sa.sin_addr.s_addr = _INADDR_ANY;
+
+		if (m_bindAddress.size() == 0)
+			sa.sin_addr.s_addr = _INADDR_ANY;
+		else {
+			sa.sin_addr = platformIpv4StringToAddr(m_bindAddress.c_str());
+		}
 
 		std::lock_guard<std::mutex> lg(m_socketLock);
 		//create server socket
@@ -1081,6 +1101,8 @@ namespace HQRemote {
 #ifdef SO_REUSEPORT
 				setsockopt(m_serverSocket, SOL_SOCKET, SO_REUSEPORT, (const char*)&true_val, sizeof true_val);
 #endif
+
+				Log("Binding server socket to port=%d addr=%s\n", m_port, m_bindAddress.c_str());
 
 				re = ::bind(m_serverSocket, (sockaddr*)&sa, sizeof(sa));
 				if (re == SOCKET_ERROR) {
@@ -1118,7 +1140,7 @@ namespace HQRemote {
 		if (m_multicastSocket == INVALID_SOCKET) {
 			if (MULTICAST_PORT != m_connLessPort)//TODO: if user picks our multicast port, we cannot do much besides disabling the multicast socket
 			{
-				m_multicastSocket = createUnreliableSocket(MULTICAST_PORT);
+				m_multicastSocket = createUnreliableSocket(m_bindAddress, MULTICAST_PORT);
 
 				if (m_multicastSocket != INVALID_SOCKET)
 				{
@@ -1354,7 +1376,9 @@ namespace HQRemote {
 			sa.sin_family = AF_INET;
 			sa.sin_addr = platformIpv4StringToAddr(m_connLessRemoteEndpoint.address.c_str());
 			sa.sin_port = htons(m_connLessRemoteEndpoint.port);
-			
+
+			Log("Testing UDP connection to remote host: %s:%d\n", m_connLessRemoteEndpoint.address.c_str(), m_connLessRemoteEndpoint.port);
+
 			//try to ping the destination
 			m_connLessRemoteReachable = testUnreliableRemoteEndpointNoLock();
 			
@@ -1365,6 +1389,8 @@ namespace HQRemote {
 					closesocket(m_connLessSocket);
 					m_connLessSocket = INVALID_SOCKET;
 				}
+			} else {
+				Log("Connected UDP to remote host\n");
 			}
 		}//if (m_connLessRemoteEndpoint.port != 0)
 	}
@@ -1424,7 +1450,9 @@ namespace HQRemote {
 
 				socket_t l_connSocket = m_connSocket;
 				lk.unlock();
-				
+
+				Log("Connecting TCP to remote host: %s:%d\n", m_remoteEndpoint.address.c_str(), m_remoteEndpoint.port);
+
 				re = ::connect(l_connSocket, (sockaddr*)&sa, sizeof(sa));
 
 				if (re == SOCKET_ERROR) {
@@ -1478,6 +1506,8 @@ namespace HQRemote {
 						m_connSocket = INVALID_SOCKET;
 					}
 					lk.unlock();
+				} else {
+					Log("Connected TCP to remote host\n");
 				}
 				
 			}//if (m_connSocket != INVALID_SOCKET && m_remoteEndpoint.port != 0)
