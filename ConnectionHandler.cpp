@@ -452,7 +452,10 @@ namespace HQRemote {
 	}
 
 	void IConnectionHandler::setDesc(const char* desc) {
-		m_name = std::make_shared<CString>(desc);
+		if (desc == nullptr)
+			m_name = nullptr;
+		else
+			m_name = std::make_shared<CString>(desc);
 	}
 
 	void IConnectionHandler::registerDelegate(Delegate* d) {
@@ -1273,6 +1276,25 @@ namespace HQRemote {
 						uint32_t  descSize;
 
 						auto descRef = getDesc();
+
+						// no description yet?
+						if (descRef == nullptr) {
+							// get local address
+							struct sockaddr_in sin;
+							socklen_t len = sizeof(sin);
+							if (getsockname(m_multicastSocket, (struct sockaddr *)&sin, &len) != SOCKET_ERROR) {
+								char local_addr_buffer[20];
+								if (sin.sin_addr.s_addr != INADDR_ANY && platformIpv4AddrToString(&sin.sin_addr, local_addr_buffer, sizeof(local_addr_buffer)) != NULL) {
+									descRef = std::make_shared<CString>(local_addr_buffer);
+								}
+							}
+
+							if (descRef == nullptr) // last resort
+								descRef = std::make_shared<CString>("Unknown");
+
+							HQRemote::LogErr("setDesc() hasn't been called. Using default desc=%s\n", descRef->c_str());
+						}
+
 						if (descRef->size() > remainSizeForDesc - sizeof(descSize)) {
 							//desc is too large, truncate it
 							descSize = remainSizeForDesc - sizeof(descSize);
