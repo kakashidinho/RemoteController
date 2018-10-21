@@ -7,6 +7,7 @@ treated as touch controls in mobile app for example.
 I created this library to support [Multiness](https://lehoangquyenblog.wordpress.com/published-games/74-2/)
 Online Multiplayer feature.
 
+## Basic overview
 * There are two endpoints: Client and Server.
 * Server will capture rendered frame and send to client.
 * Client can then receive the frame sent from Server by calling `getFrameEvent`.
@@ -14,6 +15,7 @@ Online Multiplayer feature.
 * See `FrameCapturer.h` and `FrameCapturerGL.h` for example of `IFrameCapturer` implementation that captures current OpenGL's display buffer.
 * Before the captured frame is sent to Client. It needs to be compressed. Hence the component `IImgCompressor` needs to be supplied to Server's constructor also.
 * Finally, `IAudioCapturer` can be supplied if you want Server to stream audio data also. It is optional.
+* There is no example code currently, if you want, you can take a look at (Multiness source code)[https://github.com/kakashidinho/Multiness]. Specifically, its `source/core/NstMachine.cpp`, where both Client and Server are used. The code there is quite hackish, though. Since that project originally was my experiment for playing online with my oversea friends. And I'm too lazy to clean them up.
 
 ## License
 This library is licensed under Apache License, Version 2.0. See the file `NOTICE`
