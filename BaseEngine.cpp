@@ -180,6 +180,9 @@ namespace HQRemote {
 		if (!m_connHandler->start())
 			return false;
 
+		if (m_audioCapturer)
+			updateCapturedAudioSettingsIfNeeded(false);
+
 		if (preprocessEventAsync)
 		{
 			//start background threads to handle async tasks
@@ -412,7 +415,7 @@ namespace HQRemote {
 		return m_audioDecoder->getNumChannels();
 	}
 
-	void BaseEngine::updateCapturedAudioSettingsIfNeeded() {
+	void BaseEngine::updateCapturedAudioSettingsIfNeeded(bool notifyRemoteSide) {
 		auto sampleRate = m_audioCapturer->getAudioSampleRate();
 		auto numChannels = m_audioCapturer->getNumAudioChannels();
 
@@ -441,7 +444,8 @@ namespace HQRemote {
 
 
 		//notify remote side about the audio settings
-		sendCapturedAudioInfo();
+		if (notifyRemoteSide)
+			sendCapturedAudioInfo();
 	}
 
 	void BaseEngine::sendCapturedAudioInfo() {
@@ -465,7 +469,7 @@ namespace HQRemote {
 		if (!m_running || !m_audioCapturer)
 			return;
 
-		updateCapturedAudioSettingsIfNeeded();
+		updateCapturedAudioSettingsIfNeeded(true);
 
 		if (!m_audioEncoder)
 			return;

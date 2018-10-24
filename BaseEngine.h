@@ -132,7 +132,7 @@ namespace HQRemote {
 		void pushDecodedAudioPacket(uint64_t packetId, const void* data, size_t size, float duration);
 		void flushEncodedAudioPackets();
 
-		void updateCapturedAudioSettingsIfNeeded();
+		void updateCapturedAudioSettingsIfNeeded(bool notifyRemoteSide);
 
 		typedef std::list<ConstFrameEventRef> AudioQueue;
 
