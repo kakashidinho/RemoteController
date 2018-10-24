@@ -283,9 +283,13 @@ namespace HQRemote {
 		switch (event->event.type) {
 		case START_SEND_FRAME:
 			m_sendFrame = m_sendAudio = true;
+			// forward the event to user
+			pushEvent(event);
 			break;
 		case STOP_SEND_FRAME:
 			m_sendFrame = m_sendAudio = false;
+			// forward the event to user
+			pushEvent(event);
 			break;
 		case RECORD_START:
 		{
