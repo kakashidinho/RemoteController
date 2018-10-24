@@ -236,9 +236,13 @@ namespace HQRemote {
 #endif
 
 			//send to frame compression threads
+			uint32_t width, height;
+			m_frameCapturer->getFrameDimens(width, height);
+			CapturedFrame frameInfo(width, height, frameRef);
+
 			{
 				std::lock_guard<std::mutex> lg(m_frameCompressLock);
-				m_capturedFramesForCompress.push_back(frameRef);
+				m_capturedFramesForCompress.push_back(frameInfo);
 				
 				if (m_capturedFramesForCompress.size() > MAX_PENDING_FRAMES)
 					m_capturedFramesForCompress.pop_front();
@@ -249,7 +253,7 @@ namespace HQRemote {
 			if (m_saveNextFrame.load(std::memory_order_relaxed))
 			{
 				std::lock_guard<std::mutex> lg(m_screenshotLock);
-				m_capturedFramesForSave.push_back(frameRef);
+				m_capturedFramesForSave.push_back(frameInfo);
 				
 				if (m_capturedFramesForSave.size() > MAX_PENDING_FRAMES)
 					m_capturedFramesForSave.pop_front();
@@ -266,7 +270,7 @@ namespace HQRemote {
 					time_checkpoint_t time;
 					convertToTimeCheckPoint(time, time64);
 
-					m_capturedFramesForVideo.insert(std::pair<time_checkpoint_t, ConstDataRef> (time, frameRef));
+					m_capturedFramesForVideo.insert(std::pair<time_checkpoint_t, CapturedFrame> (time, frameInfo));
 					
 					m_videoCv.notify_all();
 				}
@@ -326,8 +330,7 @@ namespace HQRemote {
 		sendCapturedAudioInfo();
 
 		PlainEvent eventWrapper(HOST_INFO);
-		eventWrapper.event.hostInfo.width = m_frameCapturer->getFrameWidth();
-		eventWrapper.event.hostInfo.height = m_frameCapturer->getFrameHeight();
+		m_frameCapturer->getFrameDimens(eventWrapper.event.hostInfo.width, eventWrapper.event.hostInfo.height);
 
 		sendEvent(eventWrapper);
 	}
@@ -348,10 +351,10 @@ namespace HQRemote {
 				lk.unlock();
 
 				auto compressedFrame = m_imgCompressor->compress(
-													 frame,
+													 frame.rawFrameDataRef,
 													 frameId,
-													 m_frameCapturer->getFrameWidth(),
-													 m_frameCapturer->getFrameHeight(),
+													 frame.width,
+													 frame.height,
 													 m_frameCapturer->getNumColorChannels());
 
 				if (compressedFrame != nullptr) {
@@ -530,6 +533,7 @@ namespace HQRemote {
 	
 	void Engine::debugFrame(uint64_t id, const void* data, size_t size)
 	{
+#if DEBUG_CAPTURED_FRAMES
 		//write to file
 		static int fileIdx = 0;
 		
@@ -542,6 +546,7 @@ namespace HQRemote {
 			os.write((char*)data, size);
 			os.close();
 		}
+#endif
 	}
 	
 	/*--------- video recording thread ----*/
@@ -635,9 +640,9 @@ namespace HQRemote {
 				m_capturedFramesForSave.pop_front();
 				lk.unlock();
 				
-				auto compressedFrame = convertToPng(frame,
-													 m_frameCapturer->getFrameWidth(),
-													 m_frameCapturer->getFrameHeight(),
+				auto compressedFrame = convertToPng(frame.rawFrameDataRef,
+													 frame.width,
+													 frame.height,
 													 m_frameCapturer->getNumColorChannels(),
 													 false,
 													 true);

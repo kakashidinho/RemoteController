@@ -54,7 +54,7 @@ namespace HQRemote {
 		//TODO
 	}
 
-	void Engine::platformRecordFrame(double t, ConstDataRef frame) {
+	void Engine::platformRecordFrame(double t, const CapturedFrame& frame) {
 		//TODO
 	}
 

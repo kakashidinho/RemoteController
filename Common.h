@@ -69,6 +69,14 @@
 #	endif
 #endif
 
+#ifndef HQ_DEPRECATED
+#	if defined WIN32
+#		define HQ_DEPRECATED __declspec(deprecated)
+#	else
+#		define HQ_DEPRECATED __attribute__ ((deprecated))
+#	endif
+#endif
+
 namespace HQRemote {
 #ifdef WIN32
 	typedef SSIZE_T _ssize_t;

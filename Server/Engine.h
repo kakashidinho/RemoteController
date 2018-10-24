@@ -58,6 +58,34 @@ namespace HQRemote {
 
 		double getFrameInterval() const { return m_intendedFrameInterval; }
 	private:
+		struct CapturedFrame {
+			CapturedFrame(uint32_t width, uint32_t height, ConstDataRef rawFrameRef)
+				: width(width), height(height), rawFrameDataRef(rawFrameRef)
+			{}
+
+
+			CapturedFrame(const CapturedFrame& src)
+				: width(src.width), height(src.height), rawFrameDataRef(src.rawFrameDataRef)
+			{}
+
+			CapturedFrame(CapturedFrame&& src)
+				: width (src.width), height(src.height), rawFrameDataRef(std::move(src.rawFrameDataRef))
+			{}
+
+			CapturedFrame& operator= (const CapturedFrame& src) {
+				width = (src.width); height = (src.height); rawFrameDataRef = (src.rawFrameDataRef);
+				return *this;
+			}
+
+			CapturedFrame& operator= (CapturedFrame&& src) {
+				width = (src.width); height = (src.height); rawFrameDataRef = std::move(src.rawFrameDataRef);
+				return *this;
+			}
+
+			uint32_t width, height;
+			ConstDataRef rawFrameDataRef;
+		};
+
 		void platformConstruct();
 		void platformDestruct();
 		std::string platformGetWritableFolder();
@@ -65,7 +93,7 @@ namespace HQRemote {
 		std::string platformGetAppName();
 		
 		void platformStartRecording();
-		void platformRecordFrame(double t, ConstDataRef frame);
+		void platformRecordFrame(double t, const CapturedFrame& frame);
 		void platformEndRecording();
 
 		virtual bool handleEventInternalImpl(const EventRef& event) override;
@@ -87,7 +115,7 @@ namespace HQRemote {
 
 		//frame compression & sending thread
 		typedef std::shared_ptr<CompressedEvents::EventList> FrameBundleRef;
-		std::list<ConstDataRef> m_capturedFramesForCompress;
+		std::list<CapturedFrame> m_capturedFramesForCompress;
 		std::map<uint64_t, FrameBundleRef> m_incompleteFrameBundles;
 		std::map<uint64_t, FrameBundleRef> m_frameBundles;
 		std::map<uint64_t, DataRef> m_sendingFrames;
@@ -111,14 +139,14 @@ namespace HQRemote {
 		std::atomic<bool> m_sendFrame;
 
 		//video recording thread
-		std::map<time_checkpoint_t, ConstDataRef, TimeCompare> m_capturedFramesForVideo;
+		std::map<time_checkpoint_t, CapturedFrame, TimeCompare> m_capturedFramesForVideo;
 		std::unique_ptr<std::thread> m_videoThread;
 		std::mutex m_videoLock;
 		std::condition_variable m_videoCv;
 		bool m_videoRecording;
 		
 		//screenshot saving thread
-		std::list<ConstDataRef> m_capturedFramesForSave;
+		std::list<CapturedFrame> m_capturedFramesForSave;
 		std::unique_ptr<std::thread> m_screenshotThread;
 		std::mutex m_screenshotLock;
 		std::condition_variable m_screenshotCv;

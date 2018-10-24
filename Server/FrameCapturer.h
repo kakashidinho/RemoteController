@@ -46,8 +46,16 @@ namespace HQRemote {
 		//get number of frames the has been issued a capture
 		uint64_t getTotalFrames() { return m_totalFrames; }
 
-		uint32_t getFrameWidth() const { return m_frameWidth; }
-		uint32_t getFrameHeight() const { return m_frameHeight; }
+		HQ_DEPRECATED
+		virtual uint32_t getFrameWidth() const { return m_frameWidth; }
+
+		HQ_DEPRECATED
+		virtual uint32_t getFrameHeight() const { return m_frameHeight; }
+
+		virtual void getFrameDimens(uint32_t& width, uint32_t & height) const {
+			width = m_frameWidth;
+			height = m_frameHeight;
+		}
 
 		//capture current frame.
 		ConstDataRef beginCaptureFrame();

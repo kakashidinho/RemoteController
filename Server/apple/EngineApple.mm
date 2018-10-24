@@ -255,7 +255,7 @@ namespace HQRemote {
 		[m_impl->videoWriter startSessionAtSourceTime:kCMTimeZero];
 	}
 	
-	void Engine::platformRecordFrame(double t, ConstDataRef frame) {
+	void Engine::platformRecordFrame(double t, const CapturedFrame& frame) {
 		if (m_impl->videoAdaptor == nil)
 			return;
 		
@@ -263,9 +263,9 @@ namespace HQRemote {
 		if (m_impl->videoPixelBuffer == NULL)
 			CVPixelBufferPoolCreatePixelBuffer (NULL, m_impl->videoAdaptor.pixelBufferPool, &m_impl->videoPixelBuffer);
 		
-		m_impl->videoPixelBuffer = pixelBufferFromFrameData(frame,
-															m_frameCapturer->getFrameWidth(),
-															m_frameCapturer->getFrameHeight(),
+		m_impl->videoPixelBuffer = pixelBufferFromFrameData(frame.rawFrameDataRef,
+															frame.width,
+															frame.height,
 															m_frameCapturer->getNumColorChannels(),
 															m_impl->videoWidth,
 															m_impl->videoHeight,

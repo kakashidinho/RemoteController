@@ -19,7 +19,7 @@
 #ifndef HQREMOTE_CONNECTION_HANDLER_H
 #define HQREMOTE_CONNECTION_HANDLER_H
 
-#ifdef WIN32
+#ifdef _WIN32
 #	include <Winsock2.h>
 #else
 #	include <sys/types.h>
