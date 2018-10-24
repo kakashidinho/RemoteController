@@ -67,8 +67,7 @@ typedef int socklen_t;
 #endif//#ifdef WIN32
 
 namespace HQRemote {
-	static const char MULTICAST_ADDRESS[] = "226.1.1.2";
-	static const unsigned short MULTICAST_PORT = 60289;
+	static const char DEFAULT_MULTICAST_ADDRESS[] = "226.1.1.2";
 	static const unsigned int MULTICAST_MAX_MSG_SIZE = 512;
 	static const char MULTICAST_MAGIC_STRING[] = "fd8acc40-d758-4d2c-a6a9-91387845e1ca";
 
@@ -992,7 +991,7 @@ namespace HQRemote {
 	}
 
 	BaseUnreliableSocketHandler::BaseUnreliableSocketHandler(const char* bindAddress, int connLessListeningPort)
-		: SocketConnectionHandler(), m_connLessPort(connLessListeningPort), m_bindAddress(bindAddress)
+		: SocketConnectionHandler(), m_connLessPort(connLessListeningPort), m_bindAddress(bindAddress != nullptr? bindAddress : "")
 	{
 	}
 
@@ -1074,13 +1073,15 @@ namespace HQRemote {
 	}
 
 	/*-------------  SocketServerHandler  ---------------------------*/
-	SocketServerHandler::SocketServerHandler(int listeningPort, int connLessListeningPort)
-	: SocketServerHandler("", listeningPort, connLessListeningPort)
+	SocketServerHandler::SocketServerHandler(int listeningPort, int connLessListeningPort, const char* discovery_multicast_group, int discovery_multicast_port)
+	: SocketServerHandler("", listeningPort, connLessListeningPort, discovery_multicast_group, discovery_multicast_port)
 	{
 	}
 
-	SocketServerHandler::SocketServerHandler(const char* listeningAddr, int listeningPort, int connLessListeningPort)
-	: BaseUnreliableSocketHandler(listeningAddr, connLessListeningPort),  m_serverSocket(INVALID_SOCKET), m_port(listeningPort), m_multicastSocket(INVALID_SOCKET)
+	SocketServerHandler::SocketServerHandler(const char* listeningAddr, int listeningPort, int connLessListeningPort, const char* discovery_multicast_group, int discovery_multicast_port)
+	: BaseUnreliableSocketHandler(listeningAddr, connLessListeningPort),  m_serverSocket(INVALID_SOCKET), m_port(listeningPort), m_multicastSocket(INVALID_SOCKET),
+		m_multicast_address(discovery_multicast_group ? discovery_multicast_group : DEFAULT_MULTICAST_ADDRESS),
+		m_multicast_port(discovery_multicast_port)
 	{}
 
 	SocketServerHandler::~SocketServerHandler() {
@@ -1159,9 +1160,9 @@ namespace HQRemote {
 
 		//create multicast socket
 		if (m_multicastSocket == INVALID_SOCKET) {
-			if (MULTICAST_PORT != m_connLessPort)//TODO: if user picks our multicast port, we cannot do much besides disabling the multicast socket
+			if (m_multicast_port != m_connLessPort)//TODO: if user picks our multicast port, we cannot do much besides disabling the multicast socket
 			{
-				m_multicastSocket = createUnreliableSocket(m_bindAddress, MULTICAST_PORT);
+				m_multicastSocket = createUnreliableSocket(m_bindAddress, m_multicast_port);
 
 				if (m_multicastSocket != INVALID_SOCKET)
 				{
@@ -1171,7 +1172,7 @@ namespace HQRemote {
 
 					//join multicast group
 					struct ip_mreq mreq;
-					mreq.imr_multiaddr = platformIpv4StringToAddr(MULTICAST_ADDRESS);
+					mreq.imr_multiaddr = platformIpv4StringToAddr(m_multicast_address.c_str());
 
 					//join multicast group with all available network interfaces
 					std::vector<struct in_addr> interface_addresses;
@@ -1570,8 +1571,10 @@ namespace HQRemote {
 	}
 
 	/*--------- SocketServerDiscoverClientHandler ----------*/
-	SocketServerDiscoverClientHandler::SocketServerDiscoverClientHandler(DiscoveryDelegate* delegate)
-		:BaseUnreliableSocketHandler(RANDOM_PORT), m_discoveryDelegate(delegate)
+	SocketServerDiscoverClientHandler::SocketServerDiscoverClientHandler(DiscoveryDelegate* delegate, const char* discovery_multicast_group, int discovery_multicast_port)
+		:BaseUnreliableSocketHandler(RANDOM_PORT), m_discoveryDelegate(delegate),
+		 m_multicast_address(discovery_multicast_group != nullptr ? discovery_multicast_group : DEFAULT_MULTICAST_ADDRESS),
+		 m_multicast_port(discovery_multicast_port)
 	{
 	}
 	SocketServerDiscoverClientHandler::~SocketServerDiscoverClientHandler() {
@@ -1606,8 +1609,8 @@ namespace HQRemote {
 		memset(m_connLessSocketDestAddr.get(), 0, sizeof(sockaddr_in));
 
 		m_connLessSocketDestAddr->sin_family = AF_INET;
-		m_connLessSocketDestAddr->sin_addr = platformIpv4StringToAddr(MULTICAST_ADDRESS);
-		m_connLessSocketDestAddr->sin_port = htons(MULTICAST_PORT);
+		m_connLessSocketDestAddr->sin_addr = platformIpv4StringToAddr(m_multicast_address.c_str());
+		m_connLessSocketDestAddr->sin_port = htons(m_multicast_port);
 		
 		return true;
 	}
@@ -1630,7 +1633,7 @@ namespace HQRemote {
 		struct sockaddr_in broadcast_addr = {0};
 		broadcast_addr.sin_family = AF_INET;
 		broadcast_addr.sin_addr.s_addr = htonl(INADDR_BROADCAST);
-		broadcast_addr.sin_port = htons(MULTICAST_PORT);
+		broadcast_addr.sin_port = htons(m_multicast_port);
 
 		m_socketLock.lock();
 		sendRawDataUnreliableNoLock(m_connLessSocket, &broadcast_addr, ping_msg, sizeof(ping_msg));

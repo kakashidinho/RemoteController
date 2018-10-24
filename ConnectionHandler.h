@@ -294,8 +294,8 @@ namespace HQRemote {
 	class HQREMOTE_API SocketServerHandler : public BaseUnreliableSocketHandler {
 	public:
 		//pass <connLessListeningPort> = 0 if you don't want to use unreliable socket
-		SocketServerHandler(int listeningPort, int connLessListeningPort);
-		SocketServerHandler(const char* listeningAddr, int listeningPort, int connLessListeningPort);
+		SocketServerHandler(int listeningPort, int connLessListeningPort, const char* discovery_multicast_group = "226.1.1.2", int discovery_multicast_port = 60289);
+		SocketServerHandler(const char* listeningAddr, int listeningPort, int connLessListeningPort, const char* discovery_multicast_group = "226.1.1.2", int discovery_multicast_port = 60289);
 		~SocketServerHandler();
 
 		virtual bool connected() const override;
@@ -315,6 +315,10 @@ namespace HQRemote {
 		void pollingMulticastData();
 
 		int m_port;
+
+		int m_multicast_port;
+		CString m_multicast_address;
+
 		std::atomic<socket_t> m_serverSocket;
 
 		std::atomic<socket_t> m_multicastSocket;//multicast socket
@@ -361,7 +365,7 @@ namespace HQRemote {
 			virtual void onNewServerDiscovered(SocketServerDiscoverClientHandler* handler, uint64_t request_id, const char* addr, int reliablePort, int unreliablePort, const char* serverDesc) = 0;
 		};
 
-		SocketServerDiscoverClientHandler(DiscoveryDelegate* delegate);
+		SocketServerDiscoverClientHandler(DiscoveryDelegate* delegate, const char* discovery_multicast_group = "226.1.1.2", int discovery_multicast_port = 60289);
 		~SocketServerDiscoverClientHandler();
 
 		void findOtherServers(uint64_t request_id);
@@ -373,6 +377,9 @@ namespace HQRemote {
 
 		std::mutex m_discoveryDelegateLock;
 		DiscoveryDelegate* m_discoveryDelegate;
+
+		int m_multicast_port;
+		CString m_multicast_address;
 	};
 }
 
