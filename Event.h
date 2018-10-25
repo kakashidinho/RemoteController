@@ -110,6 +110,10 @@ namespace HQRemote {
 			// generic value
 			float floatValue;
 			double doubleValue;
+			int16_t int16Value;
+			uint16_t uint16Value;
+			int32_t int32Value;
+			uint32_t uint32Value;
 
 			// custom data
 			unsigned char customData[8 + 8 + 8];
