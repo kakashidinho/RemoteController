@@ -27,7 +27,15 @@ namespace HQRemote {
 	public:
 		virtual ~IImgCompressor() {}
 
-		virtual DataRef compress(ConstDataRef src, uint64_t id, uint32_t width, uint32_t height, unsigned int numChannels) = 0;
+		virtual DataRef compress(ConstDataRef src, uint64_t id, uint32_t width, uint32_t height, unsigned int numChannels) {
+			return nullptr;
+		}
+
+		// this version allows the callee to modify the id of the compressed frame
+		virtual DataRef compress2(ConstDataRef src, uint64_t& idInOut, uint32_t width, uint32_t height, unsigned int numChannels) {
+			return compress(src, idInOut, width, height, numChannels);
+		}
+
 		virtual bool canSupportMultiThreads() const { return true; }
 	};
 

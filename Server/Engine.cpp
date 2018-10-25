@@ -315,6 +315,9 @@ namespace HQRemote {
 		{
 			//return host's info to remote's side
 			sendHostInfo();
+
+			// forward the event to user
+			pushEvent(event);
 		}
 			break;
 		case FRAME_INTERVAL:
@@ -354,7 +357,7 @@ namespace HQRemote {
 				auto frameId = ++m_processedCapturedFrames;
 				lk.unlock();
 
-				auto compressedFrame = m_imgCompressor->compress(
+				auto compressedFrame = m_imgCompressor->compress2(
 													 frame.rawFrameDataRef,
 													 frameId,
 													 frame.width,

@@ -33,26 +33,26 @@
 namespace HQRemote {
 	typedef uint32_t EventType;
 
-	enum PredefinedEventType: uint32_t {
+	enum PredefinedEventType : uint32_t {
 		TOUCH_BEGAN,
 		TOUCH_MOVED,
 		TOUCH_ENDED,
 		TOUCH_CANCELLED,
-	
+
 		START_SEND_FRAME,//Tell host to start sending its captured frame & audio. Or tell client to start sending its captured audio
 		STOP_SEND_FRAME,//Tell host to stop sending its captured frame & audio. Or tell client to stop sending its captured audio
-		
+
 		RECORD_START,
 		RECORD_END,
-		
+
 		SCREENSHOT_CAPTURE,
 
 		HOST_INFO,
 		RENDERED_FRAME,//this uses renderedFrameData field in Event struct
 		ENDPOINT_NAME,//this uses renderedFrameData field in Event struct
-		
+
 		FRAME_INTERVAL,
-		
+
 		AUDIO_STREAM_INFO,
 		AUDIO_ENCODED_PACKET,//this uses renderedFrameData field in Event struct
 		AUDIO_DECODED_PACKET,
@@ -64,6 +64,8 @@ namespace HQRemote {
 
 		NO_EVENT,
 	};
+
+	const uint64_t IMPORTANT_FRAME_ID_FLAG = 0x8000000000000000; // bitwise or the frame id with this flag to indicate the frame shouldn't be dropped
 
 	struct HQREMOTE_API Event {
 		Event(EventType _type) : type(_type)

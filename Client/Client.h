@@ -38,16 +38,22 @@ namespace HQRemote {
 		float getFrameInterval() const { return m_frameInterval; }
 
 		//query rendered frame event
-		ConstFrameEventRef getFrameEvent();
+		ConstFrameEventRef getFrameEvent(uint32_t blockIfEmptyForMs = 0);
 
 		virtual bool start(bool preprocessEventAsync = true) override;
 		virtual void stop() override;
 	private:
 		virtual bool handleEventInternalImpl(const EventRef& event) override;
 
-		typedef BaseEngine::TimedDataQueue FrameQueue;
+		struct FrameInfo {
+			ConstFrameEventRef frameRef;
+			bool isImportant;
+		};
+
+		typedef std::map<uint64_t, FrameInfo> FrameQueue;
 
 		std::mutex m_frameQueueLock;
+		std::condition_variable m_frameQueueCv;
 		FrameQueue m_frameQueue;
 
 		float m_frameInterval;

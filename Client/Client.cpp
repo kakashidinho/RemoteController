@@ -61,12 +61,12 @@ namespace HQRemote {
 		BaseEngine::stop();
 	}
 
-	ConstFrameEventRef Client::getFrameEvent() {
+	ConstFrameEventRef Client::getFrameEvent(uint32_t blockIfEmptyForMs) {
 		if (getDataPollingThread() == nullptr)
 			tryRecvEvent();
 
 		ConstFrameEventRef event = nullptr;
-		std::lock_guard<std::mutex> lg(m_frameQueueLock);
+		std::unique_lock<std::mutex> lk(m_frameQueueLock);
 
 		//discard out of date frames
 		FrameQueue::iterator frameIte;
@@ -77,6 +77,10 @@ namespace HQRemote {
 #if defined DEBUG || defined _DEBUG
 			Log("---> discarded frame %lld\n", frameIte->first);
 #endif
+		}
+
+		if (blockIfEmptyForMs > 0 && m_frameQueue.size() == 0) {
+			m_frameQueueCv.wait_for(lk, std::chrono::milliseconds(blockIfEmptyForMs));
 		}
 
 		//check if any frame can be rendered immediately
@@ -113,7 +117,7 @@ namespace HQRemote {
 				m_lastRcvFrameId = frameId;
 				m_numRcvFrames++;
 
-				event = frame;
+				event = frame.frameRef;
 				
 #if defined DEBUG || defined _DEBUG
 				Log("retrieved frame %lld\n", frameId);
@@ -131,19 +135,47 @@ namespace HQRemote {
 		{
 			std::lock_guard<std::mutex> lg(m_frameQueueLock);
 
+			auto trueFrameId = event.renderedFrameData.frameId & (~IMPORTANT_FRAME_ID_FLAG);
+
+			if (m_frameQueue.size() >= MAX_PENDING_FRAMES) {
+				if (m_frameQueue.begin()->first > trueFrameId) // this frame arrive too late
+					break;
+			}
+
 			while (m_frameQueue.size() >= MAX_PENDING_FRAMES)
 			{
-				//discard old frames
+				// discard old frames
 				auto ite = m_frameQueue.begin();
-				m_frameQueue.erase(ite);
+
+				// try to keep important frames first
+				while (ite != m_frameQueue.end() && ite->second.isImportant)
+					++ite;
+
+				if (ite == m_frameQueue.end()) // all of them are important? then drop the oldest one and subsequent unimportant ones
+				{
+					ite = m_frameQueue.begin();
+					do {
+						m_frameQueue.erase(ite++);
+					} while (ite != m_frameQueue.end() && !ite->second.isImportant);
+				}
+				else {
+					m_frameQueue.erase(ite);
+				}
 			}
 
 			try {
-				m_frameQueue[event.renderedFrameData.frameId] = std::static_pointer_cast<FrameEvent>(eventRef);
+				auto & newEntry = m_frameQueue[trueFrameId];
+				newEntry.frameRef = std::static_pointer_cast<FrameEvent>(eventRef);
+				newEntry.isImportant = event.renderedFrameData.frameId & IMPORTANT_FRAME_ID_FLAG;
+				
+				// strip the important frame id flag
+				event.renderedFrameData.frameId = trueFrameId;
 			}
 			catch (...) {
 				//TODO
 			}
+
+			m_frameQueueCv.notify_all();
 		}
 			break;
 		case START_SEND_FRAME:
