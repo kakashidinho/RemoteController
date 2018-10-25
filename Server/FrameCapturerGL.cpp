@@ -23,7 +23,7 @@ namespace HQRemote {
 		:IFrameCapturer(queueSize, frameWidth, frameHeight)
 	{
 		m_pboQueue = new GLuint[m_queueSize];
-		glGenBuffers(m_queueSize, m_pboQueue);
+		glGenBuffers((GLsizei)m_queueSize, m_pboQueue);
 
 		int oldBoundPBO;
 		glGetIntegerv(GL_PIXEL_PACK_BUFFER_BINDING, &oldBoundPBO);
@@ -37,7 +37,7 @@ namespace HQRemote {
 	}
 
 	FrameCapturerGL::~FrameCapturerGL() {
-		glDeleteBuffers(m_queueSize, m_pboQueue);
+		glDeleteBuffers((GLsizei)m_queueSize, m_pboQueue);
 		delete[] m_pboQueue;
 	}
 

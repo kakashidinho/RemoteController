@@ -169,6 +169,7 @@ namespace HQRemote {
 		{}
 
 		virtual unsigned char* data() override { return m_parent->data() + m_offset; }
+		virtual const unsigned char* data() const override { return Parent::data(); }
 	};
 
 	class HQREMOTE_API ConstDataSegment : public TDataSegment < const IData > {
@@ -184,6 +185,7 @@ namespace HQRemote {
 		{}
 
 		virtual unsigned char* data() override { throw std::runtime_error("Const Data is not allowed to be modified"); }
+		virtual const unsigned char* data() const override { return Parent::data(); }
 	};
 }
 

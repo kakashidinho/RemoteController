@@ -844,8 +844,8 @@ namespace HQRemote {
 						auto outputMaxSize = batchEncodeBuffer->size();
 
 						packet_len = opus_encode(*audioEncoder,
-							input, batchIdealSamplesPerChannel,
-							output, outputMaxSize);
+							input, (int)batchIdealSamplesPerChannel,
+							output, (opus_int32)outputMaxSize);
 
 						if (packet_len > 0) {
 							//send to client

@@ -61,7 +61,8 @@ namespace HQRemote {
 		int re;
 		unsigned char buffer[COMPRESS_CHUNK_SIZE];
 		sz.next_in = (unsigned char*)uncompressedData;
-		sz.avail_in = size;
+		assert(size <= std::numeric_limits<uint32_t>::max());
+		sz.avail_in = (uint32_t)size;
 		sz.next_out = buffer;
 		sz.avail_out = sizeof(buffer);
 

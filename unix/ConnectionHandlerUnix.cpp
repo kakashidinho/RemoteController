@@ -48,7 +48,7 @@ namespace HQRemote {
 	}
 
 	const char* SocketConnectionHandler::platformIpv4AddrToString(const in_addr* addr, char* addr_buf, size_t addr_buf_max_len) {
-		return inet_ntop(AF_INET, (const void*)addr, addr_buf, addr_buf_max_len);
+		return inet_ntop(AF_INET, (const void*)addr, addr_buf, (socklen_t)addr_buf_max_len);
 	}
 
 	__attribute__((weak))

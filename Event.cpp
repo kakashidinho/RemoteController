@@ -135,7 +135,7 @@ namespace HQRemote {
 		try {
 			//init generic info
 			assert(m_events.size() <= std::numeric_limits<uint32_t>::max());
-			this->event.compressedEvents.numEvents = m_events.size();
+			this->event.compressedEvents.numEvents = (uint32_t)m_events.size();
 			
 			//init storage
 			auto storage = std::make_shared<GrowableData>();
@@ -235,7 +235,7 @@ namespace HQRemote {
 	}
 
 	FrameEvent::FrameEvent(ConstDataRef frameData, uint64_t frameId, EventType type)
-		:FrameEvent(frameData->size(), frameId, type)
+		:FrameEvent((uint32_t)frameData->size(), frameId, type)
 	{
 		assert(frameData->size() <= std::numeric_limits<uint32_t>::max());
 		

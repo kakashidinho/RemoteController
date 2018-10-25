@@ -146,9 +146,9 @@
 		0A294E281C57F75B00D4CC23 /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS9.2.sdk/usr/lib/libz.tbd; sourceTree = DEVELOPER_DIR; };
 		0A29738A1C51FFB900A2F8F0 /* Common.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Common.cpp; sourceTree = "<group>"; };
 		0A29738B1C51FFB900A2F8F0 /* Common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Common.h; sourceTree = "<group>"; };
-		0A29738C1C51FFB900A2F8F0 /* ConnectionHandler.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ConnectionHandler.cpp; sourceTree = "<group>"; };
+		0A29738C1C51FFB900A2F8F0 /* ConnectionHandler.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ConnectionHandler.cpp; sourceTree = "<group>"; usesTabs = 1; };
 		0A29738D1C51FFB900A2F8F0 /* ConnectionHandler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ConnectionHandler.h; sourceTree = "<group>"; };
-		0A29738E1C51FFB900A2F8F0 /* Data.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Data.h; sourceTree = "<group>"; };
+		0A29738E1C51FFB900A2F8F0 /* Data.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Data.h; sourceTree = "<group>"; usesTabs = 1; };
 		0A29738F1C51FFB900A2F8F0 /* Event.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Event.cpp; sourceTree = "<group>"; };
 		0A2973901C51FFB900A2F8F0 /* Event.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Event.h; sourceTree = "<group>"; };
 		0A2973911C51FFB900A2F8F0 /* Timer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Timer.h; sourceTree = "<group>"; };
@@ -159,7 +159,7 @@
 		0A36AC5D1C7FFD4F00922BF2 /* ConnectionHandlerLinux.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ConnectionHandlerLinux.cpp; sourceTree = "<group>"; };
 		0A36AC5E1C7FFD7400922BF2 /* TimerLinux.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = TimerLinux.cpp; sourceTree = "<group>"; };
 		0A36AC601C80064C00922BF2 /* EngineAndroid.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = EngineAndroid.cpp; path = Server/android/EngineAndroid.cpp; sourceTree = "<group>"; };
-		0A44AC321C58BCC0007809DA /* ZlibUtils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ZlibUtils.cpp; sourceTree = "<group>"; };
+		0A44AC321C58BCC0007809DA /* ZlibUtils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ZlibUtils.cpp; sourceTree = "<group>"; usesTabs = 1; };
 		0A44AC331C58BCC0007809DA /* ZlibUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ZlibUtils.h; sourceTree = "<group>"; };
 		0A4A843B1C7A1C2D00556B01 /* Client.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Client.cpp; path = Client/Client.cpp; sourceTree = "<group>"; };
 		0A4A843C1C7A1C2D00556B01 /* Client.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Client.h; path = Client/Client.h; sourceTree = "<group>"; };
@@ -183,7 +183,7 @@
 		0AE5B0D71C44D95500155DB8 /* Engine.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Engine.cpp; path = Server/Engine.cpp; sourceTree = "<group>"; };
 		0AE5B0D81C44D95500155DB8 /* Engine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Engine.h; path = Server/Engine.h; sourceTree = "<group>"; };
 		0AE5B0DA1C44D95500155DB8 /* ImgCompressor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ImgCompressor.cpp; path = Server/ImgCompressor.cpp; sourceTree = "<group>"; };
-		0AE5B0DC1C44D95500155DB8 /* EngineApple.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = EngineApple.mm; sourceTree = "<group>"; };
+		0AE5B0DC1C44D95500155DB8 /* EngineApple.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = EngineApple.mm; sourceTree = "<group>"; usesTabs = 1; };
 		0AE5B0DD1C44D95500155DB8 /* ImgCompressorApple.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ImgCompressorApple.cpp; sourceTree = "<group>"; };
 		0AE5B0DF1C44D95500155DB8 /* FrameCapturer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FrameCapturer.cpp; path = Server/FrameCapturer.cpp; sourceTree = "<group>"; };
 		0AE5B0E01C44D95500155DB8 /* FrameCapturer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FrameCapturer.h; path = Server/FrameCapturer.h; sourceTree = "<group>"; };

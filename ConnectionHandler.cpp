@@ -1290,8 +1290,9 @@ namespace HQRemote {
 						msg_ptr += sizeof(reliable_port) + sizeof(unreliable_port);
 
 						msg_size = msg_ptr - msg;
+						assert(msg_size <= MULTICAST_MAX_MSG_SIZE);
 
-						auto remainSizeForDesc = MULTICAST_MAX_MSG_SIZE - msg_size;
+						uint32_t remainSizeForDesc = (uint32_t)(MULTICAST_MAX_MSG_SIZE - msg_size);
 						uint32_t  descSize;
 
 						auto descRef = getDesc();
@@ -1323,7 +1324,7 @@ namespace HQRemote {
 							memcpy(msg_ptr + sizeof(descSize) + descSize - 3, "...", 3);
 						}
 						else {
-							descSize = descRef->size();
+							descSize = (uint32_t)descRef->size();
 
 							memcpy(msg_ptr, &descSize, sizeof(descSize));
 							memcpy(msg_ptr + sizeof(descSize), descRef->c_str(), descSize);
@@ -1468,7 +1469,7 @@ namespace HQRemote {
 	
 	void SocketClientHandler::initConnectionImpl() {
 		_ssize_t re, re2;
-		int err;
+		int err = 0;
 		fd_set sset, eset;
 		timeval tv;
 		

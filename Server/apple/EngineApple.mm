@@ -212,8 +212,8 @@ namespace HQRemote {
 			return;
 		}
 		
-		auto videoWidth = m_frameCapturer->getFrameWidth();
-		auto videoHeight = m_frameCapturer->getFrameHeight();
+		uint32_t videoWidth, videoHeight;
+		m_frameCapturer->getFrameDimens(videoWidth, videoHeight);
 		//iPhone 6+ hack:
 		if (videoWidth < videoHeight && (videoWidth > 1080 || videoHeight > 1920)) {
 			float wRatio = 1080.f / videoWidth;
