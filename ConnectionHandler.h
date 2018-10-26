@@ -48,6 +48,7 @@
 #if defined WIN32 || defined _MSC_VER
 #	pragma warning(push)
 #	pragma warning(disable:4251)
+#	pragma warning(disable:4275)
 #endif
 
 namespace HQRemote {
@@ -72,6 +73,7 @@ namespace HQRemote {
 		class Delegate {
 		public:
 			virtual void onConnected() = 0;
+			virtual void onDisconnected() {}
 		};
 
 		virtual ~IConnectionHandler();
@@ -144,6 +146,8 @@ namespace HQRemote {
 		void onReceivedUnreliableDataFragment(const void* data, size_t size);
 		//this should be called when endpoints connected successfully
 		void onConnected(bool reconnected = false);
+
+		void onDisconnected();
 		
 		void setInternalError(const char* msg);
 		

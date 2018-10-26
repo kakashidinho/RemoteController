@@ -233,7 +233,7 @@ namespace HQRemote {
 			m_audioEncodedPacketsCv.notify_all();
 		}
 		{
-			std::lock_guard<std::mutex> lg(m_audioSndLock);
+			std::lock_guard<std::mutex> lg(m_audioSndQueueLock);
 			m_audioSndCv.notify_all();
 		}
 
@@ -266,15 +266,28 @@ namespace HQRemote {
 	}
 
 	void BaseEngine::onConnected() {
-		//reset counters
-		std::unique_lock<std::mutex> rcv_packet_lg(m_audioEncodedPacketsLock);//guard m_totalRecvAudioPackets && m_totalRecvAudioPackets 
-		std::unique_lock<std::mutex> snd_packet_lg(m_audioSndLock);//guard m_totalSentAudioPacketsCounterReset
+		HQRemote::Log("BaseEngine::onConnected()\n");
+		{
+			//reset counters
+			std::unique_lock<std::mutex> rcv_packet_lg(m_audioEncodedPacketsLock);//guard m_totalRecvAudioPackets && m_totalRecvAudioPackets 
+			std::unique_lock<std::mutex> snd_packet_lg(m_audioSndQueueLock);//guard m_totalSentAudioPacketsCounterReset
 
-		m_lastDecodedAudioPacketId = 0;
+			m_lastDecodedAudioPacketId = 0;
 
-		m_totalRecvAudioPackets = 0;
+			m_totalRecvAudioPackets = 0;
 
-		m_totalSentAudioPacketsCounterReset = true;
+			m_totalSentAudioPacketsCounterReset = true;
+		}
+
+		pushEvent(std::make_shared<PlainEvent>(CONNECTED_NOTIFIFACTION));
+	}
+
+	void BaseEngine::onDisconnected() {
+		HQRemote::Log("BaseEngine::onDisconnected()\n");
+
+		m_sendAudio = false;
+
+		pushEvent(std::make_shared<PlainEvent>(DISCONNECTED_NOTIFIFACTION));
 	}
 
 	void BaseEngine::tryRecvEvent(EventType eventToDiscard, bool consumeAllAvailableData) {
@@ -300,7 +313,13 @@ namespace HQRemote {
 		if (m_eventQueue.size() > 0)
 		{
 			event = m_eventQueue.front();
-			m_eventQueue.pop_front();
+			m_eventQueue.pop_front(); 
+
+#if defined DEBUG || defined _DEBUG
+			auto type = event->event.type;
+			if (type == ENDPOINT_NAME || type == DISCONNECTED_NOTIFIFACTION || type == CONNECTED_NOTIFIFACTION)
+				HQRemote::Log("event %u was popped\n", type);
+#endif
 		}
 
 		return event;
@@ -424,7 +443,7 @@ namespace HQRemote {
 
 		try {
 			//make sure we processed all pending audio data
-			std::lock_guard<std::mutex> lg(m_audioSndLock);
+			std::lock_guard<std::mutex> lg(m_audioSndQueueLock);
 
 			try {
 				m_audioRawPackets.clear();
@@ -478,7 +497,7 @@ namespace HQRemote {
 		if (pcmData == nullptr)
 			return;
 
-		std::lock_guard<std::mutex> lg(m_audioSndLock);
+		std::lock_guard<std::mutex> lg(m_audioSndQueueLock);
 
 		try {
 			if (m_audioRawPackets.size() >= MAX_PENDING_SND_AUDIO_PACKETS)
@@ -620,6 +639,13 @@ namespace HQRemote {
 		std::lock_guard<std::mutex> lg(m_eventLock);
 		try {
 			m_eventQueue.push_back(eventRef);
+
+			auto type = eventRef->event.type;
+
+#if defined DEBUG || defined _DEBUG
+			if (type == ENDPOINT_NAME || type == DISCONNECTED_NOTIFIFACTION || type == CONNECTED_NOTIFIFACTION)
+				HQRemote::Log("event %u was pushed\n", type);
+#endif
 		}
 		catch (...) {
 			//TODO
@@ -790,7 +816,7 @@ namespace HQRemote {
 #endif
 
 		while (m_running) {
-			std::unique_lock<std::mutex> lk(m_audioSndLock);
+			std::unique_lock<std::mutex> lk(m_audioSndQueueLock);
 
 			//wait until we have at least one captured frame
 			m_audioSndCv.wait(lk, [this] {return !(m_running && m_audioRawPackets.size() == 0); });
@@ -806,6 +832,7 @@ namespace HQRemote {
 				{
 					m_totalSentAudioPackets = 0;
 					m_totalSentAudioPacketsCounterReset = false;
+					packetsBundle.clear();
 				}
 
 				lk.unlock();

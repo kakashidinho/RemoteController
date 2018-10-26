@@ -96,6 +96,7 @@ namespace HQRemote {
 		void platformRecordFrame(double t, const CapturedFrame& frame);
 		void platformEndRecording();
 
+		virtual void onDisconnected() override;
 		virtual bool handleEventInternalImpl(const EventRef& event) override;
 		void sendHostInfo();
 

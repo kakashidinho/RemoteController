@@ -33,6 +33,7 @@
 #if defined WIN32 || defined _MSC_VER
 #	pragma warning(push)
 #	pragma warning(disable:4251)
+#	pragma warning(disable:4275)
 #endif
 
 namespace HQRemote {
@@ -105,6 +106,10 @@ namespace HQRemote {
 	protected:
 		typedef std::map<uint64_t, ConstFrameEventRef> TimedDataQueue;
 
+		// IConnectionHandler::Delegate
+		virtual void onConnected() override;
+		virtual void onDisconnected() override;
+
 		const std::thread* getDataPollingThread() { return m_dataPollingThread.get(); }
 
 		void tryRecvEvent(EventType eventToDiscard = NO_EVENT, bool consumeAllAvailableData = false);//try to parse & process the received data if available 
@@ -121,8 +126,6 @@ namespace HQRemote {
 	private:
 		class AudioDecoder;
 		class AudioEncoder;
-
-		virtual void onConnected() override;
 
 		void handleAsyncTaskProc();
 		void audioProcessingProc();
@@ -169,7 +172,7 @@ namespace HQRemote {
 		float m_audioDecodedBufferInitSize;//the size in bytes of pending decoded audio data before allowing audio rendering
 
 		//audio sending thread
-		std::mutex m_audioSndLock;
+		std::mutex m_audioSndQueueLock;
 		std::condition_variable m_audioSndCv;
 		std::unique_ptr<std::thread> m_audioSndThread;
 		std::shared_ptr<AudioEncoder> m_audioEncoder;

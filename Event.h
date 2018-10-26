@@ -63,6 +63,9 @@ namespace HQRemote {
 		MESSAGE_ACK,//sent message acknowledged
 
 		NO_EVENT,
+
+		CONNECTED_NOTIFIFACTION = 0xfffffffe,
+		DISCONNECTED_NOTIFIFACTION
 	};
 
 	const uint64_t IMPORTANT_FRAME_ID_FLAG = 0x8000000000000000; // bitwise or the frame id with this flag to indicate the frame shouldn't be dropped

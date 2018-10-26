@@ -440,6 +440,8 @@ namespace HQRemote {
 
 	void IConnectionHandler::onConnected(bool reconnected)
 	{
+		HQRemote::Log("IConnectionHandler::onConnected()\n");
+
 		//reset internal buffer
 		invalidateUnusedReliableData();
 		
@@ -465,6 +467,14 @@ namespace HQRemote {
 			for (auto& callback : m_delegates) {
 				callback->onConnected();
 			}
+		}
+	}
+
+	void IConnectionHandler::onDisconnected() {
+		HQRemote::Log("IConnectionHandler::onDisconnected()\n");
+
+		for (auto& callback : m_delegates) {
+			callback->onDisconnected();
 		}
 	}
 
@@ -890,7 +900,7 @@ namespace HQRemote {
 		SetCurrentThreadName("remoteDataReceiverThread");
 
 		_ssize_t re;
-		bool connectedBefore = false;
+		bool connectedAtleastOnce = false;
 		while (m_running) {
 			m_socketLock.lock();
 			auto l_connected = connected();
@@ -899,9 +909,9 @@ namespace HQRemote {
 			m_socketLock.unlock();
 			//we have an existing connection
 			if (l_connected) {
-				if (!connectedBefore)
+				if (!connectedAtleastOnce)
 				{
-					connectedBefore = true;
+					connectedAtleastOnce = true;
 				}
 
 				//wait for at most 1ms
@@ -924,6 +934,9 @@ namespace HQRemote {
 							std::lock_guard<std::mutex> lg(m_socketLock);
 							//invalidate remote end point
 							m_connLessSocketDestAddr = nullptr;
+
+							if (!connected()) // if this results in disconnected state
+								onDisconnected();
 						}
 					}//if (select(l_connLessSocket + 1, &sset, NULL, NULL, &timeout) == 1 && FD_ISSET(l_connSocket, &sset))
 				}//if (l_connLessSocket != INVALID_SOCKET)
@@ -942,6 +955,9 @@ namespace HQRemote {
 							//close socket
 							closesocket(m_connSocket);
 							m_connSocket = INVALID_SOCKET;
+
+							if (!connected()) // if this results in disconnected state
+								onDisconnected();
 						}
 					}//if (select(l_connSocket + 1, &sset, NULL, NULL, &timeout) == 1 && FD_ISSET(l_connSocket, &sset))
 				} //if (l_connSocket != INVALID_SOCKET)
@@ -949,7 +965,7 @@ namespace HQRemote {
 				addtionalRcvThreadHandlerImpl();
 
 			}//if (l_connected)
-			else if (connectedBefore && !m_enableReconnect) {
+			else if (connectedAtleastOnce && !m_enableReconnect) {
 				//stop
 				m_running = false;
 			}
@@ -959,8 +975,9 @@ namespace HQRemote {
 				
 				initConnectionImpl();
 				
-				if (connected())
+				if (connected()) {
 					onConnected();
+				}
 			}//else of if (l_connSocket != INVALID_SOCKET)
 		}//while (m_running)
 

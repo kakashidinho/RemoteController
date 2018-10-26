@@ -278,6 +278,12 @@ namespace HQRemote {
 		}
 	}
 
+	void Engine::onDisconnected() {
+		m_sendFrame = false;
+
+		BaseEngine::onDisconnected();
+	}
+
 	bool Engine::handleEventInternalImpl(const EventRef& event) {
 		//process internal event
 		switch (event->event.type) {
