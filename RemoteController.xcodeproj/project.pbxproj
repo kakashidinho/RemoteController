@@ -183,33 +183,12 @@
 			remoteGlobalIDString = 0A5298561C522A9F0008A9FA;
 			remoteInfo = RemoteControllerIOS;
 		};
-		0AD9705921830181008BABA4 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 0A5716881C43520900AE78E7 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 0A4A868C1C7A32F000556B01;
-			remoteInfo = opus_ios;
-		};
-		0AD9705B21830186008BABA4 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 0A5716881C43520900AE78E7 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 0A4A86951C7A3ED700556B01;
-			remoteInfo = opus_mac;
-		};
 		0AD97088218302F1008BABA4 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 0A5716881C43520900AE78E7 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 0A36DF101C7EABFF00EAABA3;
 			remoteInfo = opus_genconfig;
-		};
-		0AD9708D21830330008BABA4 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 0A5716881C43520900AE78E7 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 0AD97086218302F1008BABA4;
-			remoteInfo = opus_mac_i386;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -600,7 +579,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				0AD9705A21830181008BABA4 /* PBXTargetDependency */,
 			);
 			name = RemoteControllerIOS;
 			productName = RemoteController;
@@ -618,7 +596,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				0AD9705C21830186008BABA4 /* PBXTargetDependency */,
 			);
 			name = RemoteController;
 			productName = RemoteController;
@@ -636,7 +613,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				0AD9708E21830330008BABA4 /* PBXTargetDependency */,
 			);
 			name = "RemoteController-i386";
 			productName = RemoteController;
@@ -881,25 +857,10 @@
 			target = 0A5298561C522A9F0008A9FA /* RemoteControllerIOS */;
 			targetProxy = 0A5298931C522CF60008A9FA /* PBXContainerItemProxy */;
 		};
-		0AD9705A21830181008BABA4 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 0A4A868C1C7A32F000556B01 /* opus_ios */;
-			targetProxy = 0AD9705921830181008BABA4 /* PBXContainerItemProxy */;
-		};
-		0AD9705C21830186008BABA4 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 0A4A86951C7A3ED700556B01 /* opus_mac */;
-			targetProxy = 0AD9705B21830186008BABA4 /* PBXContainerItemProxy */;
-		};
 		0AD97087218302F1008BABA4 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 0A36DF101C7EABFF00EAABA3 /* opus_genconfig */;
 			targetProxy = 0AD97088218302F1008BABA4 /* PBXContainerItemProxy */;
-		};
-		0AD9708E21830330008BABA4 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 0AD97086218302F1008BABA4 /* opus_mac_i386 */;
-			targetProxy = 0AD9708D21830330008BABA4 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
