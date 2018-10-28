@@ -58,7 +58,9 @@ namespace HQRemote {
 		}
 
 		//capture current frame.
-		ConstDataRef beginCaptureFrame();
+		// Note: if you override this method, then captureFrameImpl() doesn't need to be implemented.
+		// Since the default implementation just call captureFrameImpl() internally.
+		virtual ConstDataRef beginCaptureFrame();
 	protected:
 		IFrameCapturer(size_t queueSize, uint32_t frameWidth, uint32_t frameHeight);
 
