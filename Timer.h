@@ -102,6 +102,28 @@ namespace HQRemote {
 		return generateIDFromTime(time);
 	}
 
+	/*------- ScopedTimer -----------------------------*/
+	class ScopedTimer {
+	public:
+		ScopedTimer(const std::string& logPrefix, float threshold = 0)
+		: m_logPrefix(logPrefix), m_threshold(threshold)
+		{
+			m_startTime = HQRemote::getTimeCheckPoint64();
+		}
+		~ScopedTimer() {
+			auto endTime = HQRemote::getTimeCheckPoint64();
+			auto elapsed = (float)HQRemote::getElapsedTime64(m_startTime, endTime);
+
+			if (elapsed > m_threshold)
+				HQRemote::Log("%s: time %.2f (ms)\n", m_logPrefix.c_str(), elapsed * 1000.f);
+		}
+	private:
+		std::string m_logPrefix;
+
+		float m_threshold;
+		uint64_t m_startTime;
+	};
+
 	/*------------- ScopedTimeProfiler ----------------*/
 	class ScopedTimeProfiler {
 	public:
