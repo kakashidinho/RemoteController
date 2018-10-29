@@ -56,6 +56,8 @@ namespace HQRemote {
 		virtual bool start(bool preprocessEventAsync = false) override;
 		virtual void stop() override;
 
+		void enableFrameIntervalAlternation(bool enable);
+
 		double getFrameInterval() const { return m_intendedFrameInterval; }
 	private:
 		struct CapturedFrame {
@@ -137,6 +139,8 @@ namespace HQRemote {
 		uint64_t m_firstCapturedFrameTime64;
 		double m_frameCaptureInterval;
 		double m_intendedFrameInterval;
+		double m_nextFrameIntervalOffset;
+		bool m_frameIntervalAlternation;
 		std::atomic<bool> m_sendFrame;
 
 		//video recording thread

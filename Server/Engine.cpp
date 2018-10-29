@@ -63,7 +63,8 @@ namespace HQRemote {
 			m_processedCapturedFrames(0), m_lastSentFrameId(0), m_sendFrame(false),
 			m_frameBundleSize(frameBundleSize), m_firstCapturedFrameTime64(0), m_numCapturedFrames(0),
 			m_frameCaptureInterval(0), m_intendedFrameInterval(DEFAULT_FRAME_SEND_INTERVAL),
-			m_videoRecording(false), m_saveNextFrame(false)
+			m_videoRecording(false), m_saveNextFrame(false),
+		    m_frameIntervalAlternation(false), m_nextFrameIntervalOffset(0)
 	{
 		if (m_frameCapturer == nullptr) {
 			throw std::runtime_error("Null frame capturer is not allowed");
@@ -205,6 +206,15 @@ namespace HQRemote {
 #endif
 	}
 
+	void Engine::enableFrameIntervalAlternation(bool enable) {
+		m_frameIntervalAlternation = enable;
+		if (enable) {
+			m_nextFrameIntervalOffset = -m_intendedFrameInterval * 0.5f;
+		} else {
+			m_nextFrameIntervalOffset = 0;
+		}
+	}
+
 	//capture current frame and send to remote controller
 	void Engine::captureAndSendFrame() {
 		auto frameRef = m_frameCapturer->beginCaptureFrame();
@@ -215,8 +225,16 @@ namespace HQRemote {
 			{
 				auto intendedElapsedTime = (m_numCapturedFrames - 0.05) * m_intendedFrameInterval;
 				auto elapsed = getElapsedTime64(m_firstCapturedFrameTime64, time64);
-				if (elapsed < intendedElapsedTime)//skip
+				bool skip = (elapsed < intendedElapsedTime + m_nextFrameIntervalOffset); //skip
+				if (skip)
 					return;
+
+				if (m_frameIntervalAlternation) {
+					if (m_nextFrameIntervalOffset < 0)
+						m_nextFrameIntervalOffset = m_intendedFrameInterval * 0.5f;
+					else
+						m_nextFrameIntervalOffset = - m_intendedFrameInterval * 0.5f;
+				}
 			
 				m_frameCaptureInterval = 0.8 * m_frameCaptureInterval + 0.2 * elapsed / (m_numCapturedFrames + 1);
 				
