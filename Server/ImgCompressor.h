@@ -25,6 +25,12 @@
 namespace HQRemote {
 	class HQREMOTE_API IImgCompressor {
 	public:
+		struct CompressArgs {
+			uint32_t width, height;
+			unsigned int numChannels;
+			uint64_t timeStamp; // milliseconds
+		};
+
 		virtual ~IImgCompressor() {}
 
 		virtual DataRef compress(ConstDataRef src, uint64_t id, uint32_t width, uint32_t height, unsigned int numChannels) {
@@ -32,8 +38,8 @@ namespace HQRemote {
 		}
 
 		// this version allows the callee to modify the id of the compressed frame
-		virtual DataRef compress2(ConstDataRef src, uint64_t& idInOut, uint32_t width, uint32_t height, unsigned int numChannels) {
-			return compress(src, idInOut, width, height, numChannels);
+		virtual DataRef compress2(ConstDataRef src, uint64_t& idInOut, const CompressArgs& info) {
+			return compress(src, idInOut, info.width, info.height, info.numChannels);
 		}
 
 		virtual bool canSupportMultiThreads() const { return true; }

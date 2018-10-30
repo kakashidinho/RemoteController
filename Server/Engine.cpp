@@ -18,6 +18,7 @@
 
 #include "Engine.h"
 #include "ImgCompressor.h"
+#include "../Event.h"
 
 #include <opus.h>
 #include <opus_defines.h>
@@ -64,7 +65,7 @@ namespace HQRemote {
 			m_frameBundleSize(frameBundleSize), m_firstCapturedFrameTime64(0), m_numCapturedFrames(0),
 			m_frameCaptureInterval(0), m_intendedFrameInterval(DEFAULT_FRAME_SEND_INTERVAL),
 			m_videoRecording(false), m_saveNextFrame(false),
-		    m_frameIntervalAlternation(false), m_nextFrameIntervalOffset(0)
+		    m_frameIntervalAlternation(false)
 	{
 		if (m_frameCapturer == nullptr) {
 			throw std::runtime_error("Null frame capturer is not allowed");
@@ -208,11 +209,6 @@ namespace HQRemote {
 
 	void Engine::enableFrameIntervalAlternation(bool enable) {
 		m_frameIntervalAlternation = enable;
-		if (enable) {
-			m_nextFrameIntervalOffset = -m_intendedFrameInterval * 0.5f;
-		} else {
-			m_nextFrameIntervalOffset = 0;
-		}
 	}
 
 	//capture current frame and send to remote controller
@@ -220,21 +216,25 @@ namespace HQRemote {
 		auto frameRef = m_frameCapturer->beginCaptureFrame();
 		if (frameRef != nullptr) {
 			uint64_t time64 = getTimeCheckPoint64();
-			
+
+			float intervalOffset = 0; // this is for client to know that the frame interval might not be constant
+
 			if (m_firstCapturedFrameTime64 != 0)
 			{
-				auto intendedElapsedTime = (m_numCapturedFrames - 0.05) * m_intendedFrameInterval;
+				if (m_frameIntervalAlternation) {
+					if (m_numCapturedFrames % 2) {
+						intervalOffset = 0.5f * m_intendedFrameInterval;
+					}
+					else {
+						intervalOffset = -0.5f * m_intendedFrameInterval;
+					}
+				}
+
+				auto intendedElapsedTime = (m_numCapturedFrames - 0.05) * m_intendedFrameInterval + intervalOffset;
 				auto elapsed = getElapsedTime64(m_firstCapturedFrameTime64, time64);
-				bool skip = (elapsed < intendedElapsedTime + m_nextFrameIntervalOffset); //skip
+				bool skip = (elapsed < intendedElapsedTime); //skip
 				if (skip)
 					return;
-
-				if (m_frameIntervalAlternation) {
-					if (m_nextFrameIntervalOffset < 0)
-						m_nextFrameIntervalOffset = m_intendedFrameInterval * 0.5f;
-					else
-						m_nextFrameIntervalOffset = - m_intendedFrameInterval * 0.5f;
-				}
 			
 				m_frameCaptureInterval = 0.8 * m_frameCaptureInterval + 0.2 * elapsed / (m_numCapturedFrames + 1);
 				
@@ -256,7 +256,7 @@ namespace HQRemote {
 			//send to frame compression threads
 			uint32_t width, height;
 			m_frameCapturer->getFrameDimens(width, height);
-			CapturedFrame frameInfo(width, height, frameRef);
+			CapturedFrame frameInfo(width, height, intervalOffset, frameRef);
 
 			{
 				std::lock_guard<std::mutex> lg(m_frameCompressLock);
@@ -381,17 +381,22 @@ namespace HQRemote {
 				auto frameId = ++m_processedCapturedFrames;
 				lk.unlock();
 
+				IImgCompressor::CompressArgs info;
+				info.width = frame.width;
+				info.height = frame.height;
+				info.numChannels = m_frameCapturer->getNumColorChannels();
+				info.timeStamp = 0;
+
 				auto compressedFrame = m_imgCompressor->compress2(
 													 frame.rawFrameDataRef,
 													 frameId,
-													 frame.width,
-													 frame.height,
-													 m_frameCapturer->getNumColorChannels());
+													 info);
 
 				if (compressedFrame != nullptr) {
 					try {
 						//convert to frame event
 						auto frameEvent = std::make_shared<FrameEvent>((ConstDataRef)compressedFrame, frameId);
+						frameEvent->event.renderedFrameData.intervalAlternaionOffset = frame.intervalAlternaionOffset;
 
 						if (m_frameBundleSize <= 1)
 						{

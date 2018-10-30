@@ -61,29 +61,32 @@ namespace HQRemote {
 		double getFrameInterval() const { return m_intendedFrameInterval; }
 	private:
 		struct CapturedFrame {
-			CapturedFrame(uint32_t width, uint32_t height, ConstDataRef rawFrameRef)
-				: width(width), height(height), rawFrameDataRef(rawFrameRef)
+			CapturedFrame(uint32_t width, uint32_t height, float intervalOffset, ConstDataRef rawFrameRef)
+				: intervalAlternaionOffset(intervalOffset), width(width), height(height), rawFrameDataRef(rawFrameRef)
 			{}
 
 
 			CapturedFrame(const CapturedFrame& src)
-				: width(src.width), height(src.height), rawFrameDataRef(src.rawFrameDataRef)
+				: intervalAlternaionOffset(src.intervalAlternaionOffset), width(src.width), height(src.height), rawFrameDataRef(src.rawFrameDataRef)
 			{}
 
 			CapturedFrame(CapturedFrame&& src)
-				: width (src.width), height(src.height), rawFrameDataRef(std::move(src.rawFrameDataRef))
+				: intervalAlternaionOffset(src.intervalAlternaionOffset), width (src.width), height(src.height), rawFrameDataRef(std::move(src.rawFrameDataRef))
 			{}
 
 			CapturedFrame& operator= (const CapturedFrame& src) {
 				width = (src.width); height = (src.height); rawFrameDataRef = (src.rawFrameDataRef);
+				intervalAlternaionOffset = src.intervalAlternaionOffset;
 				return *this;
 			}
 
 			CapturedFrame& operator= (CapturedFrame&& src) {
 				width = (src.width); height = (src.height); rawFrameDataRef = std::move(src.rawFrameDataRef);
+				intervalAlternaionOffset = src.intervalAlternaionOffset;
 				return *this;
 			}
 
+			float intervalAlternaionOffset = 0;
 			uint32_t width, height;
 			ConstDataRef rawFrameDataRef;
 		};
@@ -139,7 +142,6 @@ namespace HQRemote {
 		uint64_t m_firstCapturedFrameTime64;
 		double m_frameCaptureInterval;
 		double m_intendedFrameInterval;
-		double m_nextFrameIntervalOffset;
 		bool m_frameIntervalAlternation;
 		std::atomic<bool> m_sendFrame;
 

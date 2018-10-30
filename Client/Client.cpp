@@ -18,6 +18,7 @@
 
 #include "Client.h"
 #include "../Timer.h"
+#include "../Event.h"
 
 #include <opus.h>
 #include <opus_defines.h>
@@ -31,7 +32,8 @@
 namespace HQRemote {
 	/*---------- Client ------------*/
 	Client::Client(std::shared_ptr<IConnectionHandler> connHandler, float frameInterval, std::shared_ptr<IAudioCapturer> audioCapturer)
-		: BaseEngine(connHandler, audioCapturer), m_frameInterval(frameInterval), m_lastRcvFrameTime64(0), m_lastRcvFrameId(0), m_numRcvFrames(0)
+		: BaseEngine(connHandler, audioCapturer), m_frameInterval(frameInterval), m_lastRcvFrameTime64(0), m_lastRcvFrameId(0), m_numRcvFrames(0),
+		m_frameIntervalAlternation(false)
 	{
 	}
 
@@ -61,6 +63,10 @@ namespace HQRemote {
 		BaseEngine::stop();
 	}
 
+	void Client::enableFrameIntervalAlternation(bool enable) {
+		m_frameIntervalAlternation = enable;
+	}
+
 	ConstFrameEventRef Client::getFrameEvent(uint32_t blockIfEmptyForMs) {
 		if (getDataPollingThread() == nullptr)
 			tryRecvEvent();
@@ -88,6 +94,8 @@ namespace HQRemote {
 			frameIte = m_frameQueue.begin();
 			auto frameId = frameIte->first;
 			auto frame = frameIte->second;
+			// the frame's sending interval from server might not be constant
+			float frameIntervalOffset = frame.frameRef->event.renderedFrameData.intervalAlternaionOffset;
 
 			auto curTime64 = getTimeCheckPoint64();
 			double elapsed = 0;
@@ -96,6 +104,9 @@ namespace HQRemote {
 			{
 				elapsed = getElapsedTime64(m_lastRcvFrameTime64, curTime64);
 				intentedElapsed = (m_numRcvFrames - 0.05) * m_frameInterval;
+
+				if (m_frameIntervalAlternation)
+					intentedElapsed += frameIntervalOffset;
 			}
 
 			//found renderable frame
@@ -119,7 +130,7 @@ namespace HQRemote {
 
 				event = frame.frameRef;
 				
-#if defined DEBUG || defined _DEBUG
+#if (defined DEBUG || defined _DEBUG)
 				Log("retrieved frame %lld\n", frameId);
 #endif
 			}
@@ -135,7 +146,7 @@ namespace HQRemote {
 		{
 			std::lock_guard<std::mutex> lg(m_frameQueueLock);
 
-			auto trueFrameId = event.renderedFrameData.frameId & (~IMPORTANT_FRAME_ID_FLAG);
+			auto trueFrameId = event.renderedFrameData.frameId & (~UNUSED_FRAME_ID_BITS);
 
 			if (m_frameQueue.size() >= MAX_PENDING_FRAMES) {
 				if (m_frameQueue.begin()->first > trueFrameId) // this frame arrive too late

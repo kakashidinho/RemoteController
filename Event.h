@@ -69,6 +69,7 @@ namespace HQRemote {
 	};
 
 	const uint64_t IMPORTANT_FRAME_ID_FLAG = 0x8000000000000000; // bitwise or the frame id with this flag to indicate the frame shouldn't be dropped
+	const uint64_t UNUSED_FRAME_ID_BITS = (IMPORTANT_FRAME_ID_FLAG);
 
 	struct HQREMOTE_API Event {
 		Event(EventType _type) : type(_type)
@@ -93,6 +94,7 @@ namespace HQRemote {
 					uint64_t frameDataAddr64;
 				};
 				uint32_t frameSize;
+				float intervalAlternaionOffset;  // this is for client to know that the frame interval might not be constant
 			} renderedFrameData;
 			
 			struct {

@@ -42,6 +42,8 @@ namespace HQRemote {
 
 		virtual bool start(bool preprocessEventAsync = true) override;
 		virtual void stop() override;
+
+		void enableFrameIntervalAlternation(bool enable);
 	private:
 		virtual bool handleEventInternalImpl(const EventRef& event) override;
 
@@ -60,6 +62,8 @@ namespace HQRemote {
 		uint64_t m_lastRcvFrameTime64;
 		uint64_t m_lastRcvFrameId;
 		uint64_t m_numRcvFrames;
+
+		bool m_frameIntervalAlternation;
 	};
 }
 
