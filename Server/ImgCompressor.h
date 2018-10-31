@@ -28,7 +28,8 @@ namespace HQRemote {
 		struct CompressArgs {
 			uint32_t width, height;
 			unsigned int numChannels;
-			uint64_t timeStamp; // milliseconds
+			uint64_t timeStamp; // millisecond
+			bool outImportantFrame; // write true to this upon return to indicate the frame is important
 		};
 
 		virtual ~IImgCompressor() {}
@@ -38,9 +39,12 @@ namespace HQRemote {
 		}
 
 		// this version allows the callee to modify the id of the compressed frame
-		virtual DataRef compress2(ConstDataRef src, uint64_t& idInOut, const CompressArgs& info) {
-			return compress(src, idInOut, info.width, info.height, info.numChannels);
+		virtual DataRef compress2(ConstDataRef src, const uint64_t id, CompressArgs& info) {
+			return compress(src, id, info.width, info.height, info.numChannels);
 		}
+
+		// this is only for object that returns false from canSupportMultiThreads(). Which means it operates in pipeline mode
+		virtual DataRef anyMoreCompressedOutput(bool& important) { return nullptr; }
 
 		virtual bool canSupportMultiThreads() const { return true; }
 	};

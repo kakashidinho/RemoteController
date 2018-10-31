@@ -369,6 +369,12 @@ namespace HQRemote {
 	void Engine::frameCompressionProc() {
 		SetCurrentThreadName("frameCompressionThread");
 		
+		uint64_t l_compressedFrames = 0;
+		uint64_t l_receivedFrames = 0;
+		uint64_t frameIdForCompress;
+		uint64_t frameIdForSending;
+		const bool isMultiThreads = m_imgCompressor->canSupportMultiThreads();
+
 		while (m_running) {
 			std::unique_lock<std::mutex> lk(m_frameCompressLock);
 
@@ -378,7 +384,10 @@ namespace HQRemote {
 			if (m_capturedFramesForCompress.size() > 0) {
 				auto frame = m_capturedFramesForCompress.front();
 				m_capturedFramesForCompress.pop_front();
-				auto frameId = ++m_processedCapturedFrames;
+				auto multithreadId = ++m_processedCapturedFrames; // this is synchronized between multiple compression threads
+
+				l_receivedFrames++; // this is only local counter for this thread
+
 				lk.unlock();
 
 				IImgCompressor::CompressArgs info;
@@ -386,25 +395,44 @@ namespace HQRemote {
 				info.height = frame.height;
 				info.numChannels = m_frameCapturer->getNumColorChannels();
 				info.timeStamp = 0;
+				info.outImportantFrame = false;
+
+				if (isMultiThreads)
+					frameIdForCompress = multithreadId;
+				else
+					frameIdForCompress = l_receivedFrames;
 
 				auto compressedFrame = m_imgCompressor->compress2(
 													 frame.rawFrameDataRef,
-													 frameId,
+													 frameIdForCompress,
 													 info);
 
-				if (compressedFrame != nullptr) {
+				while (compressedFrame != nullptr) {
 					try {
+						l_compressedFrames++;
+
+						if (isMultiThreads)
+							frameIdForSending = multithreadId;
+						else
+							frameIdForSending = l_compressedFrames;
+
+						if (info.outImportantFrame)
+							frameIdForSending |= IMPORTANT_FRAME_ID_FLAG;
+
 						//convert to frame event
-						auto frameEvent = std::make_shared<FrameEvent>((ConstDataRef)compressedFrame, frameId);
+						auto frameEvent = std::make_shared<FrameEvent>((ConstDataRef)compressedFrame, frameIdForSending);
 						frameEvent->event.renderedFrameData.intervalAlternaionOffset = frame.intervalAlternaionOffset;
+
+						compressedFrame = nullptr; // to break loop in multithreads case
 
 						if (m_frameBundleSize <= 1)
 						{
-							if (m_imgCompressor->canSupportMultiThreads()) {
+							if (isMultiThreads) {
 								//send to frame sending thread
-								pushFrameDataForSending(frameId, *frameEvent);
+								pushFrameDataForSending(frameIdForSending, *frameEvent);
 							}
 							else {
+								// single thread compression
 								// send to network directly
 								getConnHandler()->sendDataUnreliable(*frameEvent);
 							}
@@ -417,6 +445,11 @@ namespace HQRemote {
 					catch (...) {
 						// ignore
 					}
+
+					// check if compressor has anymore compressed frame output, probably from unfinished compression request
+					if (!isMultiThreads)
+						compressedFrame = m_imgCompressor->anyMoreCompressedOutput(info.outImportantFrame);
+
 				}//if (compressedFrame != nullptr)
 			}//if (m_capturedFramesForCompress.size() > 0)
 		}//while (m_running)
