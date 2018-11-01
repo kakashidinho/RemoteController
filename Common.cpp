@@ -41,6 +41,8 @@ typedef struct tagTHREADNAME_INFO
 
 #	ifdef __ANDROID__
 #		include <android/log.h>
+
+#		include "android/JniUtils.h"
 #	endif
 
 #endif//#ifdef WIN32
@@ -67,6 +69,10 @@ namespace HQRemote {
 		}
 #elif defined __APPLE__
 		pthread_setname_np(threadName);
+#elif defined __ANDROID__
+		auto env = getCurrenThreadJEnv();
+
+		setCurrentThreadName(env, threadName);
 #endif//#ifdef WIN32
 	}
 
