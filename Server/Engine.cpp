@@ -50,8 +50,10 @@ namespace HQRemote {
 				   std::shared_ptr<IFrameCapturer> frameCapturer,
 				   std::shared_ptr<IAudioCapturer> audioCapturer,
 				   std::shared_ptr<IImgCompressor> imgCompressor,
-				   size_t frameBundleSize)
-	: Engine(std::make_shared<BaseUnreliableSocketHandler>(port), frameCapturer, audioCapturer, imgCompressor, frameBundleSize)
+				   size_t frameBundleSize,
+				   bool supportScreenshot, bool supportVideoRecord)
+	: Engine(std::make_shared<BaseUnreliableSocketHandler>(port), frameCapturer, audioCapturer, imgCompressor, frameBundleSize,
+			 supportScreenshot, supportVideoRecord)
 	{
 		
 	} 
@@ -59,13 +61,15 @@ namespace HQRemote {
 				   std::shared_ptr<IFrameCapturer> frameCapturer,
 				   std::shared_ptr<IAudioCapturer> audioCapturer,
 				   std::shared_ptr<IImgCompressor> imgCompressor,
-				   size_t frameBundleSize)
+				   size_t frameBundleSize,
+				   bool supportScreenshot, bool supportVideoRecord)
 		: BaseEngine(connHandler, audioCapturer), m_frameCapturer(frameCapturer), m_imgCompressor(imgCompressor),
 			m_processedCapturedFrames(0), m_lastSentFrameId(0), m_sendFrame(false),
 			m_frameBundleSize(frameBundleSize), m_firstCapturedFrameTime64(0), m_numCapturedFrames(0),
 			m_frameCaptureInterval(0), m_intendedFrameInterval(DEFAULT_FRAME_SEND_INTERVAL),
 			m_videoRecording(false), m_saveNextFrame(false),
-		    m_frameIntervalAlternation(false)
+		    m_frameIntervalAlternation(false),
+			m_supportScreenshot(supportScreenshot), m_supportVideoRecord(supportVideoRecord)
 	{
 		if (m_frameCapturer == nullptr) {
 			throw std::runtime_error("Null frame capturer is not allowed");
@@ -102,11 +106,6 @@ namespace HQRemote {
 
 		m_sendFrame = false;
 
-		//start background thread to send compressed frame to remote side
-		m_frameSendingThread = std::unique_ptr<std::thread>(new std::thread([this] {
-			frameSendingProc();
-		}));
-
 		//start background threads compress captured frames
 		unsigned int numCompressThreads = 1; 
 		
@@ -124,6 +123,13 @@ namespace HQRemote {
 			m_frameCompressionThreads.push_back(std::move(thread));
 		}
 
+		//start background thread to send compressed frame to remote side
+		if (m_frameBundleSize > 1 && numCompressThreads > 1) {
+			m_frameSendingThread = std::unique_ptr<std::thread>(new std::thread([this] {
+				frameSendingProc();
+			}));
+		}
+
 		//start background threads bundle comrpessed frame together
 		if (m_frameBundleSize > 1) {
 			auto numBundleThreads = min(std::thread::hardware_concurrency(), m_frameBundleSize);
@@ -138,15 +144,19 @@ namespace HQRemote {
 		}//if (m_frameBundleSize > 1)
 
 		 //start background thread to record video
-		m_videoThread = std::unique_ptr<std::thread>(new std::thread([this] {
-			videoRecordingProc();
-		}));
+		if (m_supportVideoRecord) {
+			m_videoThread = std::unique_ptr<std::thread>(new std::thread([this] {
+				videoRecordingProc();
+			}));
+		}
 
 
 		//start backgroun thread to save screenshot
-		m_screenshotThread = std::unique_ptr<std::thread>(new std::thread([this] {
-			frameSavingProc();
-		}));
+		if (m_supportScreenshot) {
+			m_screenshotThread = std::unique_ptr<std::thread>(new std::thread([this] {
+				frameSavingProc();
+			}));
+		}
 
 		return true;
 	}
@@ -317,6 +327,8 @@ namespace HQRemote {
 			break;
 		case RECORD_START:
 		{
+			if (!m_supportVideoRecord)
+				break;
 			std::lock_guard<std::mutex> lg(m_videoLock);
 			m_videoRecording = true;
 
@@ -332,7 +344,8 @@ namespace HQRemote {
 		}
 			break;
 		case SCREENSHOT_CAPTURE:
-			m_saveNextFrame = true;
+			if (m_supportScreenshot)
+				m_saveNextFrame = true;
 			break;
 
 		case HOST_INFO:

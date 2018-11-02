@@ -42,12 +42,14 @@ namespace HQRemote {
 			   std::shared_ptr<IFrameCapturer> frameCapturer,
 			   std::shared_ptr<IAudioCapturer> audioCapturer = nullptr,
 			   std::shared_ptr<IImgCompressor> imgCompressor = nullptr,
-			   size_t frameBundleSize = 1);
+			   size_t frameBundleSize = 1,
+			   bool supportScreenshot = false, bool supportVideoRecord = false);
 		Engine(std::shared_ptr<IConnectionHandler> connHandler,
 			   std::shared_ptr<IFrameCapturer> frameCapturer,
 			   std::shared_ptr<IAudioCapturer> audioCapturer = nullptr,
 			   std::shared_ptr<IImgCompressor> imgCompressor = nullptr,
-			   size_t frameBundleSize = 1);
+			   size_t frameBundleSize = 1,
+			   bool supportScreenshot = false, bool supportVideoRecord = false);
 		~Engine();
 
 		//capture current frame and send to remote controller
@@ -135,6 +137,7 @@ namespace HQRemote {
 		std::vector<std::unique_ptr<std::thread> > m_frameCompressionThreads;
 		std::vector<std::unique_ptr<std::thread> > m_frameBundleThreads;
 		
+		const bool m_supportScreenshot, m_supportVideoRecord;
 		size_t m_frameBundleSize;
 		uint64_t m_processedCapturedFrames;
 		uint64_t m_lastSentFrameId;
