@@ -124,7 +124,7 @@ namespace HQRemote {
 		}
 
 		//start background thread to send compressed frame to remote side
-		if (m_frameBundleSize > 1 && numCompressThreads > 1) {
+		if (m_frameBundleSize > 1 || numCompressThreads > 1) {
 			m_frameSendingThread = std::unique_ptr<std::thread>(new std::thread([this] {
 				frameSendingProc();
 			}));
