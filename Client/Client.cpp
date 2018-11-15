@@ -25,15 +25,14 @@
 
 #include <future>
 
-#define MAX_PENDING_FRAMES 4
-
 #define FRAME_COUNTER_INTERVAL 2.0//s
 
 namespace HQRemote {
 	/*---------- Client ------------*/
-	Client::Client(std::shared_ptr<IConnectionHandler> connHandler, float frameInterval, std::shared_ptr<IAudioCapturer> audioCapturer)
+	Client::Client(std::shared_ptr<IConnectionHandler> connHandler, float frameInterval, std::shared_ptr<IAudioCapturer> audioCapturer, size_t maxPendingFrames)
 		: BaseEngine(connHandler, audioCapturer), m_frameInterval(frameInterval), m_lastRcvFrameTime64(0), m_lastRcvFrameId(0), m_numRcvFrames(0),
-		m_frameIntervalAlternation(false)
+		m_frameIntervalAlternation(false),
+		m_maxPendingFrames(maxPendingFrames)
 	{
 	}
 
@@ -78,11 +77,11 @@ namespace HQRemote {
 		FrameQueue::iterator frameIte;
 		while ((frameIte = m_frameQueue.begin()) != m_frameQueue.end() && frameIte->first <= m_lastRcvFrameId)
 		{
-			m_frameQueue.erase(frameIte);
-			
 #if defined DEBUG || defined _DEBUG
 			Log("---> discarded frame %lld\n", frameIte->first);
 #endif
+
+			m_frameQueue.erase(frameIte);
 		}
 
 		if (blockIfEmptyForMs > 0 && m_frameQueue.size() == 0) {
@@ -116,7 +115,7 @@ namespace HQRemote {
 				{
 					m_numRcvFrames = 0;
 				}
-				
+
 				if (m_numRcvFrames == 0)
 				{
 					//cache first frame's time
@@ -125,14 +124,16 @@ namespace HQRemote {
 
 				m_frameQueue.erase(frameIte);
 
+#if (defined DEBUG || defined _DEBUG)
+				if (m_lastRcvFrameId < frameId - 1) {
+					Log("gap between retrieved frames %lld prev=%lld\n", frameId, m_lastRcvFrameId);
+				}
+#endif
+
 				m_lastRcvFrameId = frameId;
 				m_numRcvFrames++;
 
 				event = frame.frameRef;
-				
-#if (defined DEBUG || defined _DEBUG)
-				Log("retrieved frame %lld\n", frameId);
-#endif
 			}
 		}//if (m_frameQueue.size() > 0)
 
@@ -148,12 +149,17 @@ namespace HQRemote {
 
 			auto trueFrameId = event.renderedFrameData.frameId & (~UNUSED_FRAME_ID_BITS);
 
-			if (m_frameQueue.size() >= MAX_PENDING_FRAMES) {
+			if (m_frameQueue.size() >= m_maxPendingFrames) {
 				if (m_frameQueue.begin()->first > trueFrameId) // this frame arrive too late
+				{
+#if defined DEBUG || defined _DEBUG
+					Log("---> discarded frame %lld (min=%lld)\n", trueFrameId, m_frameQueue.begin()->first);
+#endif
 					break;
+				}
 			}
 
-			while (m_frameQueue.size() >= MAX_PENDING_FRAMES)
+			while (m_frameQueue.size() >= m_maxPendingFrames)
 			{
 				// discard old frames
 				auto ite = m_frameQueue.begin();
@@ -166,10 +172,16 @@ namespace HQRemote {
 				{
 					ite = m_frameQueue.begin();
 					do {
+#if defined DEBUG || defined _DEBUG
+						Log("---> discarded frame %lld due to overflow1\n", ite->first);
+#endif
 						m_frameQueue.erase(ite++);
 					} while (ite != m_frameQueue.end() && !ite->second.isImportant);
 				}
 				else {
+#if defined DEBUG || defined _DEBUG
+					Log("---> discarded frame %lld due to overflow2\n", ite->first);
+#endif
 					m_frameQueue.erase(ite);
 				}
 			}

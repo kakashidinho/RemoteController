@@ -279,6 +279,7 @@ namespace HQRemote {
 			m_totalSentAudioPacketsCounterReset = true;
 		}
 
+		// push event to notify user that we are connected
 		pushEvent(std::make_shared<PlainEvent>(CONNECTED_NOTIFIFACTION));
 	}
 
@@ -307,13 +308,27 @@ namespace HQRemote {
 			tryRecvEvent();
 
 		ConstEventRef event = nullptr;
-		std::lock_guard<std::mutex> lg(m_eventLock);
+		std::unique_lock<std::mutex> lg(m_eventLock);
 
 		//query generic event
 		if (m_eventQueue.size() > 0)
 		{
 			event = m_eventQueue.front();
-			m_eventQueue.pop_front(); 
+			m_eventQueue.pop_front();
+
+			lg.unlock();
+
+			switch (event->event.type) {
+			case CONNECTED_NOTIFIFACTION: // just connected
+			{
+				// attempt to tell remote side to use newer version of connection handler.
+				// We need to do on user's thread (getEvent() caller thread) to avoid deadlock.
+				PlainEvent event(COMPATIBLE_MODE);
+				event.event.compatibleMode.mode = 1;
+				sendEvent(event);
+			}
+				break;
+			}
 
 #if defined DEBUG || defined _DEBUG
 			auto type = event->event.type;
@@ -622,6 +637,20 @@ namespace HQRemote {
 
 			//forward the event to user
 			pushEvent(eventRef);
+		}
+		break;
+		case COMPATIBLE_MODE:
+		{
+			if (event.compatibleMode.mode) {
+				HQRemote::Log("BaseEngine: disable compatible mode\n");
+				// new version
+				m_connHandler->enableCompatibleMode(false);
+			}
+			else {
+				HQRemote::Log("BaseEngine: enable compatible mode\n");
+				// older version
+				m_connHandler->enableCompatibleMode(true);
+			}
 		}
 		break;
 		default:

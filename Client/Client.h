@@ -31,7 +31,8 @@ namespace HQRemote {
 	public:
 		Client(std::shared_ptr<IConnectionHandler> connHandler, 
 			float frameInterval, 
-			std::shared_ptr<IAudioCapturer> audioCapturer = nullptr);
+			std::shared_ptr<IAudioCapturer> audioCapturer = nullptr,
+			size_t maxPendingFrames = 4);
 		~Client();
 
 		void setFrameInterval(float t);
@@ -62,6 +63,7 @@ namespace HQRemote {
 		uint64_t m_lastRcvFrameTime64;
 		uint64_t m_lastRcvFrameId;
 		uint64_t m_numRcvFrames;
+		size_t m_maxPendingFrames;
 
 		bool m_frameIntervalAlternation;
 	};

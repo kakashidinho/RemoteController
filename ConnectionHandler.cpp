@@ -26,7 +26,7 @@
 
 #define SIMULATED_MAX_UDP_PACKET_SIZE 0
 #define MAX_FRAGMEMT_SIZE (16 * 1024)
-#define MAX_PENDING_UNRELIABLE_BUF 20
+#define MAX_PENDING_UNRELIABLE_BUF 100
 #define UNRELIABLE_PING_TIMEOUT 3
 #define UNRELIABLE_PING_RETRIES 10
 #define UNRELIABLE_PING_INTERVAL 10
@@ -77,10 +77,11 @@ namespace HQRemote {
 	};
 	
 	enum MsgChunkType :uint32_t {
-		MSG_HEADER,
-		FRAGMENT_HEADER,
+		MSG_HEADER, // deprecated message chunk, for compatible with older client
+		FRAGMENT_HEADER, // deprecated message chunk, for compatible with older client
 		PING_MSG_CHUNK,
-		PING_REPLY_MSG_CHUNK
+		PING_REPLY_MSG_CHUNK,
+		FRAGMENT_HEADER_EX,
 	};
 
 	union MsgChunkHeader 
@@ -93,10 +94,11 @@ namespace HQRemote {
 			union {
 				struct {
 					uint32_t msg_size;
-				} wholeMsgInfo;
+				} wholeMsgInfo; // deprecated message chunk, for compatible with older client
 
 				struct {
 					uint32_t offset;
+					uint32_t total_msg_size;
 				} fragmentInfo;
 				
 				struct {
@@ -125,7 +127,8 @@ namespace HQRemote {
 
 	/*--------------- IConnectionHandler -----------*/
 	IConnectionHandler::IConnectionHandler()
-	: m_running(false), m_recvRate(0), m_tag(0), m_sentRate(0)
+	: m_running(false), m_recvRate(0), m_tag(0), m_sentRate(0),
+		m_compatibleMode(true)
 	{
 	}
 	
@@ -237,33 +240,41 @@ namespace HQRemote {
 		updateDataSentRate(size + sizeof(sizeToSend));
 	}
 	
-	void IConnectionHandler::sendDataUnreliable(const void* data, size_t size)
-	{
+	void IConnectionHandler::sendDataUnreliable(const void* data, size_t size) {
 		_ssize_t re = 0;
 		assert(size <= 0xffffffff);
 		
 		//TODO: assume all sides use the same byte order for now
 		uint32_t headerSize = sizeof(MsgChunkHeader);
 		
-		MsgChunkHeader header;
-		header.type = MSG_HEADER;
-		header.id = generateIDFromTime();
-		header.wholeMsgInfo.msg_size = (uint32_t)size;//whole message size
-		
 		MsgChunk chunk;
-		chunk.header = header;
-		
-		//send header
-		re = sendRawDataUnreliableImpl(&chunk, headerSize);
-		if (re < (_ssize_t)headerSize)
-			return;//failed
-		updateDataSentRate(headerSize);
-		
-		//send data's fragments
+		chunk.header.id = generateIDFromTime();
+
 		uint32_t maxFragmentSize = sizeof(chunk.payload);
-		//TODO: assume all sides use the same byte order for now
-		chunk.header.type = FRAGMENT_HEADER;
-		chunk.header.fragmentInfo.offset = 0;
+
+		if (m_compatibleMode) {
+			chunk.header.type = MSG_HEADER;
+			chunk.header.wholeMsgInfo.msg_size = (uint32_t)size;//whole message size
+
+			//send header containing info about the data first
+			re = sendRawDataUnreliableImpl(&chunk, headerSize);
+			if (re < (_ssize_t)headerSize)
+				return;//failed
+			updateDataSentRate(headerSize);
+
+			//send data's fragments next
+			//TODO: assume all sides use the same byte order for now
+			chunk.header.type = FRAGMENT_HEADER;
+			chunk.header.fragmentInfo.offset = 0;
+		}
+		else {
+			// newer version: each fragment now contains info about its data's total size
+
+			// we will send data's fragments one by one
+			chunk.header.type = FRAGMENT_HEADER_EX;
+			chunk.header.fragmentInfo.total_msg_size = (uint32_t)size;//whole message size
+			chunk.header.fragmentInfo.offset = 0;
+		}
 		
 		uint32_t chunkPayloadSize;
 		
@@ -372,6 +383,33 @@ namespace HQRemote {
 		m_reliableBuffer.filledSize = 0;
 	}
 	
+	IConnectionHandler::UnreliableBuffers::iterator IConnectionHandler::getOrCreateUnreliableBuffer(uint64_t id, size_t size) {
+		// find existing entry
+		auto ite = m_unreliableBuffers.find(id);
+		if (ite != m_unreliableBuffers.end())
+			return ite;
+
+		auto data = std::make_shared<CData>(size);
+		//initialize a placeholder for upcoming message
+		if (m_unreliableBuffers.size() == MAX_PENDING_UNRELIABLE_BUF)//discard oldest pending message
+		{
+			auto first = m_unreliableBuffers.begin();
+			m_unreliableBuffers.erase(first);
+
+#if defined DEBUG || defined _DEBUG
+			HQRemote::LogErr("discarded an unreliable message\n");
+#endif
+		}
+
+		MsgBuf newBuf;
+		newBuf.data = data;
+		newBuf.filledSize = 0;
+
+		auto re = m_unreliableBuffers.insert(std::pair<uint64_t, MsgBuf>(id, newBuf));
+
+		return re.first;
+	}
+
 	void IConnectionHandler::onReceivedUnreliableDataFragment(const void* recv_data, size_t recv_size)
 	{
 		if (recv_size < sizeof(MsgChunkHeader))
@@ -381,37 +419,42 @@ namespace HQRemote {
 		
 		try {
 			switch (chunkHeader.type) {
-				case MSG_HEADER:
+				case MSG_HEADER: // deprecated
 				{
-					auto data = std::make_shared<CData>(chunkHeader.wholeMsgInfo.msg_size);
-					//initialize a placeholder for upcoming message
-					if (m_unreliableBuffers.size() == MAX_PENDING_UNRELIABLE_BUF)//discard oldest pending message
-					{
-						auto first = m_unreliableBuffers.begin();
-						m_unreliableBuffers.erase(first);
-						
-	#if defined DEBUG || defined _DEBUG
-						fprintf(stderr, "discarded a message\n");
-	#endif
-					}
-					
-					MsgBuf newBuf;
-					newBuf.data = data;
-					newBuf.filledSize = 0;
-					
-					m_unreliableBuffers.insert(std::pair<uint64_t, MsgBuf>(chunkHeader.id, newBuf));
+					getOrCreateUnreliableBuffer(chunkHeader.id, chunkHeader.wholeMsgInfo.msg_size);
 				}
 					break;
-				case FRAGMENT_HEADER:
+				case FRAGMENT_HEADER: // deprecated
+				case FRAGMENT_HEADER_EX:
 				{
-					//fill the pending message's buffer
-					auto pendingBufIte = m_unreliableBuffers.find(chunkHeader.id);
+					// fill the pending message's buffer
+					UnreliableBuffers::iterator pendingBufIte;
+
+					if (chunkHeader.type == FRAGMENT_HEADER_EX)
+					{
+						// new version: create message's buffer if it doesn't exist
+						pendingBufIte = getOrCreateUnreliableBuffer(chunkHeader.id, chunkHeader.fragmentInfo.total_msg_size);
+					}
+					else
+					{
+						// older version: fragment info cannot create a new buffer
+						pendingBufIte = m_unreliableBuffers.find(chunkHeader.id);
+					}
+
 					if (pendingBufIte != m_unreliableBuffers.end()) {
 						auto& buffer = pendingBufIte->second;
-						
+
 						auto payload = (unsigned char*)recv_data + sizeof(chunkHeader);
 						auto payloadSize = recv_size - sizeof(chunkHeader);
-						
+
+						if (chunkHeader.fragmentInfo.offset + payloadSize > buffer.data->size()) // overflow
+						{
+#if defined DEBUG || defined _DEBUG
+							HQRemote::LogErr("discarded a fragment due to oveflow segment (%u sz=%u)\n", chunkHeader.fragmentInfo.offset, payloadSize);
+#endif
+							break;
+						}
+					
 						memcpy(buffer.data->data() + chunkHeader.fragmentInfo.offset, payload, payloadSize);
 						buffer.filledSize += payloadSize;
 						
@@ -425,7 +468,7 @@ namespace HQRemote {
 					}
 	#if defined DEBUG || defined _DEBUG
 					else {
-						fprintf(stderr, "discarded a fragment\n");
+						HQRemote::LogErr("discarded a fragment\n");
 					}
 	#endif
 				}
@@ -444,6 +487,9 @@ namespace HQRemote {
 
 		//reset internal buffer
 		invalidateUnusedReliableData();
+
+		// reset to compatible mode
+		m_compatibleMode = true;
 		
 		if (!reconnected)
 		{
@@ -564,7 +610,7 @@ namespace HQRemote {
 		if (discardIfFull && m_dataQueue.size() > NUM_PENDING_MSGS_TO_START_DISCARD)
 		{
 #if defined DEBUG || defined _DEBUG
-			fprintf(stderr, "discarded a message due to too many in queue\n");
+			HQRemote::LogErr("discarded a message due to too many in queue\n");
 #endif
 			return;//ignore
 		}
@@ -715,7 +761,7 @@ namespace HQRemote {
 		
 #if SIMULATED_MAX_UDP_PACKET_SIZE
 		auto maxSentSize = min(SIMULATED_MAX_UDP_PACKET_SIZE, size);
-		auto re = sendto(socket, data, maxSentSize, 0, (const sockaddr*)pDstAddr, sizeof(sockaddr_in));
+		auto re = sendto(socket, (const char*)data, maxSentSize, 0, (const sockaddr*)pDstAddr, sizeof(sockaddr_in));
 		return re;
 		
 #else//SIMULATED_MAX_UDP_PACKET_SIZE

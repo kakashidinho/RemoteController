@@ -65,7 +65,9 @@ namespace HQRemote {
 		NO_EVENT,
 
 		CONNECTED_NOTIFIFACTION = 0xfffffffe,
-		DISCONNECTED_NOTIFIFACTION
+		DISCONNECTED_NOTIFIFACTION,
+
+		COMPATIBLE_MODE = CONNECTED_NOTIFIFACTION - 1, // this event is not meant for direct use outside  Engine modules
 	};
 
 	const uint64_t IMPORTANT_FRAME_ID_FLAG = 0x8000000000000000; // bitwise or the frame id with this flag to indicate the frame shouldn't be dropped
@@ -111,6 +113,10 @@ namespace HQRemote {
 			struct {
 				uint64_t messageId;
 			} messageAck;
+
+			struct {
+				uint32_t mode;
+			} compatibleMode;
 			
 			double frameInterval;
 

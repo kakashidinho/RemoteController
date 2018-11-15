@@ -118,6 +118,8 @@ namespace HQRemote {
 
 		size_t getTag() { return m_tag; }
 
+		void enableCompatibleMode(bool e) { m_compatibleMode = e; }
+
 		void registerDelegate(Delegate* delegate);
 		void unregisterDelegate(Delegate* delegate);
 		
@@ -154,6 +156,8 @@ namespace HQRemote {
 		std::atomic<bool> m_running;
 		
 	private:
+		typedef std::map<uint64_t, MsgBuf> UnreliableBuffers;
+
 		struct ReceivedData {
 			ReceivedData(const DataRef& _data, bool reliable)
 				:data(_data), isReliable(reliable)
@@ -166,6 +170,8 @@ namespace HQRemote {
 		void sendRawDataAtomic(const void* data, size_t size);
 		void fillReliableBuffer(const void* &data, size_t& size);
 		void invalidateUnusedReliableData();
+
+		UnreliableBuffers::iterator getOrCreateUnreliableBuffer(uint64_t id, size_t size);
 		
 		void pushDataToQueue(DataRef data, bool reliable, bool discardIfFull);
 
@@ -176,9 +182,10 @@ namespace HQRemote {
 
 		std::atomic<size_t> m_tag;
 		
+		bool m_compatibleMode;
 		int m_reliableBufferState;
 		MsgBuf m_reliableBuffer;
-		std::map<uint64_t, MsgBuf> m_unreliableBuffers;
+		UnreliableBuffers m_unreliableBuffers;
 		std::list<ReceivedData> m_dataQueue;
 		std::mutex m_dataLock;
 		std::condition_variable m_dataCv;
