@@ -186,7 +186,7 @@ namespace HQRemote {
 		if (preprocessEventAsync)
 		{
 			//start background threads to handle async tasks
-			auto numAsyncThreads = std::thread::hardware_concurrency();
+			auto numAsyncThreads = min(std::thread::hardware_concurrency(), 3);
 			m_taskThreads.reserve(numAsyncThreads);
 
 			for (unsigned int i = 0; i < numAsyncThreads; ++i) {
