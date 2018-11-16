@@ -40,6 +40,7 @@ namespace HQRemote {
 
 		//query rendered frame event
 		ConstFrameEventRef getFrameEvent(uint32_t blockIfEmptyForMs = 0);
+		size_t getFrameEvents(ConstFrameEventRef* frameEvents, size_t maxFrames, uint32_t blockIfEmptyForMs = 0);
 
 		virtual bool start(bool preprocessEventAsync = true) override;
 		virtual void stop() override;

@@ -67,10 +67,18 @@ namespace HQRemote {
 	}
 
 	ConstFrameEventRef Client::getFrameEvent(uint32_t blockIfEmptyForMs) {
+		ConstFrameEventRef event = nullptr;
+
+		if (getFrameEvents(&event, 1, blockIfEmptyForMs))
+			return event;
+
+		return event;
+	}
+
+	size_t Client::getFrameEvents(ConstFrameEventRef* frameEvents, size_t maxFrames, uint32_t blockIfEmptyForMs) {
 		if (getDataPollingThread() == nullptr)
 			tryRecvEvent();
 
-		ConstFrameEventRef event = nullptr;
 		std::unique_lock<std::mutex> lk(m_frameQueueLock);
 
 		//discard out of date frames
@@ -88,56 +96,67 @@ namespace HQRemote {
 			m_frameQueueCv.wait_for(lk, std::chrono::milliseconds(blockIfEmptyForMs));
 		}
 
+		size_t numFrames = 0;
+
 		//check if any frame can be rendered immediately
 		if (m_frameQueue.size() > 0) {
-			frameIte = m_frameQueue.begin();
-			auto frameId = frameIte->first;
-			auto frame = frameIte->second;
-			// the frame's sending interval from server might not be constant
-			float frameIntervalOffset = frame.frameRef->event.renderedFrameData.intervalAlternaionOffset;
-
 			auto curTime64 = getTimeCheckPoint64();
 			double elapsed = 0;
-			double intentedElapsed = 0;
 			if (m_numRcvFrames != 0)
-			{
 				elapsed = getElapsedTime64(m_lastRcvFrameTime64, curTime64);
-				intentedElapsed = (m_numRcvFrames - 0.05) * m_frameInterval;
 
-				if (m_frameIntervalAlternation)
-					intentedElapsed += frameIntervalOffset;
-			}
+			frameIte = m_frameQueue.begin();
 
-			//found renderable frame
-			if (elapsed >= intentedElapsed || m_numRcvFrames == 0)
-			{
-				if (elapsed >= FRAME_COUNTER_INTERVAL || elapsed - intentedElapsed > m_frameInterval + 0.00001)//frame arrived too late, reset frame counter
+			while (frameIte != m_frameQueue.end() && numFrames < maxFrames) {
+				auto frameId = frameIte->first;
+				auto frame = frameIte->second;
+
+				// the frame's sending interval from server might not be constant
+				float frameIntervalOffset = frame.frameRef->event.renderedFrameData.intervalAlternaionOffset;
+				double intentedElapsed = 0;
+				if (m_numRcvFrames != 0)
 				{
-					m_numRcvFrames = 0;
+					intentedElapsed = (m_numRcvFrames - 0.05) * m_frameInterval;
+
+					if (m_frameIntervalAlternation)
+						intentedElapsed += frameIntervalOffset;
 				}
 
-				if (m_numRcvFrames == 0)
+				//found renderable frame
+				if (elapsed >= intentedElapsed || m_numRcvFrames == 0 || m_lastRcvFrameId + 1 == frameId)
 				{
-					//cache first frame's time
-					m_lastRcvFrameTime64 = curTime64;
-				}
+					if (elapsed >= FRAME_COUNTER_INTERVAL || elapsed - intentedElapsed > m_frameInterval + 0.00001)//frame arrived too late, reset frame counter
+					{
+						m_numRcvFrames = 0;
+					}
 
-				m_frameQueue.erase(frameIte);
+					if (m_numRcvFrames == 0)
+					{
+						//cache first frame's time
+						m_lastRcvFrameTime64 = curTime64;
+					}
+
+					m_frameQueue.erase(frameIte++);
 
 #if (defined DEBUG || defined _DEBUG)
-				if (m_lastRcvFrameId < frameId - 1) {
-					Log("gap between retrieved frames %lld prev=%lld\n", frameId, m_lastRcvFrameId);
-				}
+					if (m_lastRcvFrameId < frameId - 1) {
+						Log("gap between retrieved frames %lld prev=%lld\n", frameId, m_lastRcvFrameId);
+					}
 #endif
 
-				m_lastRcvFrameId = frameId;
-				m_numRcvFrames++;
+					m_lastRcvFrameId = frameId;
+					m_numRcvFrames++;
 
-				event = frame.frameRef;
+					frameEvents[numFrames++] = frame.frameRef;
+				}
+				else {
+					// it is too early for client to retrieve this frame, stop the loop
+					break;
+				}
 			}
 		}//if (m_frameQueue.size() > 0)
 
-		return event;
+		return numFrames;
 	}
 
 	bool Client::handleEventInternalImpl(const EventRef& eventRef) {
