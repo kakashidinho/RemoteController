@@ -24,6 +24,7 @@
 #include <stdint.h>
 #include <memory>
 #include <list>
+#include <vector>
 
 #if defined WIN32 || defined _MSC_VER
 #	pragma warning(push)
@@ -175,13 +176,14 @@ namespace HQRemote {
 	};
 	
 	struct HQREMOTE_API CompressedEvents : public DataEvent {
-		typedef std::list<EventRef> EventList;
+		typedef std::vector<EventRef> EventList;
 		typedef EventList::iterator iterator;
 		typedef EventList::const_iterator const_iterator;
 		
 		CompressedEvents(): CompressedEvents(-1, nullptr) {}
 		CompressedEvents(int zlibCompressLevel, const EventRef* event1, ...);//last argument should be nullptr
 		CompressedEvents(int zlibCompressLevel, const EventList& events);
+		CompressedEvents(int zlibCompressLevel, const_iterator eventListBegin, const_iterator eventListEnd);
 		
 		iterator begin() { return m_events.begin(); }
 		const_iterator begin() const { return m_events.begin(); }

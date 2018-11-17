@@ -130,6 +130,16 @@ namespace HQRemote {
 	{
 		init(zlibCompressLevel);
 	}
+
+	CompressedEvents::CompressedEvents(int zlibCompressLevel, const_iterator eventListBegin, const_iterator eventListEnd)
+	: DataEvent(COMPRESSED_EVENTS)
+	{
+		for (auto ite = eventListBegin; ite != eventListEnd; ++ite) {
+			m_events.push_back(*ite);
+		}
+
+		init(zlibCompressLevel);
+	}
 	
 	void CompressedEvents::init(int zlibCompressLevel) {
 		try {

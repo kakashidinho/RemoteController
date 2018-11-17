@@ -841,7 +841,7 @@ namespace HQRemote {
 		batchBuffers[1].reserve(batchIdealSamplesPerChannel * 2);
 
 #if DEFAULT_SND_AUDIO_FRAME_BUNDLE > 1
-		std::list<EventRef> packetsBundle;
+		CompressedEvents::EventList packetsBundle;
 #endif
 
 		while (m_running) {
