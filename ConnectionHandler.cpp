@@ -963,12 +963,13 @@ namespace HQRemote {
 				//wait for at most 1ms
 				timeval timeout;
 				timeout.tv_sec = 0;
-				timeout.tv_usec = 1000;
 
 				fd_set sset;
 
 				//read data sent via unreliable socket
 				if (l_connLessSocket != INVALID_SOCKET) {
+					timeout.tv_usec = 30000;
+
 					FD_ZERO(&sset);
 					FD_SET(l_connLessSocket, &sset);
 
@@ -989,6 +990,8 @@ namespace HQRemote {
 
 				//read data sent via reliable socket
 				if (l_connSocket != INVALID_SOCKET) {
+					timeout.tv_usec = 1000;
+
 					FD_ZERO(&sset);
 					FD_SET(l_connSocket, &sset);
 
