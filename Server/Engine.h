@@ -61,6 +61,8 @@ namespace HQRemote {
 		void enableFrameIntervalAlternation(bool enable);
 
 		double getFrameInterval() const { return m_intendedFrameInterval; }
+
+		void setImageCompressor(std::shared_ptr<IImgCompressor> imgCompressor);
 	private:
 		struct CapturedFrame {
 			CapturedFrame(uint32_t width, uint32_t height, float intervalOffset, ConstDataRef rawFrameRef)
@@ -107,6 +109,12 @@ namespace HQRemote {
 		virtual bool handleEventInternalImpl(const EventRef& event) override;
 		void sendHostInfo();
 
+		unsigned int startFrameCompressionThreads();
+		void stopFrameCompressionThreads();
+
+		void startFrameSendingThreadIfNeeded();
+		void stopFrameSendingThread();
+
 		void frameCompressionProc();
 		void frameBundleProc();
 		void frameSendingProc();
@@ -147,6 +155,8 @@ namespace HQRemote {
 		double m_intendedFrameInterval;
 		bool m_frameIntervalAlternation;
 		std::atomic<bool> m_sendFrame;
+		std::atomic<bool> m_forceStopFrameCompression;
+		std::atomic<bool> m_forceStopFrameSending;
 
 		//video recording thread
 		std::map<time_checkpoint_t, CapturedFrame, TimeCompare> m_capturedFramesForVideo;

@@ -106,29 +106,11 @@ namespace HQRemote {
 
 		m_sendFrame = false;
 
-		//start background threads compress captured frames
-		unsigned int numCompressThreads = 1; 
-		
-		if (m_imgCompressor->canSupportMultiThreads()) {
-			numCompressThreads = max(std::thread::hardware_concurrency(), DEFAULT_NUM_COMPRESS_THREADS);
-			numCompressThreads = min(MAX_NUM_COMPRESS_THREADS, numCompressThreads);
-		}
-
-		m_frameCompressionThreads.reserve(numCompressThreads);
-		for (unsigned int i = 0; i < numCompressThreads; ++i) {
-			auto thread = std::unique_ptr<std::thread>(new std::thread([this] {
-				frameCompressionProc();
-			}));
-
-			m_frameCompressionThreads.push_back(std::move(thread));
-		}
+		// start background threads to compress captured frames
+		startFrameCompressionThreads();
 
 		//start background thread to send compressed frame to remote side
-		if (m_frameBundleSize > 1 || numCompressThreads > 1) {
-			m_frameSendingThread = std::unique_ptr<std::thread>(new std::thread([this] {
-				frameSendingProc();
-			}));
-		}
+		startFrameSendingThreadIfNeeded();
 
 		//start background threads bundle comrpessed frame together
 		if (m_frameBundleSize > 1) {
@@ -167,16 +149,8 @@ namespace HQRemote {
 
 		//wake up all threads
 		{
-			std::lock_guard<std::mutex> lg(m_frameSendingLock);
-			m_frameCompressCv.notify_all();
-		}
-		{
 			std::lock_guard<std::mutex> lg(m_frameBundleLock);
 			m_frameBundleCv.notify_all();
-		}
-		{
-			std::lock_guard<std::mutex> lg(m_frameCompressLock);
-			m_frameSendingCv.notify_all();
 		}
 		{
 			std::lock_guard<std::mutex> lg(m_videoLock);
@@ -187,17 +161,10 @@ namespace HQRemote {
 			m_screenshotCv.notify_all();
 		}
 
+		stopFrameCompressionThreads();
+		stopFrameSendingThread();
+
 		//join with all threads
-		if (m_frameSendingThread && m_frameSendingThread->joinable())
-			m_frameSendingThread->join();
-		m_frameSendingThread = nullptr;
-
-		for (auto& compressThread : m_frameCompressionThreads) {
-			if (compressThread->joinable())
-				compressThread->join();
-		}
-		m_frameCompressionThreads.clear();
-
 		for (auto& bundleThread : m_frameBundleThreads) {
 			if (bundleThread->joinable())
 				bundleThread->join();
@@ -215,6 +182,112 @@ namespace HQRemote {
 #ifdef DEBUG
 		Log("Engine::stop() finished\n");
 #endif
+	}
+
+	void Engine::setImageCompressor(std::shared_ptr<IImgCompressor> imgCompressor) {
+#ifdef DEBUG
+		Log("Engine::setImageCompressor()\n");
+#endif
+		stopFrameCompressionThreads();
+		stopFrameSendingThread();
+
+		m_imgCompressor = imgCompressor;
+
+		// restart frame compression threads
+		if (m_running) {
+			startFrameCompressionThreads();
+			startFrameSendingThreadIfNeeded();
+		}
+	}
+
+	unsigned int Engine::startFrameCompressionThreads() {
+#ifdef DEBUG
+		Log("Engine::startFrameCompressionThreads()\n");
+#endif
+		stopFrameCompressionThreads();
+
+		m_forceStopFrameCompression = false;
+
+		//start background threads compress captured frames
+		unsigned int numCompressThreads = 1;
+
+		if (m_imgCompressor->canSupportMultiThreads()) {
+			numCompressThreads = max(std::thread::hardware_concurrency(), DEFAULT_NUM_COMPRESS_THREADS);
+			numCompressThreads = min(MAX_NUM_COMPRESS_THREADS, numCompressThreads);
+		}
+
+		m_frameCompressionThreads.reserve(numCompressThreads);
+		for (unsigned int i = 0; i < numCompressThreads; ++i) {
+			auto thread = std::unique_ptr<std::thread>(new std::thread([this] {
+				frameCompressionProc();
+			}));
+
+			m_frameCompressionThreads.push_back(std::move(thread));
+		}
+
+		return numCompressThreads;
+	}
+
+	void Engine::stopFrameCompressionThreads() {
+#ifdef DEBUG
+		Log("Engine::stopFrameCompressionThreads()\n");
+#endif
+		m_forceStopFrameCompression = true;
+
+		{
+			std::lock_guard<std::mutex> lg(m_frameCompressLock);
+			m_frameCompressCv.notify_all();
+		}
+		
+		for (auto& compressThread : m_frameCompressionThreads) {
+			if (compressThread->joinable())
+				compressThread->join();
+		}
+		m_frameCompressionThreads.clear();
+	}
+
+	void Engine::startFrameSendingThreadIfNeeded() {
+#ifdef DEBUG
+		Log("Engine::startFrameSendingThreadIfNeeded()\n");
+#endif
+
+		stopFrameSendingThread();
+
+		auto numCompressThreads = m_frameCompressionThreads.size();
+
+		if (m_frameBundleSize > 1 || numCompressThreads > 1) {
+			m_forceStopFrameSending = false;
+
+			m_frameSendingThread = std::unique_ptr<std::thread>(new std::thread([this] {
+				frameSendingProc();
+			}));
+#ifdef DEBUG
+			Log("Engine::startFrameSendingThreadIfNeeded() --> started\n");
+#endif
+		}
+		else {
+
+#ifdef DEBUG
+			Log("Engine::startFrameSendingThreadIfNeeded() --> no thread needed\n");
+#endif
+		}
+	}
+
+	void Engine::stopFrameSendingThread() {
+#ifdef DEBUG
+		Log("Engine::stopFrameSendingThread()\n");
+#endif
+
+		m_forceStopFrameSending = true;
+
+		{
+			std::lock_guard<std::mutex> lg(m_frameSendingLock);
+			m_frameSendingCv.notify_all();
+		}
+
+		if (m_frameSendingThread && m_frameSendingThread->joinable())
+			m_frameSendingThread->join();
+		m_frameSendingThread = nullptr;
 	}
 
 	void Engine::enableFrameIntervalAlternation(bool enable) {
@@ -363,6 +436,8 @@ namespace HQRemote {
 			//restart frame capturing timer
 			m_firstCapturedFrameTime64 = 0;
 			m_numCapturedFrames = 0;
+
+			HQRemote::Log("Engine: frame interval changed to %.3f\n", m_frameCaptureInterval);
 		default:
 			//forward the event to base class
 			return false;
@@ -388,11 +463,11 @@ namespace HQRemote {
 		uint64_t frameIdForSending;
 		const bool isMultiThreads = m_imgCompressor->canSupportMultiThreads();
 
-		while (m_running) {
+		while (!m_forceStopFrameCompression) {
 			std::unique_lock<std::mutex> lk(m_frameCompressLock);
 
 			//wait until we have at least one captured frame
-			m_frameCompressCv.wait(lk, [this] {return !(m_running && m_capturedFramesForCompress.size() == 0); });
+			m_frameCompressCv.wait(lk, [this] {return !(!m_forceStopFrameCompression && m_capturedFramesForCompress.size() == 0); });
 
 			if (m_capturedFramesForCompress.size() > 0) {
 				auto frame = m_capturedFramesForCompress.front();
@@ -506,11 +581,11 @@ namespace HQRemote {
 	void Engine::frameSendingProc() {
 		SetCurrentThreadName("frameSendingThread");
 		
-		while (m_running) {
+		while (!m_forceStopFrameSending) {
 			std::unique_lock<std::mutex> lk(m_frameSendingLock);
 
 			//wait until we have at least one frame data available for sending
-			m_frameSendingCv.wait(lk, [this] {return !(m_running && m_sendingFrames.size() == 0); });
+			m_frameSendingCv.wait(lk, [this] {return !(!m_forceStopFrameSending && m_sendingFrames.size() == 0); });
 
 			if (m_sendingFrames.size() > 0) {
 				auto frameIte = m_sendingFrames.begin();
