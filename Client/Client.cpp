@@ -40,6 +40,10 @@ namespace HQRemote {
 		stop();
 	}
 
+	void Client::setMaxPendingFrames(size_t maxPendingFrames) {
+		m_maxPendingFrames = maxPendingFrames;
+	}
+
 	void Client::setFrameInterval(float t) {
 		m_frameInterval = t; 
 
