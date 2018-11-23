@@ -113,6 +113,8 @@ namespace HQRemote {
 
 #	if defined _DEBUG || defined DEBUG
 		OutputDebugStringA(buffer);
+#	else
+		fputs(buffer, stdout);
 #	endif
 
 #else
@@ -137,6 +139,8 @@ namespace HQRemote {
 
 #	if defined _DEBUG || defined DEBUG
 		OutputDebugStringA(buffer);
+#	else
+		fputs(buffer, stdout);
 #	endif
 
 #else
