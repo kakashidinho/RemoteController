@@ -56,22 +56,14 @@ namespace HQRemote {
 
 	in_addr SocketConnectionHandler::platformIpv4StringToAddr(const char* addr_str) {
 		in_addr re;
-#if WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP || WINAPI_FAMILY == WINAPI_FAMILY_APP
-		re.s_addr = INADDR_ANY;
 
-		InetPtonA(AF_INET, addr_str, &re);
-#else//#if WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP || WINAPI_FAMILY == WINAPI_FAMILY_APP
 		re.s_addr = inet_addr(addr_str);
-#endif//#if WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP || WINAPI_FAMILY == WINAPI_FAMILY_APP
+
 		return re;
 	}
 
 	const char* SocketConnectionHandler::platformIpv4AddrToString(const in_addr* addr, char* addr_buf, size_t addr_buf_max_len) {
-#if WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP || WINAPI_FAMILY == WINAPI_FAMILY_APP
-		return inet_ntop(AF_INET, const_cast<in_addr*>(addr), addr_buf, addr_buf_max_len);
-#else//#if WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP
-
-		//WinRT doesn't have inet_ntop
+		//WinRT/XP doesn't have inet_ntop
 		auto addr_str = inet_ntoa(*addr);
 		auto addr_str_len = strlen(addr_str);
 		if (addr_str_len > addr_buf_max_len - 1)
@@ -80,7 +72,6 @@ namespace HQRemote {
 		memcpy(addr_buf, addr_str, addr_str_len + 1);
 
 		return addr_buf;
-#endif//#if WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP
 	}
 
 	/*--------- SocketServerHandler -------------*/
