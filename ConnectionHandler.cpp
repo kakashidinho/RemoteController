@@ -754,7 +754,15 @@ namespace HQRemote {
 	}
 
 	_ssize_t SocketConnectionHandler::sendRawDataNoLock(socket_t socket, const void* data, size_t size) {
-		return send(socket, (const char*)data, size, 0);
+		auto re = send(socket, (const char*)data, size, 0);
+
+#if defined DEBUG || defined _DEBUG
+		if (re < 0) {
+			HQRemote::LogErr("SocketConnectionHandler::sendRawDataNoLock() returned %d error=%d\n", (int)re, platformGetLastSocketErr());
+		}
+#endif
+
+		return re;
 	}
 	
 	_ssize_t SocketConnectionHandler::sendRawDataUnreliableNoLock(socket_t socket, const sockaddr_in* pDstAddr, const void* data, size_t size) {
