@@ -1291,6 +1291,9 @@ namespace HQRemote {
 			{
 				{
 					//successully connected to remote side
+					// enable blocking mode for this socket
+					platformSetSocketBlockingMode(connSocket, true);
+
 					std::lock_guard<std::mutex> lg(m_socketLock);
 					m_connSocket = connSocket;
 				}
