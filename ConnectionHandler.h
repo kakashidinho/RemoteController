@@ -94,12 +94,13 @@ namespace HQRemote {
 		void sendData(const void* data, size_t size);
 		void sendDataUnreliable(const void* data, size_t size);
 		
-		float getReceiveRate() const {
-			return m_recvRate.load(std::memory_order_relaxed);
-		}
+		float getReceiveRate() const;
 
-		float getSendRate() const {
-			return m_sentRate.load(std::memory_order_relaxed);
+		float getSendRate() const;
+
+		// return true if our sending rate is limited by max sending bandwidth
+		virtual bool isLimitedBySendingBandwidth() const {
+			return false;
 		}
 
 		std::shared_ptr<const CString> getInternalErrorMsg() const
@@ -189,11 +190,13 @@ namespace HQRemote {
 		std::list<ReceivedData> m_dataQueue;
 		std::mutex m_dataLock;
 		std::condition_variable m_dataCv;
-		
+
+		double m_totalRecvTime;
 		time_checkpoint_t m_lastRecvTime;
 		size_t m_numLastestDataReceived;
 		std::atomic<float> m_recvRate;
 
+		double m_totalSendTime;
 		time_checkpoint_t m_lastSendTime;
 		size_t m_numLastestDataSent;
 		std::atomic<float> m_sentRate;

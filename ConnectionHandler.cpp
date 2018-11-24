@@ -34,6 +34,7 @@
 #define NUM_PENDING_MSGS_TO_START_DISCARD 60
 
 #define DATA_RATE_UPDATE_INTERVAL 1.0
+#define DATA_RATE_RESET_INTERVAL 60.0
 
 #ifndef min
 #	define min(a,b) ((a) < (b) ? (a) : (b))
@@ -497,10 +498,12 @@ namespace HQRemote {
 			
 			//reset data rate counter
 			getTimeCheckPoint(m_lastRecvTime);
+			m_totalRecvTime = 0;
 			m_numLastestDataReceived = 0;
 			m_recvRate = 0;
 
-			getTimeCheckPoint(m_lastSendTime);
+			m_lastSendTime = m_lastRecvTime;
+			m_totalSendTime = 0;
 			m_numLastestDataSent = 0;
 			m_sentRate = 0;
 
@@ -594,12 +597,18 @@ namespace HQRemote {
 		auto elapsedTime = getElapsedTime(m_lastRecvTime, curTime);
 		if (elapsedTime >= DATA_RATE_UPDATE_INTERVAL)
 		{
-			auto oldRcvRate = m_recvRate.load(std::memory_order_relaxed);
-			auto newRcvRate = 0.8f * oldRcvRate + 0.2f * m_numLastestDataReceived / (float)elapsedTime;
+			m_totalRecvTime += elapsedTime;
+			auto newRcvRate = (float)(m_numLastestDataReceived / m_totalRecvTime);
 			m_recvRate.store(newRcvRate, std::memory_order_relaxed);
-			
+
+			// reset update timer
 			m_lastRecvTime = curTime;
-			m_numLastestDataReceived = 0;
+
+			// reset long term timer
+			if (m_totalRecvTime > DATA_RATE_RESET_INTERVAL) {
+				m_totalRecvTime = 0;
+				m_numLastestDataReceived = 0;
+			}
 
 #if 0 && (defined DEBUG || defined _DEBUG)
 			Log("pushDataToQueue() rcv Bps=%.3f\n", m_recvRate.load(std::memory_order_relaxed));
@@ -628,17 +637,49 @@ namespace HQRemote {
 		auto elapsedTime = getElapsedTime(m_lastSendTime, curTime);
 		if (elapsedTime >= DATA_RATE_UPDATE_INTERVAL)
 		{
-			auto oldSndRate = m_sentRate.load(std::memory_order_relaxed);
-			auto newSndRate = 0.8f * oldSndRate + 0.2f * m_numLastestDataSent / (float)elapsedTime;
+			m_totalSendTime += elapsedTime;
+			auto newSndRate = (float)(m_numLastestDataSent / m_totalSendTime);
 			m_sentRate.store(newSndRate, std::memory_order_relaxed);
 
+			// reset update timer
 			m_lastSendTime = curTime;
-			m_numLastestDataSent = 0;
+
+			// reset long term timer
+			if (m_totalSendTime > DATA_RATE_RESET_INTERVAL) {
+				m_totalSendTime = 0;
+				m_numLastestDataSent = 0;
+			}
 
 #if 0 && (defined DEBUG || defined _DEBUG)
 			Log("updateDataSentRate() Bps=%.3f\n", m_sentRate.load(std::memory_order_relaxed));
 #endif
 		}
+	}
+
+	float IConnectionHandler::getReceiveRate() const {
+		auto rate = m_recvRate.load(std::memory_order_relaxed);
+		if (rate == 0) {
+			time_checkpoint_t curTime;
+			getTimeCheckPoint(curTime);
+			auto elapsedTime = getElapsedTime(m_lastRecvTime, curTime);
+
+			return  m_numLastestDataReceived / (float)elapsedTime;
+		}
+
+		return rate;
+	}
+
+	float IConnectionHandler::getSendRate() const {
+		auto rate = m_sentRate.load(std::memory_order_relaxed);
+		if (rate == 0) {
+			time_checkpoint_t curTime;
+			getTimeCheckPoint(curTime);
+			auto elapsedTime = getElapsedTime(m_lastSendTime, curTime);
+
+			return  m_numLastestDataSent / (float)elapsedTime;
+		}
+
+		return rate;
 	}
 
 	/*----------------SocketConnectionHandler ----------------*/
