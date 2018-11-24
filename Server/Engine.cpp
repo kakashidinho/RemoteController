@@ -522,7 +522,8 @@ namespace HQRemote {
 							else {
 								// single thread compression
 								// send to network directly
-								getConnHandler()->sendDataUnreliable(*frameEvent);
+								if (m_sendFrame.load(std::memory_order_relaxed))
+									getConnHandler()->sendDataUnreliable(*frameEvent);
 							}
 						}
 						else {
