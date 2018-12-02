@@ -51,6 +51,11 @@ namespace HQRemote {
 		return inet_ntop(AF_INET, (const void*)addr, addr_buf, (socklen_t)addr_buf_max_len);
 	}
 
+	int SocketConnectionHandler::platformSetSocketDscp(socket_t socket, int dscp) {
+		int tos = dscp << 2;
+		return setsockopt(socket, IPPROTO_IP, IP_TOS, &tos, sizeof(tos));
+	}
+
 	__attribute__((weak))
 	void SocketServerHandler::platformGetLocalAddressesForMulticast(std::vector<struct in_addr>& addresses) {
 		addresses.clear();

@@ -74,6 +74,11 @@ namespace HQRemote {
 		return addr_buf;
 	}
 
+	int SocketConnectionHandler::platformSetSocketDscp(socket_t socket, int dscp) {
+		// ignore
+		return 0;
+	}
+
 	/*--------- SocketServerHandler -------------*/
 	void SocketServerHandler::platformGetLocalAddressesForMulticast(std::vector<struct in_addr>& addresses) {
 		addresses.clear();

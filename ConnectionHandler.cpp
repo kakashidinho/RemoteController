@@ -748,6 +748,16 @@ namespace HQRemote {
 			(m_connLessSocket.load(std::memory_order_relaxed) != INVALID_SOCKET && m_connLessSocketDestAddr != nullptr);
 	}
 
+	bool SocketConnectionHandler::setDscp(int dscp) {
+		if (!connected())
+			return false;
+		auto re = platformSetSocketDscp(m_connLessSocket, dscp);
+
+		HQRemote::Log("SocketConnectionHandler::platformSetSocketDscp(%d) returned %d\n", dscp, re);
+
+		return re != SOCKET_ERROR;
+	}
+
 	_ssize_t SocketConnectionHandler::sendRawDataImpl(const void* data, size_t size)
 	{
 		_ssize_t re = 0;

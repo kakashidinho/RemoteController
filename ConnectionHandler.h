@@ -85,6 +85,8 @@ namespace HQRemote {
 		double timeSinceStart() const;
 		virtual bool connected() const = 0;
 
+		virtual bool setDscp(int dscp) { return false; }
+
 		//return obtained data to user
 		DataRef receiveData(bool &isReliable);
 		DataRef receiveDataBlock(bool &isReliable);//this function will block until there is some data available
@@ -214,7 +216,9 @@ namespace HQRemote {
 		~SocketConnectionHandler();
 
 		virtual bool connected() const override;
-		
+		virtual bool setDscp(int dscp) override;
+
+		static int HQ_FASTCALL platformSetSocketDscp(socket_t socket, int dscp);
 		static int HQ_FASTCALL platformSetSocketBlockingMode(socket_t socket, bool blocking);
 		static int HQ_FASTCALL platformGetLastSocketErr();
 		static in_addr HQ_FASTCALL platformIpv4StringToAddr(const char* addr_str);
