@@ -532,7 +532,7 @@ namespace HQRemote {
 		if (eventToDiscard != eventType) {
 			auto handler = [=] {
 				auto _data = data;
-				auto event = deserializeEvent(std::move(_data));
+				auto event = deserializeEvent(std::move(_data), m_customTypeIsFrameDataCallback);
 				if (event != nullptr) {
 					handleEventInternal(event);
 				}

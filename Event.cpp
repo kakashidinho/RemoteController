@@ -213,7 +213,7 @@ namespace HQRemote {
 				size = uncompressedSize - offset;
 			
 			auto dataSegement = std::make_shared<DataSegment>(decompressedData, offset, size);
-			auto event = deserializeEvent(std::move(dataSegement));
+			auto event = deserializeEvent(std::move(dataSegement), m_customTypeCallback);
 			
 			m_events.push_back(event);
 		}
@@ -271,13 +271,19 @@ namespace HQRemote {
 	}
 
 	//factory function
-	EventRef HQ_FASTCALL deserializeEvent(DataRef&& data) {
+	EventRef HQ_FASTCALL deserializeEvent(DataRef&& data, EventContainsFrameDataCallback isFrameDataCallback) {
 		try {
 			//inspect event type first
 			auto& dataRefCopy = data;
 
 			PlainEvent plainEvent;
 			plainEvent.deserialize(dataRefCopy);
+
+			bool forceIsFrameData = false;
+			if (plainEvent.event.type > NO_EVENT
+				&& plainEvent.event.type < COMPATIBLE_MODE
+				&& isFrameDataCallback)
+				forceIsFrameData = isFrameDataCallback(plainEvent.event.type);
 
 			switch (plainEvent.event.type) {
 			case RENDERED_FRAME: case AUDIO_ENCODED_PACKET: case ENDPOINT_NAME: case MESSAGE:
@@ -292,14 +298,24 @@ namespace HQRemote {
 			case COMPRESSED_EVENTS:
 			{
 				//this is non-plain event
-				auto compressedEvents = std::make_shared<CompressedEvents>();
+				auto compressedEvents = std::make_shared<CompressedEvents>(isFrameDataCallback);
 				compressedEvents->deserialize(std::forward<DataRef>(data));
 				
 				return compressedEvents;
 			}
 				break;
-			default:
+			default: {
+				if (forceIsFrameData) {
+					// this event is treated as frame data according to callback,
+					// so deserialize it using FrameEvent class
+					auto frameEvent = std::make_shared<FrameEvent>(plainEvent.event.type);
+					frameEvent->deserialize(std::forward<DataRef>(data));
+
+					return frameEvent;
+				}
+
 				return std::make_shared<PlainEvent>(plainEvent);
+			}
 			}//switch (plain.event.type)
 		} catch (...)
 		{

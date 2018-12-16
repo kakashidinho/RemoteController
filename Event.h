@@ -34,6 +34,9 @@
 namespace HQRemote {
 	typedef uint32_t EventType;
 
+	// callback to be called when determining a custom event containing frame data (i.e. it uses renderedFrameData field or not)
+	typedef bool(*EventContainsFrameDataCallback)(EventType);
+
 	enum PredefinedEventType : uint32_t {
 		TOUCH_BEGAN,
 		TOUCH_MOVED,
@@ -180,7 +183,12 @@ namespace HQRemote {
 		typedef EventList::iterator iterator;
 		typedef EventList::const_iterator const_iterator;
 		
-		CompressedEvents(): CompressedEvents(-1, nullptr) {}
+		// this constructor is used for deserialization
+		CompressedEvents(EventContainsFrameDataCallback callback): CompressedEvents(-1, nullptr)
+		{
+			m_customTypeCallback = callback;
+		}
+		// these constructor for serialization
 		CompressedEvents(int zlibCompressLevel, const EventRef* event1, ...);//last argument should be nullptr
 		CompressedEvents(int zlibCompressLevel, const EventList& events);
 		CompressedEvents(int zlibCompressLevel, const_iterator eventListBegin, const_iterator eventListEnd);
@@ -198,6 +206,7 @@ namespace HQRemote {
 		virtual void deserializeFromStorage() override;
 		
 		EventList m_events;
+		EventContainsFrameDataCallback m_customTypeCallback = nullptr;
 	};
 
 	struct HQREMOTE_API FrameEvent : public DataEvent {
@@ -216,7 +225,8 @@ namespace HQRemote {
 	typedef HQREMOTE_API_TYPEDEF std::shared_ptr<FrameEvent> FrameEventRef;
 	typedef HQREMOTE_API_TYPEDEF std::shared_ptr<const FrameEvent> ConstFrameEventRef;
 
-	HQREMOTE_API  EventRef HQ_FASTCALL deserializeEvent(DataRef&& data);
+	// the callback only invoked for custom event type (value > NO_EVENT)
+	HQREMOTE_API  EventRef HQ_FASTCALL deserializeEvent(DataRef&& data, EventContainsFrameDataCallback callback);
 	HQREMOTE_API  EventType HQ_FASTCALL peekEventType(const DataRef& data);
 }
 

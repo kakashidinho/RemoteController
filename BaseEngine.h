@@ -93,6 +93,10 @@ namespace HQRemote {
 			return m_connHandler;
 		}
 
+		void markCustomEventTypeAsFrameData(EventContainsFrameDataCallback callback) {
+			m_customTypeIsFrameDataCallback = callback;
+		}
+
 		uint32_t getRemoteAudioSampleRate() const;
 		uint32_t getNumRemoteAudioChannels() const;
 
@@ -180,6 +184,9 @@ namespace HQRemote {
 
 		uint64_t m_totalSentAudioPackets;
 		bool m_totalSentAudioPacketsCounterReset;
+
+		// custom event type handling
+		EventContainsFrameDataCallback m_customTypeIsFrameDataCallback = nullptr;
 	};
 }
 
