@@ -32,7 +32,7 @@ namespace HQRemote {
 	}
 	
 	std::string Engine::platformGetWritableFolder() {
-		CreateDirectory(L"../HQRemoteControllerData/", NULL);
+		CreateDirectoryA("../HQRemoteControllerData/", NULL);
 		return "../HQRemoteControllerData/";
 	}
 
