@@ -31,6 +31,7 @@
 
 
 namespace HQRemote {
+#ifndef HQREMOTE_NO_RECORDING
 	//Helper functions
 	static CGImageRef createCGImage(ConstDataRef frame, uint32_t width, uint32_t height, unsigned int numChannels)
 	{
@@ -115,6 +116,7 @@ namespace HQRemote {
 		
 		return pxbuffer;
 	}
+#endif // ifndef HQREMOTE_NO_RECORDING
 	
 	/*--------- Engine --------*/
 	struct Engine::Impl {
@@ -191,6 +193,7 @@ namespace HQRemote {
 	
 	
 	void Engine::platformStartRecording() {
+#ifndef HQREMOTE_NO_RECORDING
 		NSError *error = nil;
 		NSString* path = [NSString stringWithFormat:@"%s%s-%s.mp4",
 						  platformGetWritableFolder().c_str(),
@@ -253,12 +256,14 @@ namespace HQRemote {
 		//Start a session:
 		[m_impl->videoWriter startWriting];
 		[m_impl->videoWriter startSessionAtSourceTime:kCMTimeZero];
+#endif // HQREMOTE_NO_RECORDING
 	}
 	
 	void Engine::platformRecordFrame(double t, const CapturedFrame& frame) {
 		if (m_impl->videoAdaptor == nil)
 			return;
-		
+
+#ifndef HQREMOTE_NO_RECORDING
 		//First time only
 		if (m_impl->videoPixelBuffer == NULL)
 			CVPixelBufferPoolCreatePixelBuffer (NULL, m_impl->videoAdaptor.pixelBufferPool, &m_impl->videoPixelBuffer);
@@ -285,12 +290,14 @@ namespace HQRemote {
 		}
 		
 		m_impl->lastVideoFrameTime = t;
+#endif // HQREMOTE_NO_RECORDING
 	}
 	
 	void Engine::platformEndRecording() {
 		if (m_impl->videoAdaptor == nil)
 			return;
-		
+
+#ifndef HQREMOTE_NO_RECORDING
 		//Finish the session:
 		[m_impl->videoWriterInput markAsFinished];
 		
@@ -323,5 +330,6 @@ namespace HQRemote {
 		CVPixelBufferPoolRelease(m_impl->videoAdaptor.pixelBufferPool);
 		
 		m_impl->cleanupVideoWriter();
+#endif
 	}
 }
