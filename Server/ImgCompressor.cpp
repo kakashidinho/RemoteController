@@ -30,7 +30,11 @@ namespace HQRemote {
 	}
 
 	DataRef JpegImgCompressor::compress(ConstDataRef src, uint64_t id, uint32_t width, uint32_t height, unsigned int numChannels) {
+#ifndef HQREMOTE_NO_JPEG
 		return convertToJpeg(src, width, height, numChannels, m_outputLowRes, m_flip);
+#else
+		return nullptr;
+#endif
 	}
 
 	/*-------------- ZlibImgComressor ----------------*/

@@ -798,6 +798,7 @@ namespace HQRemote {
 				m_capturedFramesForSave.pop_front();
 				lk.unlock();
 				
+#ifndef HQREMOTE_NO_PNG
 				auto compressedFrame = convertToPng(frame.rawFrameDataRef,
 													 frame.width,
 													 frame.height,
@@ -816,6 +817,7 @@ namespace HQRemote {
 						os.close();
 					}
 				}//if (compressedFrame != nullptr)
+#endif // HQREMOTE_NO_PNG
 			}//if (m_capturedFramesForSave() > 0)
 		}//while (m_running)
 	}
