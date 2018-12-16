@@ -69,6 +69,7 @@ namespace HQRemote {
 		while ((re = deflate(&sz, Z_FINISH)) != Z_STREAM_END && re == Z_OK) {
 			dst.push_back(buffer, sizeof(buffer) - sz.avail_out);
 
+			sz.next_out = buffer;
 			sz.avail_out = sizeof(buffer);
 		}
 
