@@ -438,6 +438,11 @@ namespace HQRemote {
 			m_numCapturedFrames = 0;
 
 			HQRemote::Log("Engine: frame interval changed to %.3f\n", m_frameCaptureInterval);
+
+			// forward the event to user
+			pushEvent(event);
+
+			break;
 		default:
 			//forward the event to base class
 			return false;
