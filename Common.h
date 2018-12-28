@@ -85,6 +85,9 @@ namespace HQRemote {
 #endif
 	
 	HQREMOTE_API void HQ_APICALL SetCurrentThreadName(const char* threadName);
+	HQREMOTE_API void HQ_APICALL SetCurrentThreadPriority(int priority);
+	HQREMOTE_API void HQ_APICALL SetCurrentThreadRTPriority();
+	HQREMOTE_API int HQ_APICALL GetThreadDefaultRTPriority();
 
 	HQREMOTE_API void HQ_APICALL Log(const char* format, ...);
 	HQREMOTE_API void HQ_APICALL LogErr(const char* format, ...);

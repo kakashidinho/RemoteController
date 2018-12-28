@@ -39,6 +39,8 @@ typedef struct tagTHREADNAME_INFO
 #else//#ifdef WIN32
 #include <pthread.h>
 
+#	define RT_POLICY SCHED_RR
+
 #	ifdef __ANDROID__
 #		include <android/log.h>
 
@@ -74,6 +76,45 @@ namespace HQRemote {
 
 		setCurrentThreadName(env, threadName);
 #endif//#ifdef WIN32
+	}
+
+	void HQ_APICALL SetCurrentThreadPriority(int priority) {
+#ifdef WIN32
+		// TODO
+#else
+		if (priority == 0)
+			return;
+		sched_param sch_params;
+		sch_params.sched_priority = priority;
+		auto re = pthread_setschedparam(pthread_self(), RT_POLICY, &sch_params);
+		LogErr("pthread_setschedparam(priority=%d) return %d\n", priority, re);
+
+		int policy;
+		if (!pthread_getschedparam(pthread_self(), &policy, &sch_params)) {
+			Log("Current thread policy=%d priority=%d\n", policy, sch_params.sched_priority);
+		}
+#endif
+	}
+
+	void HQ_APICALL SetCurrentThreadRTPriority() {
+		SetCurrentThreadPriority(GetThreadDefaultRTPriority());
+	}
+
+	int HQ_APICALL GetThreadDefaultRTPriority() {
+#ifdef WIN32
+		// TODO
+		return THREAD_PRIORITY_NORMAL;
+#else
+		int max_prio = sched_get_priority_max(RT_POLICY);
+		int min_prio = sched_get_priority_min(RT_POLICY);
+
+		if (min_prio < 0)
+			min_prio = 0;
+		if (max_prio < 0)
+			max_prio = 0;
+
+		return (min_prio + max_prio) / 2;
+#endif
 	}
 
 	void HQ_APICALL Log(const char* format, ...)
