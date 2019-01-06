@@ -290,6 +290,10 @@ namespace HQRemote {
 		m_frameSendingThread = nullptr;
 	}
 
+	void Engine::lockFrameCaptureRateToFrameInterval(bool lock) {
+		m_lockFrameCaptureRateToFrameInterval = lock;
+	}
+
 	void Engine::enableFrameIntervalAlternation(bool enable) {
 		m_frameIntervalAlternation = enable;
 	}
@@ -315,13 +319,14 @@ namespace HQRemote {
 
 				auto intendedElapsedTime = (m_numCapturedFrames - 0.05) * m_intendedFrameInterval + intervalOffset;
 				auto elapsed = getElapsedTime64(m_firstCapturedFrameTime64, time64);
-				bool skip = (elapsed < intendedElapsedTime); //skip
+				bool skip = m_lockFrameCaptureRateToFrameInterval && (elapsed < intendedElapsedTime); //skip
 				if (skip)
 					return;
 			
 				m_frameCaptureInterval = 0.8 * m_frameCaptureInterval + 0.2 * elapsed / (m_numCapturedFrames + 1);
 				
-				if (elapsed >= FRAME_COUNTER_INTERVAL || elapsed - intendedElapsedTime > m_intendedFrameInterval + 0.00001)//frame arrived too late, reset frame counter
+				if (elapsed >= FRAME_COUNTER_INTERVAL
+					|| (m_lockFrameCaptureRateToFrameInterval && elapsed - intendedElapsedTime > m_intendedFrameInterval + 0.00001))//frame arrived too late, reset frame counter
 				{
 					m_firstCapturedFrameTime64 = time64;
 					m_numCapturedFrames = 0;

@@ -58,6 +58,13 @@ namespace HQRemote {
 		virtual bool start(bool preprocessEventAsync = false) override;
 		virtual void stop() override;
 
+		// if enable, the capture rate will be controlled by this class, regardless of how many time
+		// captureAndSendFrame() is called.
+		// Otherwise, the caller has to manually control the rate of captureAndSendFrame() being
+		// called.
+		void lockFrameCaptureRateToFrameInterval(bool lock);
+
+		// only used if lockFrameCaptureRateToFrameInterval is true. Experimental method.
 		void enableFrameIntervalAlternation(bool enable);
 
 		double getFrameInterval() const { return m_intendedFrameInterval; }
@@ -144,6 +151,7 @@ namespace HQRemote {
 		std::unique_ptr<std::thread> m_frameSendingThread;
 		std::vector<std::unique_ptr<std::thread> > m_frameCompressionThreads;
 		std::vector<std::unique_ptr<std::thread> > m_frameBundleThreads;
+		bool m_lockFrameCaptureRateToFrameInterval = true;
 		
 		const bool m_supportScreenshot, m_supportVideoRecord;
 		size_t m_frameBundleSize;
