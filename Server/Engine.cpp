@@ -27,6 +27,7 @@
 #include <fstream>
 #include <sstream>
 
+#define DEBUG_CAPTURE_FPS 0
 #define DEBUG_CAPTURED_FRAMES 0
 #define MAX_PENDING_FRAMES 4
 #define FRAME_COUNTER_INTERVAL 2.0//s
@@ -337,8 +338,8 @@ namespace HQRemote {
 			
 			m_numCapturedFrames++;
 
-#if defined DEBUG || defined _DEBUG
-			//HQRemote::Log("captured fps: %.2f\n", 1.f / m_frameCaptureInterval);
+#if DEBUG_CAPTURE_FPS
+			HQRemote::Log("captured fps: %.2f\n", 1.f / m_frameCaptureInterval);
 #endif
 
 			//send to frame compression threads
