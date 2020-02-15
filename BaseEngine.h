@@ -29,6 +29,7 @@
 #include <condition_variable>
 #include <thread>
 #include <vector>
+#include <deque>
 
 #if defined WIN32 || defined _MSC_VER
 #	pragma warning(push)
@@ -141,14 +142,14 @@ namespace HQRemote {
 
 		void updateCapturedAudioSettingsIfNeeded(bool notifyRemoteSide);
 
-		typedef std::list<ConstFrameEventRef> AudioQueue;
+		typedef std::deque<ConstFrameEventRef> AudioQueue;
 
 		std::shared_ptr<IConnectionHandler> m_connHandler;
 		std::shared_ptr<IAudioCapturer> m_audioCapturer;
 
 		//event queue
 		std::mutex m_eventLock;
-		std::list<ConstEventRef> m_eventQueue;
+		std::deque<ConstEventRef> m_eventQueue;
 
 		//data polling thread
 		std::mutex m_dataPollingLock;
@@ -157,7 +158,7 @@ namespace HQRemote {
 		//async task queue
 		std::mutex m_taskLock;
 		std::condition_variable m_taskCv;
-		std::list<std::function<void()> > m_taskQueue;
+		std::deque<std::function<void()> > m_taskQueue;
 		std::vector<std::unique_ptr<std::thread> > m_taskThreads;
 
 		//audio receiving & decoding
@@ -180,7 +181,7 @@ namespace HQRemote {
 		std::condition_variable m_audioSndCv;
 		std::unique_ptr<std::thread> m_audioSndThread;
 		std::shared_ptr<AudioEncoder> m_audioEncoder;
-		std::list<ConstDataRef> m_audioRawPackets;
+		std::deque<ConstDataRef> m_audioRawPackets;
 
 		uint64_t m_totalSentAudioPackets;
 		bool m_totalSentAudioPacketsCounterReset;

@@ -138,7 +138,7 @@ namespace HQRemote {
 
 		//frame compression & sending thread
 		typedef std::shared_ptr<CompressedEvents::EventList> FrameBundleRef;
-		std::list<CapturedFrame> m_capturedFramesForCompress;
+		std::deque<CapturedFrame> m_capturedFramesForCompress;
 		std::map<uint64_t, FrameBundleRef> m_incompleteFrameBundles;
 		std::map<uint64_t, FrameBundleRef> m_frameBundles;
 		std::map<uint64_t, DataRef> m_sendingFrames;
@@ -174,7 +174,7 @@ namespace HQRemote {
 		bool m_videoRecording;
 		
 		//screenshot saving thread
-		std::list<CapturedFrame> m_capturedFramesForSave;
+		std::deque<CapturedFrame> m_capturedFramesForSave;
 		std::unique_ptr<std::thread> m_screenshotThread;
 		std::mutex m_screenshotLock;
 		std::condition_variable m_screenshotCv;

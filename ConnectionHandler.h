@@ -37,6 +37,7 @@
 #include <map>
 #include <set>
 #include <list>
+#include <deque>
 #include <vector>
 #include <functional>
 #include <mutex>
@@ -193,7 +194,7 @@ namespace HQRemote {
 		int m_reliableBufferState;
 		MsgBuf m_reliableBuffer;
 		UnreliableBuffers m_unreliableBuffers;
-		std::list<ReceivedData> m_dataQueue;
+		std::deque<ReceivedData> m_dataQueue;
 		std::mutex m_dataLock;
 		std::condition_variable m_dataCv;
 
