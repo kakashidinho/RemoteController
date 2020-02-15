@@ -123,6 +123,10 @@ namespace HQRemote {
 
 		void enableCompatibleMode(bool e) { m_compatibleMode = e; }
 
+		// Default max  message size = 50 MB
+		uint32_t getMaxMsgSize() const { return m_maxMsgSize; }
+		void setMaxMsgSize(uint32_t size) { m_maxMsgSize = size; }
+
 		void registerDelegate(Delegate* delegate);
 		void unregisterDelegate(Delegate* delegate);
 		
@@ -157,7 +161,7 @@ namespace HQRemote {
 		void setInternalError(const char* msg);
 		
 		std::atomic<bool> m_running;
-		
+		uint32_t m_maxMsgSize;
 	private:
 		typedef std::map<uint64_t, MsgBuf> UnreliableBuffers;
 

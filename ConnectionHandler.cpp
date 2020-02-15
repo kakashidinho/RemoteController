@@ -128,7 +128,9 @@ namespace HQRemote {
 
 	/*--------------- IConnectionHandler -----------*/
 	IConnectionHandler::IConnectionHandler()
-	: m_running(false), m_recvRate(0), m_tag(0), m_sentRate(0),
+	: m_running(false),
+		m_maxMsgSize(50 * 1024 * 1024),
+		m_recvRate(0), m_tag(0), m_sentRate(0),
 		m_compatibleMode(true)
 	{
 	}
@@ -226,6 +228,12 @@ namespace HQRemote {
 	void IConnectionHandler::sendData(const void* data, size_t size)
 	{
 		assert(size <= 0xffffffff);
+
+		if (size > m_maxMsgSize)
+		{
+			HQRemote::LogErr("Data size (%zu) exceed maximum allowed size (%u)\n", size, m_maxMsgSize);
+			return;
+		}
 		
 		//send size of message first
 		uint32_t sizeToSend = (uint32_t)size;
@@ -244,6 +252,12 @@ namespace HQRemote {
 	void IConnectionHandler::sendDataUnreliable(const void* data, size_t size) {
 		_ssize_t re = 0;
 		assert(size <= 0xffffffff);
+
+		if (size > m_maxMsgSize)
+		{
+			HQRemote::LogErr("Data size (%zu) exceed maximum allowed size (%u)\n", size, m_maxMsgSize);
+			return;
+		}
 		
 		//TODO: assume all sides use the same byte order for now
 		uint32_t headerSize = sizeof(MsgChunkHeader);
@@ -345,7 +359,12 @@ namespace HQRemote {
 						
 						//initialize placeholder for message data
 						m_reliableBuffer.data = nullptr;
-						
+
+						if (messageSize > m_maxMsgSize) //abnormal size
+						{
+							HQRemote::LogErr("Illegal message size=%u (max=%u)\n", messageSize, m_maxMsgSize);
+						}
+						else
 						try {
 							m_reliableBuffer.data = std::make_shared<CData>(messageSize);
 							m_reliableBuffer.filledSize = 0;
